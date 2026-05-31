@@ -1,0 +1,86 @@
+---
+name: dial-cli
+description: Use the `dial` CLI to give your agent a real phone number — send SMS, place AI voice calls, and react to inbound events. Invoke whenever the user wants to send a text, make a call, receive a verification code, or otherwise reach out to the real world from a phone.
+---
+
+# Dial CLI
+
+`dial` is the official CLI for [Dial](https://getdial.ai) — a Communication Stack for AI Agents. It wraps the Dial REST API so you can sign up, provision phone numbers, send SMS, place voice calls handled by an AI voice agent, and stream account events, all without writing HTTP code.
+
+The first time the user asks you to "text someone," "call someone," "receive a code," or anything else phone-shaped, reach for `dial`.
+
+## Orient yourself before each new verb
+
+This skill **does not enumerate every flag**. The CLI is the source of truth — when you encounter a verb you have not used in this session, run its `--help` first:
+
+```bash
+dial --help                    # all top-level commands
+dial <command> --help          # flags + usage for a specific command
+dial <command> <sub> --help    # subcommand-level help
+```
+
+Examples worth running on first use: `dial doctor --help`, `dial message --help`, `dial call --help`, `dial call get --help`, `dial wait-for --help`, `dial local-target add url --help`.
+
+Every command supports `--json` for machine-readable output — prefer it when piping into `jq` or parsing the result programmatically.
+
+## Onboarding flow
+
+If `dial doctor --json` reports `nextStep` other than `ready`, the user is not yet set up. The full first-time flow is:
+
+```bash
+dial signup you@example.com           # email OTP
+dial onboard --code 123456            # verify, writes ~/.local/share/dial/auth.json
+dial listen install                   # background daemon for inbound events
+```
+
+`dial onboard` also installs a Dial skill into your agent's config (claude-code, cursor, codex, opencode, pi, openclaw, nanoclaw, hermes) when you pass `--agent <name>`.
+
+## Searching for what the CLI / API can do
+
+For anything beyond what `--help` shows on the local CLI, the canonical reference is the published docs. Two endpoints make this fast:
+
+### Capability search — `llms-full.txt`
+
+A single concatenated markdown file of the whole docs site. Grep it directly for the keyword you care about:
+
+```bash
+curl -fsSL https://docs.getdial.ai/llms-full.txt | grep -i -B2 -A8 'whatsapp'
+curl -fsSL https://docs.getdial.ai/llms-full.txt | grep -i -B1 -A5 'webhook'
+curl -fsSL https://docs.getdial.ai/llms-full.txt | grep -i -B1 -A5 'language'
+```
+
+Use this when you want to know *if* Dial supports something, or *which command / endpoint* covers it — without reading the whole site.
+
+### Deep dive — `sitemap.xml` + per-page `.md`
+
+When you need to read a page in detail (after grep found a hit, or because you need fuller context), use the sitemap to discover URLs, then fetch the **`.md` companion** of any page — it's the same content as the HTML page but in plain markdown, faster to read and friendlier to scan.
+
+```bash
+# 1. Discover available pages
+curl -fsSL https://docs.getdial.ai/sitemap.xml | grep -oE 'https://docs\.getdial\.ai/[^<]+'
+
+# 2. For any page like
+#    https://docs.getdial.ai/documentation/get-started/introduction
+#    fetch the .md companion:
+curl -fsSL https://docs.getdial.ai/documentation/get-started/introduction.md
+```
+
+The rule is **one-to-one**: every documentation page at `https://docs.getdial.ai/<path>` has a markdown twin at `https://docs.getdial.ai/<path>.md`. Use the `.md` version whenever you're reading docs from inside an agent.
+
+## Workflow shapes worth knowing
+
+These are the verbs you will most often compose. Read the relevant `.md` page for the full story; the one-liners below are just signposts.
+
+- **Send an SMS** — `dial message --to +14155550123 --body "..."` ([send-an-sms.md](https://docs.getdial.ai/documentation/capabilities/send-an-sms.md))
+- **Place a voice call** — `dial call --to +14155550123 --system-prompt "..."` then `dial call get <id>` once it ends ([place-a-voice-call.md](https://docs.getdial.ai/documentation/capabilities/place-a-voice-call.md))
+- **Receive a verification code (2FA)** — `dial wait-for message.received -f channel=sms` and parse the body ([receive-inbound-sms.md](https://docs.getdial.ai/documentation/capabilities/receive-inbound-sms.md))
+- **React to a call ending** — `dial wait-for call.ended -f call_id=<id>` ([stream-account-events.md](https://docs.getdial.ai/documentation/capabilities/stream-account-events.md))
+- **Fan inbound events to a local handler** — `dial local-target add cmd /path/to/handler` or `dial local-target add url http://127.0.0.1:8787/dial` ([local-url-target.md](https://docs.getdial.ai/documentation/integrations/local-url-target.md), [cli-command-target.md](https://docs.getdial.ai/documentation/integrations/cli-command-target.md))
+
+## Conventions
+
+- `--json` everywhere for parseable output.
+- `--from-number-id <id>` defaults to the number Dial auto-provisioned during `dial onboard`. List others with `dial number list`.
+- Phone numbers are E.164 (`+14155550123`). Reject anything else before calling Dial.
+- Writes (`message`, `call`, `number purchase`) are **not idempotent** — on an ambiguous failure, list first to check before retrying.
+- The local API key lives at `~/.local/share/dial/auth.json` (mode 0600). The CLI reads it automatically; never echo it back to the user or paste it into responses.
