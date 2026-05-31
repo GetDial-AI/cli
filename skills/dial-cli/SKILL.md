@@ -1,6 +1,6 @@
 ---
 name: dial-cli
-description: Use the `dial` CLI to give your agent a real phone number — send SMS, place AI voice calls, and react to inbound events. Invoke whenever the user wants to send a text, make a call, receive a verification code, or otherwise reach out to the real world from a phone.
+description: Reference for the `dial` CLI — gives an agent a real phone number to send SMS, place AI voice calls, and react to inbound texts and calls via the Dial platform (getdial.ai). Use when the user mentions phones, calls, texts, SMS, voice, OTP, 2FA, or verification codes; when they ask to text, call, ring, or wait for a code from someone; before running any `dial …` command for the first time in a session; or when investigating what the Dial platform can do. Load this skill before invoking the CLI — `dial --help` alone will not surface the workflows, the `--json` conventions, the onboarding/auth flow, or the docs-lookup pattern needed to use Dial correctly.
 ---
 
 # Dial CLI
