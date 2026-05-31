@@ -5,12 +5,12 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { installSkill, isSupportedAgent, readSkillMarkdown, SUPPORTED_AGENTS } from "./skill-install.ts";
+import { installSkill, isSupportedAgent, readSkillMarkdown, SKILL_NAME, SUPPORTED_AGENTS } from "./skill-install.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(here, "..", "..");
-const tarball = join(packageRoot, "skill.tar.gz");
-const skillSource = join(packageRoot, "skill", "SKILL.md");
+const tarball = join(packageRoot, "skills.tar.gz");
+const skillSource = join(packageRoot, "skills", SKILL_NAME, "SKILL.md");
 
 let tmp: string;
 
@@ -18,7 +18,7 @@ describe("skill-install", () => {
   before(() => {
     // Make sure the tarball exists for the install path (build it if needed).
     if (!existsSync(tarball)) {
-      execFileSync("tar", ["-czf", tarball, "skill"], { cwd: packageRoot, stdio: "pipe" });
+      execFileSync("tar", ["-czf", tarball, "skills"], { cwd: packageRoot, stdio: "pipe" });
     }
   });
 
@@ -43,36 +43,36 @@ describe("skill-install", () => {
   it("writes SKILL.md to claude-code's canonical user path", () => {
     const result = installSkill("claude-code", { home: tmp });
     assert.equal(result.written, true);
-    assert.equal(result.path, join(tmp, ".claude/skills/dial/SKILL.md"));
+    assert.equal(result.path, join(tmp, `.claude/skills/${SKILL_NAME}/SKILL.md`));
     assert.equal(readFileSync(result.path, "utf8"), readFileSync(skillSource, "utf8"));
   });
 
   it("writes SKILL.md to codex's canonical user path (~/.agents/skills/)", () => {
     const result = installSkill("codex", { home: tmp });
-    assert.equal(result.path, join(tmp, ".agents/skills/dial/SKILL.md"));
+    assert.equal(result.path, join(tmp, `.agents/skills/${SKILL_NAME}/SKILL.md`));
     assert.equal(existsSync(result.path), true);
   });
 
   it("writes SKILL.md to opencode's canonical user path", () => {
     const result = installSkill("opencode", { home: tmp });
-    assert.equal(result.path, join(tmp, ".config/opencode/skills/dial/SKILL.md"));
+    assert.equal(result.path, join(tmp, `.config/opencode/skills/${SKILL_NAME}/SKILL.md`));
   });
 
   it("writes SKILL.md to pi's canonical user path", () => {
     const result = installSkill("pi", { home: tmp });
-    assert.equal(result.path, join(tmp, ".pi/agent/skills/dial/SKILL.md"));
+    assert.equal(result.path, join(tmp, `.pi/agent/skills/${SKILL_NAME}/SKILL.md`));
   });
 
   it("writes SKILL.md to openclaw's canonical user path", () => {
     const result = installSkill("openclaw", { home: tmp });
-    assert.equal(result.path, join(tmp, ".openclaw/skills/dial/SKILL.md"));
+    assert.equal(result.path, join(tmp, `.openclaw/skills/${SKILL_NAME}/SKILL.md`));
   });
 
   it("writes SKILL.md to <cwd>/.claude/skills/ for nanoclaw (project-scoped)", () => {
     const projectDir = mkdtempSync(join(tmpdir(), "dial-nanoclaw-proj-"));
     try {
       const result = installSkill("nanoclaw", { home: tmp, cwd: projectDir });
-      assert.equal(result.path, join(projectDir, ".claude/skills/dial/SKILL.md"));
+      assert.equal(result.path, join(projectDir, `.claude/skills/${SKILL_NAME}/SKILL.md`));
       assert.equal(existsSync(result.path), true);
     } finally {
       rmSync(projectDir, { recursive: true, force: true });
@@ -81,12 +81,12 @@ describe("skill-install", () => {
 
   it("writes SKILL.md to hermes's canonical user path", () => {
     const result = installSkill("hermes", { home: tmp });
-    assert.equal(result.path, join(tmp, ".hermes/skills/dial/SKILL.md"));
+    assert.equal(result.path, join(tmp, `.hermes/skills/${SKILL_NAME}/SKILL.md`));
   });
 
   it("writes SKILL.md to cursor's canonical user path (~/.cursor/skills/)", () => {
     const result = installSkill("cursor", { home: tmp });
-    assert.equal(result.path, join(tmp, ".cursor/skills/dial/SKILL.md"));
+    assert.equal(result.path, join(tmp, `.cursor/skills/${SKILL_NAME}/SKILL.md`));
   });
 
   it("reports unchanged on a second install when content matches", () => {

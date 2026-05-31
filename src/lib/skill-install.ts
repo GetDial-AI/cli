@@ -4,6 +4,8 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+export const SKILL_NAME = "dial-cli";
+
 export const SUPPORTED_AGENTS = [
   "claude-code",
   "cursor",
@@ -36,21 +38,21 @@ export function isSupportedAgent(name: string): name is AgentName {
 function targetPath(agent: AgentName, home: string, cwd: string): string {
   switch (agent) {
     case "claude-code":
-      return join(home, ".claude", "skills", "dial", "SKILL.md");
+      return join(home, ".claude", "skills", SKILL_NAME, "SKILL.md");
     case "cursor":
-      return join(home, ".cursor", "skills", "dial", "SKILL.md");
+      return join(home, ".cursor", "skills", SKILL_NAME, "SKILL.md");
     case "codex":
-      return join(home, ".agents", "skills", "dial", "SKILL.md");
+      return join(home, ".agents", "skills", SKILL_NAME, "SKILL.md");
     case "opencode":
-      return join(home, ".config", "opencode", "skills", "dial", "SKILL.md");
+      return join(home, ".config", "opencode", "skills", SKILL_NAME, "SKILL.md");
     case "pi":
-      return join(home, ".pi", "agent", "skills", "dial", "SKILL.md");
+      return join(home, ".pi", "agent", "skills", SKILL_NAME, "SKILL.md");
     case "openclaw":
-      return join(home, ".openclaw", "skills", "dial", "SKILL.md");
+      return join(home, ".openclaw", "skills", SKILL_NAME, "SKILL.md");
     case "hermes":
-      return join(home, ".hermes", "skills", "dial", "SKILL.md");
+      return join(home, ".hermes", "skills", SKILL_NAME, "SKILL.md");
     case "nanoclaw":
-      return join(cwd, ".claude", "skills", "dial", "SKILL.md");
+      return join(cwd, ".claude", "skills", SKILL_NAME, "SKILL.md");
   }
 }
 
@@ -64,7 +66,7 @@ function packageRoot(): string {
 }
 
 export function tarballPath(): string {
-  return join(packageRoot(), "skill.tar.gz");
+  return join(packageRoot(), "skills.tar.gz");
 }
 
 export function readSkillMarkdown(tarball = tarballPath()): string {
@@ -77,9 +79,9 @@ export function readSkillMarkdown(tarball = tarballPath()): string {
   const tmp = mkdtempSync(join(tmpdir(), "dial-skill-"));
   try {
     execFileSync("tar", ["-xzf", tarball, "-C", tmp], { stdio: "pipe" });
-    const skillFile = join(tmp, "skill", "SKILL.md");
+    const skillFile = join(tmp, "skills", SKILL_NAME, "SKILL.md");
     if (!existsSync(skillFile)) {
-      throw new Error(`skill.tar.gz does not contain skill/SKILL.md (looked in ${tmp})`);
+      throw new Error(`skills.tar.gz does not contain skills/${SKILL_NAME}/SKILL.md (looked in ${tmp})`);
     }
     return readFileSync(skillFile, "utf8");
   } finally {

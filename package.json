@@ -1,6 +1,6 @@
 {
   "name": "@getdial/cli",
-  "version": "0.11.1",
+  "version": "0.12.0",
   "description": "Dial CLI — install, sign up, and run the local listen service.",
   "license": "MIT",
   "repository": {
@@ -21,14 +21,14 @@
   },
   "files": [
     "dist",
-    "skill.tar.gz",
+    "skills.tar.gz",
     "README.md"
   ],
   "scripts": {
     "build": "tsc -p .",
     "test": "node --import tsx --test",
-    "clean": "rm -rf dist skill.tar.gz",
-    "build:skill": "tar -czf skill.tar.gz skill",
+    "clean": "rm -rf dist skills.tar.gz",
+    "build:skill": "tar -czf skills.tar.gz skills",
     "prepack": "npm run build && npm run build:skill"
   },
   "dependencies": {
