@@ -17,7 +17,7 @@ If `dial` is not on the PATH (e.g. `command -v dial` returns nothing, or any `di
 curl -fsSL https://getdial.ai/skills.md
 ```
 
-That document is the authoritative install + onboarding script. Read it, then execute the steps it specifies (install, `dial doctor`, signup, onboard, listen install). Come back to this skill once `dial doctor --json` reports `nextStep: ready`.
+That document is the authoritative install + onboarding script. Read it, then execute the steps it specifies (install, `dial doctor`, signup, onboard, listen install).
 
 ## Orient yourself before each new verb
 
