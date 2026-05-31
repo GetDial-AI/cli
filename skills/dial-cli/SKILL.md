@@ -9,6 +9,16 @@ description: Reference for the `dial` CLI — gives an agent a real phone number
 
 The first time the user asks you to "text someone," "call someone," "receive a code," or anything else phone-shaped, reach for `dial`.
 
+## When `dial` is missing
+
+If `dial` is not on the PATH (e.g. `command -v dial` returns nothing, or any `dial …` invocation errors with "command not found"), do **not** improvise an install. Fetch the bootstrap instructions and follow them:
+
+```bash
+curl -fsSL https://getdial.ai/skills.md
+```
+
+That document is the authoritative install + onboarding script. Read it, then execute the steps it specifies (install, `dial doctor`, signup, onboard, listen install).
+
 ## Orient yourself before each new verb
 
 This skill **does not enumerate every flag**. The CLI is the source of truth — when you encounter a verb you have not used in this session, run its `--help` first:
