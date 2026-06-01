@@ -11,6 +11,7 @@ import { runListenStatus } from "./commands/listen/status.ts";
 import { runWaitFor } from "./commands/wait-for.ts";
 import { runNumberList } from "./commands/number/list.ts";
 import { runNumberPurchase } from "./commands/number/purchase.ts";
+import { runNumberSet } from "./commands/number/set.ts";
 import { runMessageSend } from "./commands/message/send.ts";
 import { runMessageList } from "./commands/message/list.ts";
 import { runCallSend } from "./commands/call/send.ts";
@@ -47,6 +48,7 @@ program
   .description("Verify the OTP and finish onboarding.")
   .option("--verification-id <id>", "explicit verification id (falls back to local pending signup)")
   .requiredOption("--code <code>", "6-digit OTP from your email")
+  .option("--inbound-instruction <text>", "system prompt for inbound calls to your auto-provisioned number (required for a new account; ignored when signing in)")
   .option(
     "--agent <name>",
     "install the Dial skill into the named agent's config dir. One of: claude-code, cursor, codex, opencode, pi, openclaw, nanoclaw, hermes. Repeatable.",
@@ -58,6 +60,7 @@ program
     process.exit(await runOnboard({
       verificationId: opts.verificationId,
       code: opts.code,
+      inboundInstruction: opts.inboundInstruction,
       agents: opts.agent as string[],
       json: !!opts.json,
     })),
@@ -99,13 +102,28 @@ number
 number
   .command("purchase")
   .description("Purchase an additional phone number. POST /api/v1/numbers.")
+  .requiredOption("--inbound-instruction <text>", "system prompt for inbound calls to this number")
   .option("--country <iso2>", "ISO-3166-1 alpha-2 country code (defaults to US server-side)")
   .option("--area-code <code>", "preferred area code (US/CA)")
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(await runNumberPurchase({
+      inboundInstruction: opts.inboundInstruction,
       country: opts.country,
       areaCode: opts.areaCode,
+      json: !!opts.json,
+    })),
+  );
+
+number
+  .command("set <number>")
+  .description("Update a number's inbound instruction. PATCH /api/v1/numbers/<id>.")
+  .requiredOption("--inbound-instruction <text>", "new system prompt for inbound calls to this number")
+  .option("--json", "machine-readable output")
+  .action(async (numberArg: string, opts) =>
+    process.exit(await runNumberSet({
+      number: numberArg,
+      inboundInstruction: opts.inboundInstruction,
       json: !!opts.json,
     })),
   );
@@ -150,18 +168,18 @@ const call = program
   .command("call")
   .description("Place an outbound voice call. POST /api/v1/calls.")
   .option("--to <e164>", "destination phone number, E.164 (e.g. +14155551234)")
-  .option("--system-prompt <text>", "system prompt for the agent that will speak")
+  .option("--outbound-instruction <text>", "system prompt for the agent that will speak")
   .option("--language <bcp47>", "BCP-47 language tag for the call", "en-US")
   .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number)")
   .option("--json", "machine-readable output")
   .action(async (opts) => {
-    if (!opts.to || !opts.systemPrompt) {
-      console.error("error: --to and --system-prompt are required to place a call. Use `dial call list` to list, `dial call get <id>` to fetch one, or `dial call --help` for usage.");
+    if (!opts.to || !opts.outboundInstruction) {
+      console.error("error: --to and --outbound-instruction are required to place a call. Use `dial call list` to list, `dial call get <id>` to fetch one, or `dial call --help` for usage.");
       process.exit(2);
     }
     process.exit(await runCallSend({
       to: opts.to,
-      systemPrompt: opts.systemPrompt,
+      outboundInstruction: opts.outboundInstruction,
       language: opts.language,
       fromNumberId: opts.fromNumberId,
       json: !!opts.json,

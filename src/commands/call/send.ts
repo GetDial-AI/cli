@@ -7,13 +7,13 @@ type CallRow = {
   to: string;
   direction: string;
   status: string;
-  systemPrompt: string | null;
+  instruction: string | null;
 };
 type CallResponse = { call: CallRow };
 
 export type CallSendOptions = {
   to: string;
-  systemPrompt: string;
+  outboundInstruction: string;
   language: string;
   fromNumberId?: string;
   json: boolean;
@@ -37,7 +37,7 @@ export async function runCallSend(opts: CallSendOptions): Promise<number> {
     {
       to: opts.to,
       fromNumberId,
-      systemPrompt: opts.systemPrompt,
+      outboundInstruction: opts.outboundInstruction,
       language: opts.language,
     },
     auth.apiKey,

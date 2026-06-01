@@ -19,6 +19,7 @@ type VerifyResponse = {
 export type OnboardOptions = {
   verificationId?: string;
   code: string;
+  inboundInstruction?: string;
   agents?: string[];
   json?: boolean;
 };
@@ -48,7 +49,13 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
     email = pending.email;
   }
 
-  const res = await apiPost<VerifyResponse>("/api/v1/auth/verify", { verificationId, code: opts.code });
+  const res = await apiPost<VerifyResponse>("/api/v1/auth/verify", {
+    verificationId,
+    code: opts.code,
+    // Sent only when provided; the server requires it when provisioning a first
+    // number (new account) and ignores it when signing in.
+    ...(opts.inboundInstruction ? { inboundInstruction: opts.inboundInstruction } : {}),
+  });
   if (!res.ok) {
     if (opts.json) console.log(JSON.stringify({ ok: false, code: "verify_failed", status: res.status, error: res.error }));
     else console.error(`onboard failed: ${res.error}`);

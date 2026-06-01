@@ -22,7 +22,8 @@ Requires **Node.js 22+**.
 
 ```bash
 dial signup you@example.com      # email a 6-digit sign-up code
-dial onboard --code 123456       # verify the code and provision your account
+dial onboard --code 123456 \     # verify the code and provision your account
+  --inbound-instruction "You are my receptionist. Greet the caller and find out what they need."
 dial doctor                      # check account state and what to do next
 ```
 
@@ -33,7 +34,7 @@ Once onboarded, your API key is saved locally and the CLI uses it automatically.
 dial message --to +14155550123 --body "Hello from Dial"
 
 # Place an AI voice call
-dial call --to +14155550123 --system-prompt "You are a helpful scheduling assistant."
+dial call --to +14155550123 --outbound-instruction "You are a helpful scheduling assistant."
 
 # Wait for an inbound event (e.g. a verification code)
 dial wait-for message.received --field to=+14155550123
@@ -48,6 +49,7 @@ dial wait-for message.received --field to=+14155550123
 | `dial onboard --code <code>` | Verify the code and finish onboarding. |
 | `dial number list` | List the phone numbers on your account. |
 | `dial number purchase` | Purchase an additional phone number. |
+| `dial number set <number>` | Update a number's inbound instruction. |
 | `dial message` | Send an SMS. |
 | `dial message list` | List recent messages. |
 | `dial call` | Place an outbound AI voice call. |

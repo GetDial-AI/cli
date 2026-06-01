@@ -10,7 +10,7 @@ type CallRow = {
   status: string;
   duration: number;
   transcript: string | null;
-  systemPrompt: string | null;
+  instruction: string | null;
   createdAt: string;
 };
 type ListResponse = { calls: CallRow[] };
