@@ -10,6 +10,20 @@ function isSystemctlNotLoaded(err: unknown): boolean {
   return /not loaded|does not exist|Unit .* not found/i.test(text);
 }
 
+/**
+ * True when the error means systemd simply isn't usable here — no systemctl on
+ * PATH, or no user session bus (sandbox / container / CI / non-systemd distro).
+ * These are expected on many machines, so they should be logged at debug, not
+ * dumped as a scary warning with a full stack trace.
+ */
+function isSystemdUnavailable(err: unknown): boolean {
+  const e = err as NodeJS.ErrnoException & { stderr?: Buffer | string };
+  if (e.code === "ENOENT") return true; // systemctl / loginctl not installed
+  const stderr = e.stderr ? e.stderr.toString() : "";
+  const text = stderr || e.message || "";
+  return /Failed to connect to bus|No medium found|XDG_RUNTIME_DIR|not been booted with systemd|Connection refused|Permission denied/i.test(text);
+}
+
 function isEnoent(err: unknown): boolean {
   return (err as NodeJS.ErrnoException).code === "ENOENT";
 }
@@ -77,7 +91,9 @@ export function systemctlStatus(): { running: boolean; pid: number | null } {
     const pid = m ? parseInt(m[1], 10) : 0;
     return { running: active, pid: active && pid > 0 ? pid : null };
   } catch (err) {
-    logger.warn({ err }, "systemctl show failed");
+    // Expected on machines without a systemd user session — stay quiet there.
+    if (isSystemdUnavailable(err)) logger.debug({ err }, "systemd not available; treating listen service as not running");
+    else logger.warn({ err }, "systemctl show failed");
     return { running: false, pid: null };
   }
 }
@@ -87,7 +103,8 @@ export function lingerEnabled(user: string): boolean {
     const out = execFileSync("loginctl", ["show-user", user, "--property=Linger"], { stdio: ["ignore", "pipe", "ignore"] }).toString();
     return /Linger=yes/.test(out);
   } catch (err) {
-    logger.warn({ err, user }, "loginctl show-user failed; assuming linger disabled");
+    if (isSystemdUnavailable(err)) logger.debug({ err, user }, "loginctl unavailable; assuming linger disabled");
+    else logger.warn({ err, user }, "loginctl show-user failed; assuming linger disabled");
     return false;
   }
 }

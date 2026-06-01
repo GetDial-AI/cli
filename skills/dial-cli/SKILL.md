@@ -39,11 +39,16 @@ If `dial doctor --json` reports `nextStep` other than `ready`, the user is not y
 
 ```bash
 dial signup you@example.com           # email OTP
-dial onboard --code 123456            # verify, writes ~/.local/share/dial/auth.json
+dial onboard --code 123456 \          # verify, writes ~/.local/share/dial/auth.json
+  --inbound-instruction "You are my receptionist. Greet the caller and find out what they need."
 dial listen install                   # background daemon for inbound events
 ```
 
+`--inbound-instruction` is **required when onboarding provisions your first number** (a new account) — it's the system prompt the AI voice agent uses on calls *to* your number. It's ignored when signing in to an existing account. Change it later with `dial number set <number> --inbound-instruction "..."`.
+
 `dial onboard` also installs a Dial skill into your agent's config (claude-code, cursor, codex, opencode, pi, openclaw, nanoclaw, hermes) when you pass `--agent <name>`.
+
+`dial listen install` needs a user service supervisor (launchd on macOS, systemd `--user` on Linux). In sandboxes / containers / CI without one it can't run — `dial onboard` detects this and says so. Inbound events still work without it: `dial wait-for` long-polls the API when the daemon isn't running.
 
 ## Searching for what the CLI / API can do
 
