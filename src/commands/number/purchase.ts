@@ -5,6 +5,7 @@ type PhoneNumberRow = { id: string; number: string; country: string };
 type PurchaseResponse = { number: PhoneNumberRow };
 
 export type NumberPurchaseOptions = {
+  inboundInstruction: string;
   country?: string;
   areaCode?: string;
   json: boolean;
@@ -17,7 +18,7 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
     return 1;
   }
 
-  const body: Record<string, unknown> = {};
+  const body: Record<string, unknown> = { inboundInstruction: opts.inboundInstruction };
   if (opts.country) body.country = opts.country;
   if (opts.areaCode) body.areaCode = opts.areaCode;
 

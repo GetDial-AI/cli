@@ -17,7 +17,11 @@ export async function apiGet<T>(path: string, apiKey?: string): Promise<ApiResul
   return apiRequest<T>("GET", path, undefined, apiKey);
 }
 
-async function apiRequest<T>(method: "GET" | "POST", path: string, body: unknown, apiKey?: string): Promise<ApiResult<T>> {
+export async function apiPatch<T>(path: string, body: unknown, apiKey?: string): Promise<ApiResult<T>> {
+  return apiRequest<T>("PATCH", path, body, apiKey);
+}
+
+async function apiRequest<T>(method: "GET" | "POST" | "PATCH", path: string, body: unknown, apiKey?: string): Promise<ApiResult<T>> {
   const url = `${baseUrl()}${path}`;
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;

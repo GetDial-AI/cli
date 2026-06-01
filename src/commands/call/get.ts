@@ -10,7 +10,7 @@ type CallRow = {
   status: string;
   duration: number;
   transcript: string | null;
-  systemPrompt: string | null;
+  instruction: string | null;
   createdAt: string;
 };
 type GetResponse = { call: CallRow };
@@ -46,9 +46,9 @@ export async function runCallGet(opts: CallGetOptions): Promise<number> {
   console.log(`status:     ${c.status}`);
   console.log(`duration:   ${c.duration}s`);
   console.log(`created:    ${c.createdAt}`);
-  if (c.systemPrompt) {
-    console.log(`systemPrompt:`);
-    console.log(c.systemPrompt);
+  if (c.instruction) {
+    console.log(`instruction:`);
+    console.log(c.instruction);
   }
   if (c.transcript) {
     console.log(`transcript:`);
