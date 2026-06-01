@@ -84,7 +84,7 @@ These are the verbs you will most often compose. Read the relevant `.md` page fo
 - **Send an SMS** — `dial message --to +14155550123 --body "..."` ([send-an-sms.md](https://docs.getdial.ai/documentation/capabilities/send-an-sms.md))
 - **Place a voice call** — `dial call --to +14155550123 --system-prompt "..."` then `dial call get <id>` once it ends ([place-a-voice-call.md](https://docs.getdial.ai/documentation/capabilities/place-a-voice-call.md))
 - **Receive a verification code (2FA)** — `dial wait-for message.received -f channel=sms` and parse the body ([receive-inbound-sms.md](https://docs.getdial.ai/documentation/capabilities/receive-inbound-sms.md))
-- **React to a call ending** — `dial wait-for call.ended -f call_id=<id>` ([stream-account-events.md](https://docs.getdial.ai/documentation/capabilities/stream-account-events.md))
+- **React to a call ending** — `dial wait-for call.ended -f callId=<id>`. Fires however the call ends — completed, failed, **or cancelled** — carrying the terminal `status` and a `canceled` flag, so the wait always resolves ([stream-account-events.md](https://docs.getdial.ai/documentation/capabilities/stream-account-events.md))
 - **Fan inbound events to a local handler** — `dial local-target add cmd /path/to/handler` or `dial local-target add url http://127.0.0.1:8787/dial` ([local-url-target.md](https://docs.getdial.ai/documentation/integrations/local-url-target.md), [cli-command-target.md](https://docs.getdial.ai/documentation/integrations/cli-command-target.md))
 
 ## Conventions
