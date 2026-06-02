@@ -21,6 +21,7 @@ import { runLocalTargetAddUrl } from "./commands/local-target/add-url.ts";
 import { runLocalTargetAddCmd } from "./commands/local-target/add-cmd.ts";
 import { runLocalTargetRemove } from "./commands/local-target/remove.ts";
 import { runLocalTargetList } from "./commands/local-target/list.ts";
+import { runMcp } from "./commands/mcp.ts";
 
 const program = new Command();
 
@@ -284,6 +285,11 @@ program
       json: !!opts.json,
     }))
   );
+
+program
+  .command("mcp")
+  .description("Run a local stdio MCP server exposing Dial as agent tools (reuses your saved API key).")
+  .action(async () => process.exit(await runMcp()));
 
 program.parseAsync(process.argv).catch((err) => {
   console.error(err instanceof Error ? err.message : String(err));
