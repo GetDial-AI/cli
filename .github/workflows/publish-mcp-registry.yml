@@ -1,0 +1,93 @@
+name: Publish to MCP Registry
+
+# Policy (mirrors publish.yml):
+#   - Any PR that touches server.json must also bump its `version`.
+#     The PR check fails otherwise.
+#   - On push to main with server.json changed: publish to the official
+#     MCP Registry. If the version is already published, mcp-publisher exits
+#     non-zero — that's a bug the PR guard should have prevented.
+#
+# Auth is GitHub OIDC (no stored secret). It authorizes the
+# io.github.GetDial-AI/* namespace because this repo lives under GetDial-AI.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server.json'
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write # mandatory for GitHub OIDC auth
+
+concurrency:
+  group: publish-mcp-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version-bump-required:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require version bump when server.json changes
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E '^server\.json$' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "server.json unchanged — version bump not required."
+            echo "## MCP Registry version bump not required" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "This PR doesn't touch \`server.json\`." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          BASE_VERSION=$(git show "$BASE_SHA:server.json" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); console.log(j.version)')
+          HEAD_VERSION=$(node -e 'const j=JSON.parse(require("fs").readFileSync("server.json","utf8")); console.log(j.version)')
+
+          echo "base version: $BASE_VERSION"
+          echo "head version: $HEAD_VERSION"
+
+          if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+            {
+              echo "## MCP Registry version bump required"
+              echo ""
+              echo "This PR changes \`server.json\` but doesn't bump its \`version\` (still \`$HEAD_VERSION\`)."
+              echo ""
+              echo "Bump \`server.json\` \`version\` before merging — the registry rejects re-publishing an existing version."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::server.json version unchanged ($HEAD_VERSION) despite server.json changes. Bump the version."
+            exit 1
+          fi
+
+          {
+            echo "## MCP Registry version bump OK"
+            echo ""
+            echo "\`$BASE_VERSION\` → \`$HEAD_VERSION\`. Merging will publish \`io.github.GetDial-AI/dial@$HEAD_VERSION\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Version bumped: $BASE_VERSION → $HEAD_VERSION."
+
+  publish:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Validate server.json
+        run: ./mcp-publisher validate
+
+      - name: Publish to the MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
