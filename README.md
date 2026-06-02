@@ -84,6 +84,17 @@ dial onboard --code 123456 --agent claude-code
 
 Supported agents: `claude-code`, `cursor`, `codex`, `opencode`, `pi`, `openclaw`, `nanoclaw`, `hermes`.
 
+## Local MCP server
+
+`dial mcp` runs a local [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, exposing every command as an agent tool. Point a local MCP client at `dial mcp` as the server command — it reuses the API key saved by `dial onboard` (no OAuth, no config). It's the local counterpart to the hosted [Remote MCP](https://docs.getdial.ai/integrations/tools/remote-mcp) server, with the same operational tools plus the local-only verbs (`signup`, `onboard`, `listen`, `local-target`).
+
+```bash
+# Claude Code, for example
+claude mcp add dial -- dial mcp
+```
+
+See the [Local MCP](https://docs.getdial.ai/integrations/tools/local-mcp) docs for client setup.
+
 ## Documentation
 
 Full documentation lives at **[docs.getdial.ai](https://docs.getdial.ai)** — including the [CLI reference](https://docs.getdial.ai/documentation/cli/commands) and the [listen service](https://docs.getdial.ai/documentation/cli/listen-service) guide.
