@@ -5,10 +5,7 @@ import { DialError } from "./errors.ts";
 export function requireAuth(): Auth {
   const auth = readAuth();
   if (!auth) {
-    throw new DialError(
-      "not_signed_in",
-      "Not signed in. Run the sign_up and onboard tools (or `dial signup` / `dial onboard`) first.",
-    );
+    throw new DialError("not_signed_in", "Not signed in. Run `dial signup` and `dial onboard` first.");
   }
   return auth;
 }
@@ -17,10 +14,7 @@ export function requireAuth(): Auth {
 export function requireFromNumberId(auth: Auth, override?: string): string {
   const id = override ?? auth.phoneNumberId;
   if (!id) {
-    throw new DialError(
-      "no_from_number",
-      "No default phone number on this account. Provide fromNumberId.",
-    );
+    throw new DialError("no_from_number", "No default phoneNumberId in auth. Pass --from-number-id <id>.");
   }
   return id;
 }
