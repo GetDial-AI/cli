@@ -17,7 +17,11 @@ export const addUrlTargetTool: ToolModule = {
     title: "Add URL Fan-out Target",
     description: "Register a loopback HTTP endpoint the local listen daemon delivers each event to.",
     inputSchema,
-    annotations: {},
+    outputSchema: {
+      added: z.boolean().describe("False if the target was already registered"),
+      url: z.string(),
+    },
+    annotations: { openWorldHint: false },
   },
   run: async (args) =>
     jsonResult(
