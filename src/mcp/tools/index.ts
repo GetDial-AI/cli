@@ -10,6 +10,7 @@ import { getCallTool } from "./get-call.ts";
 import { getAccountStatusTool } from "./get-account-status.ts";
 import { signUpTool } from "./sign-up.ts";
 import { onboardTool } from "./onboard.ts";
+import { waitForEventTool } from "./wait-for-event.ts";
 
 /** Every tool registered on the local stdio MCP server. */
 export const tools: ToolModule[] = [
@@ -24,4 +25,5 @@ export const tools: ToolModule[] = [
   getAccountStatusTool,
   signUpTool,
   onboardTool,
+  waitForEventTool,
 ];
