@@ -11,9 +11,11 @@ export interface ToolModule {
     title: string;
     description: string;
     inputSchema: ZodRawShape;
+    outputSchema?: ZodRawShape;
     annotations?: {
       readOnlyHint?: boolean;
       destructiveHint?: boolean;
+      idempotentHint?: boolean;
       openWorldHint?: boolean;
     };
   };

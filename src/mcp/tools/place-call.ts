@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { ToolModule } from "../tool.ts";
 import { jsonResult } from "../result.ts";
 import { placeCall } from "../../lib/ops/calls.ts";
+import { callSchema } from "../schemas.ts";
 
 const inputSchema = {
   to: z.string().min(7).describe("Destination phone number, E.164 (e.g. +14155550123)"),
@@ -18,6 +19,7 @@ export const placeCallTool: ToolModule = {
       "Place an outbound voice call handled by an AI agent. The call runs asynchronously — " +
       "use wait_for_event to block until it ends, then get_call for the transcript.",
     inputSchema,
+    outputSchema: { call: callSchema, hint: z.string().describe("Next-step guidance for tracking the call") },
     annotations: { openWorldHint: true },
   },
   run: async (args) => {

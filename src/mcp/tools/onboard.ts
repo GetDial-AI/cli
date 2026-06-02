@@ -18,6 +18,16 @@ export const onboardTool: ToolModule = {
       "Verify the sign-up OTP and finish onboarding: saves the API key locally and optionally installs " +
       "the Dial skill into named agents. Returns the account summary (the raw API key is never returned).",
     inputSchema,
+    outputSchema: {
+      apiKeyFingerprint: z.string().describe("Last 4 chars of the saved API key"),
+      apiKeyPath: z.string().describe("Where the key was saved"),
+      accountId: z.string(),
+      phoneNumber: z.string().nullable(),
+      phoneNumberId: z.string().nullable(),
+      skills: z.array(z.object({}).passthrough()).describe("Per-agent skill install results"),
+      supervisor: z.object({}).passthrough().describe("Listen daemon availability on this machine"),
+      listenAvailable: z.boolean(),
+    },
     annotations: { openWorldHint: true },
   },
   run: async (args) => {

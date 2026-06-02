@@ -15,7 +15,12 @@ export const addCommandTargetTool: ToolModule = {
     title: "Add Command Fan-out Target",
     description: "Register an executable the local listen daemon runs once per event (event JSON as the final arg).",
     inputSchema,
-    annotations: {},
+    outputSchema: {
+      added: z.boolean().describe("False if the target was already registered"),
+      path: z.string(),
+      args: z.array(z.string()),
+    },
+    annotations: { openWorldHint: false },
   },
   run: async (args) =>
     jsonResult(

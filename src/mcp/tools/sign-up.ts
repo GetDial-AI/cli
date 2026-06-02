@@ -16,6 +16,10 @@ export const signUpTool: ToolModule = {
       "Request an email OTP for a Dial account. The code is emailed; finish with the onboard tool. " +
       "Stores the pending verification locally.",
     inputSchema,
+    outputSchema: {
+      verificationId: z.string().describe("Pending verification id (also stored locally)"),
+      email: z.string(),
+    },
     annotations: { openWorldHint: true },
   },
   run: async (args) => jsonResult(await signup({ email: args.email as string, force: args.force as boolean | undefined })),

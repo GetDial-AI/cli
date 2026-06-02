@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { ToolModule } from "../tool.ts";
 import { jsonResult } from "../result.ts";
 import { waitForEvent } from "../../lib/ops/events.ts";
+import { eventSchema } from "../schemas.ts";
 
 const inputSchema = {
   eventType: z.string().min(1).describe('Event type to wait for (e.g. "call.ended", "message.received")'),
@@ -18,6 +19,12 @@ export const waitForEventTool: ToolModule = {
       "Block until a matching account event arrives. Reads the local listen log when the daemon " +
       "is running, otherwise long-polls the REST API. Returns the event, or a timeout result.",
     inputSchema,
+    outputSchema: {
+      source: z.string().nullable().describe('"log", "api", or null when nothing matched'),
+      timedOut: z.boolean(),
+      event: eventSchema.nullable(),
+      line: z.string().nullable().describe("Raw matched event line, when available"),
+    },
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
   run: async (args) =>

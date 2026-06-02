@@ -1,5 +1,7 @@
 # @getdial/cli
 
+[![smithery badge](https://smithery.ai/badge/getdial-ai/dial)](https://smithery.ai/servers/getdial-ai/dial)
+
 The official command-line interface for [Dial](https://getdial.ai) — a communication stack for AI agents. Provision phone numbers, send SMS, place AI voice calls, and react to inbound events, all from your terminal. The CLI wraps the [Dial REST API](https://docs.getdial.ai) so you never have to write HTTP code.
 
 ## Installation
