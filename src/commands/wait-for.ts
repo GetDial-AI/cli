@@ -1,9 +1,5 @@
-import { readAuth } from "../lib/state.ts";
-import { paths } from "../lib/paths.ts";
-import { supervisorStatus } from "../lib/supervisor/index.ts";
-import { parseFieldArg, parseRegexArg, type MatchSpec } from "../lib/event-filter.ts";
-import { currentSize, findLatestMatch, tailUntilMatch } from "../lib/log-tail.ts";
-import { apiPost } from "../lib/api.ts";
+import { waitForEvent } from "../lib/ops/events.ts";
+import { isDialError } from "../lib/ops/errors.ts";
 
 export type WaitForOptions = {
   eventType: string;
@@ -13,90 +9,50 @@ export type WaitForOptions = {
   json: boolean;
 };
 
-const PER_POLL_SECONDS = 30;
-
 export async function runWaitFor(opts: WaitForOptions): Promise<number> {
-  const spec: MatchSpec = {
-    eventType: opts.eventType,
-    fields: opts.fields.map(parseFieldArg),
-    regexes: opts.regexes.map(parseRegexArg),
-  };
-
-  const status = supervisorStatus();
-  if (status.installed && status.running) {
-    return waitFromLog(spec, opts);
+  let r;
+  try {
+    r = await waitForEvent({
+      eventType: opts.eventType,
+      fields: opts.fields,
+      regexes: opts.regexes,
+      timeoutSeconds: opts.timeoutSeconds,
+    });
+  } catch (e) {
+    if (!isDialError(e)) throw e;
+    // not_signed_in (no auth on the API path) or api_fallback_failed
+    fail(opts.json, e.code, e.message, e.status ? { status: e.status } : undefined);
+    return e.code === "api_fallback_failed" ? 4 : 1;
   }
-  return waitFromApi(spec, opts);
-}
 
-async function waitFromLog(spec: MatchSpec, opts: WaitForOptions): Promise<number> {
-  const file = paths().listenLog;
-  const startOffset = currentSize(file);
-  const hit = await tailUntilMatch(file, spec, startOffset, opts.timeoutSeconds * 1000);
-  if (hit) {
-    process.stdout.write(hit.line + "\n");
+  // Hit: print the raw line and succeed.
+  if (!r.timedOut && r.line != null) {
+    process.stdout.write(r.line + "\n");
     return 0;
   }
-  const fallback = findLatestMatch(file, spec);
-  if (fallback) {
+
+  // Timed out tailing the log, but there was an earlier matching entry.
+  if (r.source === "log" && r.line != null) {
     if (opts.json) {
-      console.log(JSON.stringify({ ok: false, timeout: true, source: "log", event: fallback.obj }));
+      console.log(JSON.stringify({ ok: false, timeout: true, source: "log", event: r.event }));
     } else {
       console.error(`timed out after ${opts.timeoutSeconds}s; latest matching entry in log:`);
-      process.stdout.write(fallback.line + "\n");
+      process.stdout.write(r.line + "\n");
     }
     return 1;
   }
-  if (opts.json) {
-    console.log(JSON.stringify({ ok: false, timeout: true, source: null, event: null }));
-  } else {
-    console.error(`timed out after ${opts.timeoutSeconds}s; no matching ${opts.eventType} entry in log.`);
-  }
-  return 2;
-}
 
-async function waitFromApi(spec: MatchSpec, opts: WaitForOptions): Promise<number> {
-  const auth = readAuth();
-  if (!auth) {
-    fail(opts.json, "not_signed_in", "Not signed in. Run `dial signup` and `dial onboard` first.");
-    return 1;
+  // Timed out tailing the log with no prior match at all.
+  if (r.source === "log") {
+    if (opts.json) {
+      console.log(JSON.stringify({ ok: false, timeout: true, source: null, event: null }));
+    } else {
+      console.error(`timed out after ${opts.timeoutSeconds}s; no matching ${opts.eventType} entry in log.`);
+    }
+    return 2;
   }
 
-  const filters: Record<string, string> = {};
-  for (const f of spec.fields) filters[f.name] = f.value;
-
-  const regexFilters: Record<string, { pattern: string; flags: string }> = {};
-  for (const r of spec.regexes) regexFilters[r.name] = { pattern: r.regex.source, flags: r.regex.flags };
-
-  const deadline = Date.now() + opts.timeoutSeconds * 1000;
-  while (Date.now() < deadline) {
-    const remainingSec = Math.max(1, Math.ceil((deadline - Date.now()) / 1000));
-    const timeout = Math.min(PER_POLL_SECONDS, remainingSec);
-
-    const res = await apiPost<{ event: unknown }>(
-      "/api/v1/events/wait",
-      {
-        eventType: spec.eventType,
-        filters: Object.keys(filters).length > 0 ? filters : undefined,
-        regexFilters: Object.keys(regexFilters).length > 0 ? regexFilters : undefined,
-        timeout,
-      },
-      auth.apiKey,
-    );
-
-    if (res.ok && res.data?.event) {
-      process.stdout.write(JSON.stringify(res.data.event) + "\n");
-      return 0;
-    }
-    if (res.ok === false && res.status === 408) {
-      continue;
-    }
-    if (res.ok === false) {
-      fail(opts.json, "api_fallback_failed", res.error, { status: res.status });
-      return 4;
-    }
-  }
-
+  // Timed out on the API fallback.
   if (opts.json) {
     console.log(JSON.stringify({ ok: false, timeout: true, source: "api", event: null }));
   } else {

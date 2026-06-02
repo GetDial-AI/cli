@@ -63,8 +63,9 @@ dial wait-for message.received --field to=+14155550123
 | `dial local-target add cmd <path>` | Run an executable once per event. |
 | `dial local-target list` | List registered fan-out targets. |
 | `dial local-target remove <id>` | Unregister a fan-out target. |
+| `dial mcp` | Run a local stdio MCP server exposing every command as an agent tool. |
 
-Run `dial --help` for the full command tree, or `dial <command> --help` for a specific command's flags. Every command accepts `--json` for machine-readable output.
+Run `dial --help` for the full command tree, or `dial <command> --help` for a specific command's flags. Every command accepts `--json` for machine-readable output (except `dial mcp`, which speaks JSON-RPC on stdout).
 
 ## Configuration
 
@@ -83,6 +84,17 @@ dial onboard --code 123456 --agent claude-code
 ```
 
 Supported agents: `claude-code`, `cursor`, `codex`, `opencode`, `pi`, `openclaw`, `nanoclaw`, `hermes`.
+
+## Local MCP server
+
+`dial mcp` runs a local [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, exposing every command as an agent tool. Point a local MCP client at `dial mcp` as the server command — it reuses the API key saved by `dial onboard` (no OAuth, no config). It's the local counterpart to the hosted [Remote MCP](https://docs.getdial.ai/integrations/tools/remote-mcp) server, with the same operational tools plus the local-only verbs (`signup`, `onboard`, `listen`, `local-target`).
+
+```bash
+# Claude Code, for example
+claude mcp add dial -- dial mcp
+```
+
+See the [Local MCP](https://docs.getdial.ai/integrations/tools/local-mcp) docs for client setup.
 
 ## Documentation
 

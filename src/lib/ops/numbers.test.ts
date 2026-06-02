@@ -1,0 +1,70 @@
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { writeAuth } from "../state.ts";
+import { startMockApi } from "../../test-utils.ts";
+import { listNumbers, purchaseNumber, setNumberProperties } from "./numbers.ts";
+import { isDialError } from "./errors.ts";
+
+let tmp: string;
+let api: { url: string; close: () => Promise<void> };
+
+function signIn() {
+  writeAuth({ apiKey: "sk_live_x", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+}
+
+describe("ops/numbers", () => {
+  beforeEach(() => {
+    tmp = mkdtempSync(join(tmpdir(), "dial-numbers-"));
+    process.env.HOME = tmp;
+    delete process.env.XDG_DATA_HOME;
+  });
+  afterEach(async () => {
+    rmSync(tmp, { recursive: true, force: true });
+    if (api) await api.close();
+    delete process.env.DIAL_API_URL;
+  });
+
+  it("listNumbers returns numbers + defaultNumberId from auth", async () => {
+    api = await startMockApi((m, u) =>
+      m === "GET" && u === "/api/v1/numbers"
+        ? { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } }
+        : undefined,
+    );
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    const { numbers, defaultNumberId } = await listNumbers();
+    assert.equal(numbers.length, 1);
+    assert.equal(defaultNumberId, "pn_1");
+  });
+
+  it("setNumberProperties throws number_not_found when E.164 absent", async () => {
+    api = await startMockApi((m, u) =>
+      m === "GET" && u === "/api/v1/numbers" ? { status: 200, json: { numbers: [] } } : undefined,
+    );
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    try {
+      await setNumberProperties({ number: "+19998887777", inboundInstruction: "x" });
+      assert.fail("expected throw");
+    } catch (e) {
+      assert.ok(isDialError(e) && e.code === "number_not_found");
+    }
+  });
+
+  it("purchaseNumber throws purchase_failed on non-2xx", async () => {
+    api = await startMockApi((m, u) =>
+      m === "POST" && u === "/api/v1/numbers" ? { status: 402, json: { error: "payment required" } } : undefined,
+    );
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    try {
+      await purchaseNumber({ inboundInstruction: "x" });
+      assert.fail("expected throw");
+    } catch (e) {
+      assert.ok(isDialError(e) && e.code === "purchase_failed" && e.status === 402);
+    }
+  });
+});

@@ -1,39 +1,32 @@
-import { readPendingSignup, writePendingSignup } from "../lib/state.ts";
-import { apiPost } from "../lib/api.ts";
-
-const PENDING_FRESH_MS = 10 * 60 * 1000;
+import { signup } from "../lib/ops/account.ts";
+import { isDialError } from "../lib/ops/errors.ts";
 
 export type SignupOptions = { force?: boolean; json?: boolean };
 
 export async function runSignup(email: string, opts: SignupOptions): Promise<number> {
-  const existing = readPendingSignup();
-  if (existing && !opts.force) {
-    const age = Date.now() - Date.parse(existing.createdAt);
-    if (Number.isFinite(age) && age < PENDING_FRESH_MS) {
-      const ageS = Math.round(age / 1000);
+  try {
+    const { verificationId } = await signup({ email, force: opts.force });
+    if (opts.json) {
+      console.log(JSON.stringify({ ok: true, verificationId, email }));
+    } else {
+      console.log(`OTP sent to ${email}.`);
+      console.log(`Run \`dial onboard --code <code>\` once you have it (verificationId is stored locally).`);
+    }
+    return 0;
+  } catch (e) {
+    if (!isDialError(e)) throw e;
+    if (e.code === "pending_exists") {
+      const d = e.data ?? {};
       if (opts.json) {
-        console.log(JSON.stringify({ ok: false, code: "pending_exists", verificationId: existing.verificationId, email: existing.email, ageSeconds: ageS }));
+        console.log(JSON.stringify({ ok: false, code: "pending_exists", verificationId: d.verificationId, email: d.email, ageSeconds: d.ageSeconds }));
       } else {
-        console.error(`A pending OTP for ${existing.email} is still fresh (${ageS}s old). Use \`dial onboard --code <code>\` or re-run with --force to start a new one.`);
+        console.error(e.message);
       }
       return 3;
     }
-  }
-
-  const res = await apiPost<{ verificationId: string }>("/api/v1/auth/signup", { email });
-  if (!res.ok) {
-    if (opts.json) console.log(JSON.stringify({ ok: false, code: "signup_failed", status: res.status, error: res.error }));
-    else console.error(`signup failed: ${res.error}`);
+    // signup_failed
+    if (opts.json) console.log(JSON.stringify({ ok: false, code: e.code, status: e.status, error: e.message }));
+    else console.error(`signup failed: ${e.message}`);
     return 2;
   }
-
-  writePendingSignup({ verificationId: res.data.verificationId, email, createdAt: new Date().toISOString() });
-
-  if (opts.json) {
-    console.log(JSON.stringify({ ok: true, verificationId: res.data.verificationId, email }));
-  } else {
-    console.log(`OTP sent to ${email}.`);
-    console.log(`Run \`dial onboard --code <code>\` once you have it (verificationId is stored locally).`);
-  }
-  return 0;
 }

@@ -1,20 +1,9 @@
-import { readPendingSignup, clearPendingSignup, writeAuth } from "../lib/state.ts";
-import { apiPost } from "../lib/api.ts";
-import { paths } from "../lib/paths.ts";
-import { installSkill, isSupportedAgent, SUPPORTED_AGENTS, type AgentName, type InstallResult } from "../lib/skill-install.ts";
-import { supervisorAvailability } from "../lib/supervisor/index.ts";
+import { onboard } from "../lib/ops/account.ts";
+import { isDialError } from "../lib/ops/errors.ts";
 
 function maskApiKey(key: string): string {
   return key.length >= 4 ? `sk_live_***${key.slice(-4)}` : "sk_live_***";
 }
-
-type VerifyResponse = {
-  apiKey?: string | null;
-  accountId?: string;
-  phoneNumber?: string | null;
-  phoneNumberId?: string | null;
-  message?: string;
-};
 
 export type OnboardOptions = {
   verificationId?: string;
@@ -35,86 +24,51 @@ const FINALIZATION_HINT =
   "To finalize onboarding, ask the user this question before continuing with any other task. If the user's original request was something else (e.g. \"call X\", \"send Y\"), briefly pause that task, ask the question, get an answer, then resume.";
 
 export async function runOnboard(opts: OnboardOptions): Promise<number> {
-  let verificationId = opts.verificationId;
-  let email: string | null = null;
-
-  if (!verificationId) {
-    const pending = readPendingSignup();
-    if (!pending) {
+  let result;
+  try {
+    result = await onboard({
+      verificationId: opts.verificationId,
+      code: opts.code,
+      inboundInstruction: opts.inboundInstruction,
+      agents: opts.agents,
+    });
+  } catch (e) {
+    if (!isDialError(e)) throw e;
+    if (e.code === "no_pending_signup") {
       if (opts.json) console.log(JSON.stringify({ ok: false, code: "no_pending_signup" }));
-      else console.error("No pending signup. Run `dial signup <email>` first, or pass --verification-id.");
+      else console.error(e.message);
       return 1;
     }
-    verificationId = pending.verificationId;
-    email = pending.email;
-  }
-
-  const res = await apiPost<VerifyResponse>("/api/v1/auth/verify", {
-    verificationId,
-    code: opts.code,
-    // Sent only when provided; the server requires it when provisioning a first
-    // number (new account) and ignores it when signing in.
-    ...(opts.inboundInstruction ? { inboundInstruction: opts.inboundInstruction } : {}),
-  });
-  if (!res.ok) {
-    if (opts.json) console.log(JSON.stringify({ ok: false, code: "verify_failed", status: res.status, error: res.error }));
-    else console.error(`onboard failed: ${res.error}`);
-    return res.status === 401 ? 1 : 2;
-  }
-
-  const apiKey = res.data.apiKey ?? null;
-  if (!apiKey || !res.data.accountId) {
-    if (opts.json) console.log(JSON.stringify({ ok: false, code: "missing_api_key", error: "backend returned no apiKey" }));
-    else console.error("onboard failed: backend returned no apiKey");
+    if (e.code === "verify_failed") {
+      if (opts.json) console.log(JSON.stringify({ ok: false, code: "verify_failed", status: e.status, error: e.message }));
+      else console.error(`onboard failed: ${e.message}`);
+      return e.status === 401 ? 1 : 2;
+    }
+    // missing_api_key
+    if (opts.json) console.log(JSON.stringify({ ok: false, code: "missing_api_key", error: e.message }));
+    else console.error(`onboard failed: ${e.message}`);
     return 2;
   }
 
-  writeAuth({
-    apiKey,
-    accountId: res.data.accountId,
-    email: email ?? "",
-    phoneNumber: res.data.phoneNumber ?? null,
-    phoneNumberId: res.data.phoneNumberId ?? null,
-  });
-  clearPendingSignup();
-
-  const authFile = paths().authFile;
+  const { apiKey, accountId, phoneNumber, phoneNumberId, apiKeyPath, skills, supervisor } = result;
   const masked = maskApiKey(apiKey);
-
-  const skillResults: Array<InstallResult | { agent: string; error: string }> = [];
-  for (const requested of opts.agents ?? []) {
-    if (!isSupportedAgent(requested)) {
-      skillResults.push({
-        agent: requested,
-        error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.`,
-      });
-      continue;
-    }
-    try {
-      skillResults.push(installSkill(requested as AgentName));
-    } catch (err) {
-      skillResults.push({ agent: requested, error: err instanceof Error ? err.message : String(err) });
-    }
-  }
-
-  const supervisor = supervisorAvailability();
 
   if (opts.json) {
     console.log(JSON.stringify({
       ok: true,
       apiKeyFingerprint: apiKey.slice(-4),
       apiKeyMasked: masked,
-      apiKeyPath: authFile,
-      accountId: res.data.accountId,
-      phoneNumber: res.data.phoneNumber ?? null,
-      phoneNumberId: res.data.phoneNumberId ?? null,
+      apiKeyPath,
+      accountId,
+      phoneNumber,
+      phoneNumberId,
       listen: {
         installed: false,
         autoInstalled: false,
         canInstall: supervisor.available,
         unavailableReason: supervisor.available ? null : supervisor.reason,
       },
-      skills: skillResults,
+      skills,
       agentHint: supervisor.available
         ? {
             action: "ask_user",
@@ -136,9 +90,9 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
     }));
   } else {
     console.log("onboarded.");
-    console.log(`  api key:      ${masked}   (saved to ${authFile})`);
-    if (res.data.phoneNumber) console.log(`  phone number: ${res.data.phoneNumber}`);
-    for (const r of skillResults) {
+    console.log(`  api key:      ${masked}   (saved to ${apiKeyPath})`);
+    if (phoneNumber) console.log(`  phone number: ${phoneNumber}`);
+    for (const r of skills) {
       if ("error" in r) {
         console.log(`  skill (${r.agent}):  failed — ${r.error}`);
       } else if (r.written) {
