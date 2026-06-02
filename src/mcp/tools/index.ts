@@ -11,6 +11,13 @@ import { getAccountStatusTool } from "./get-account-status.ts";
 import { signUpTool } from "./sign-up.ts";
 import { onboardTool } from "./onboard.ts";
 import { waitForEventTool } from "./wait-for-event.ts";
+import { addUrlTargetTool } from "./add-url-target.ts";
+import { addCommandTargetTool } from "./add-command-target.ts";
+import { removeLocalTargetTool } from "./remove-local-target.ts";
+import { listLocalTargetsTool } from "./list-local-targets.ts";
+import { listenInstallTool } from "./listen-install.ts";
+import { listenUninstallTool } from "./listen-uninstall.ts";
+import { listenStatusTool } from "./listen-status.ts";
 
 /** Every tool registered on the local stdio MCP server. */
 export const tools: ToolModule[] = [
@@ -26,4 +33,11 @@ export const tools: ToolModule[] = [
   signUpTool,
   onboardTool,
   waitForEventTool,
+  addUrlTargetTool,
+  addCommandTargetTool,
+  removeLocalTargetTool,
+  listLocalTargetsTool,
+  listenInstallTool,
+  listenUninstallTool,
+  listenStatusTool,
 ];
