@@ -63,8 +63,9 @@ dial wait-for message.received --field to=+14155550123
 | `dial local-target add cmd <path>` | Run an executable once per event. |
 | `dial local-target list` | List registered fan-out targets. |
 | `dial local-target remove <id>` | Unregister a fan-out target. |
+| `dial mcp` | Run a local stdio MCP server exposing every command as an agent tool. |
 
-Run `dial --help` for the full command tree, or `dial <command> --help` for a specific command's flags. Every command accepts `--json` for machine-readable output.
+Run `dial --help` for the full command tree, or `dial <command> --help` for a specific command's flags. Every command accepts `--json` for machine-readable output (except `dial mcp`, which speaks JSON-RPC on stdout).
 
 ## Configuration
 
