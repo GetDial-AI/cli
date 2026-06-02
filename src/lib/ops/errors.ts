@@ -9,6 +9,8 @@ export class DialError extends Error {
     public readonly code: string,
     message: string,
     public readonly status?: number,
+    /** Extra structured context for commands with bespoke error output (e.g. signup's pending_exists). */
+    public readonly data?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "DialError";
