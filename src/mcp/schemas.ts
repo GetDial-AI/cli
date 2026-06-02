@@ -6,6 +6,22 @@ import { z } from "zod";
  * Mirrors the remote server's schemas so the two surfaces stay aligned.
  */
 
+// Status is either a simple string (e.g. a message's "queued"/"delivered") or a
+// structured call-status object. `.passthrough()` tolerates extra provider fields.
+const callStatusObjectSchema = z
+  .object({
+    state: z.string().nullish().describe('Lifecycle state, e.g. "Terminated", "Registered"'),
+    terminationType: z.string().nullish().describe('How it ended, e.g. "completed", "no-answer" (null until the call ends)'),
+    label: z.string().nullish().describe('Human-readable status, e.g. "Completed"'),
+    cancelRequested: z.boolean().nullish(),
+    cancelPending: z.boolean().nullish(),
+  })
+  .passthrough();
+
+const statusSchema = z
+  .union([z.string(), callStatusObjectSchema])
+  .describe("Status — a plain string, or a structured call-status object");
+
 export const phoneNumberSchema = z
   .object({
     id: z.string().describe("Phone number id (pn_…)"),
@@ -23,7 +39,7 @@ export const messageSchema = z
     body: z.string(),
     channel: z.string().optional(),
     direction: z.string().optional(),
-    status: z.string(),
+    status: statusSchema,
     createdAt: z.string().optional(),
   })
   .passthrough();
@@ -34,9 +50,9 @@ export const callSchema = z
     from: z.string(),
     to: z.string(),
     direction: z.string().optional(),
-    status: z.string(),
-    duration: z.number().optional(),
-    transcript: z.string().nullable().optional(),
+    status: statusSchema,
+    duration: z.number().nullish(),
+    transcript: z.string().nullish(),
     instruction: z.string().nullable().optional(),
     createdAt: z.string().optional(),
   })
