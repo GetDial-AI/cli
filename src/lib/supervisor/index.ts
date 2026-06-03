@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { userInfo } from "node:os";
+import { dirname, join } from "node:path";
 import { paths } from "../paths.ts";
 import { logger } from "../log.ts";
 import { LAUNCHD_LABEL, launchctlBootoutSilent, launchctlLoad, launchctlStatus, launchctlUnload, launchdPlistPath, renderLaunchdPlist, writeLaunchdPlist } from "./launchd.ts";
@@ -39,15 +40,53 @@ export function supervisorAvailability(): SupervisorAvailability {
   return { available: true };
 }
 
+/**
+ * Builds the argv the supervised listen daemon is launched with, baked into
+ * the launchd plist / systemd unit. Pure so it can be unit-tested without a
+ * real process or filesystem.
+ *
+ * - `override` (DIAL_BIN_OVERRIDE) always wins, for tests and packaging.
+ * - When the current process was launched from npm's ephemeral npx cache
+ *   (`~/.npm/_npx/<hash>/…`, e.g. `npx @getdial/cli mcp`), baking that script
+ *   path into a long-lived unit is fragile: the cache can be garbage-collected
+ *   and the daemon would then point at a path that no longer exists. Re-invoke
+ *   through `npx @getdial/cli listen` so each launch re-resolves the CLI.
+ * - Otherwise launch the running script directly (`<dial> listen`).
+ */
+export function buildListenArgs(input: {
+  override?: string;
+  scriptPath: string;
+  nodeDir: string;
+  npxExists: boolean;
+}): string[] {
+  if (input.override) return [input.override, "listen"];
+  if (/[/\\]_npx[/\\]/.test(input.scriptPath)) {
+    const npx = join(input.nodeDir, "npx");
+    return [input.npxExists ? npx : "npx", "-y", "@getdial/cli", "listen"];
+  }
+  return [input.scriptPath || "dial", "listen"];
+}
+
+/** Resolves {@link buildListenArgs} against the live process/environment. */
+export function resolveListenCommand(): string[] {
+  const nodeDir = dirname(process.execPath);
+  return buildListenArgs({
+    override: process.env.DIAL_BIN_OVERRIDE,
+    scriptPath: process.argv[1] ?? "",
+    nodeDir,
+    npxExists: existsSync(join(nodeDir, "npx")),
+  });
+}
+
 export type InstallResult = { changed: boolean; warnings: string[]; unitPath: string };
 
-export function installSupervised(programPath: string): InstallResult {
+export function installSupervised(programArgs: string[]): InstallResult {
   const platform = currentPlatform();
   const p = paths();
   if (platform === "darwin") {
     const xml = renderLaunchdPlist({
       label: LAUNCHD_LABEL,
-      programPath,
+      programArgs,
       stdoutPath: p.listenOutLog,
       stderrPath: p.listenErrLog,
     });
@@ -59,7 +98,7 @@ export function installSupervised(programPath: string): InstallResult {
     launchctlLoad(path);
     return { changed, warnings: [], unitPath: path };
   } else {
-    const unit = renderSystemdUnit({ programPath });
+    const unit = renderSystemdUnit({ programArgs });
     const { path, changed } = writeSystemdUnit(unit);
     systemctlEnableAndStart();
     const warnings: string[] = [];

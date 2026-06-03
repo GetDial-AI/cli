@@ -5,15 +5,12 @@ import {
   supervisorStatus,
   supervisorAvailability,
   lastEventAtFromLog,
+  resolveListenCommand,
   type InstallResult,
 } from "../supervisor/index.ts";
 import { paths } from "../paths.ts";
 import { requireAuth } from "./auth.ts";
 import { DialError } from "./errors.ts";
-
-function resolveDialPath(): string {
-  return process.env.DIAL_BIN_OVERRIDE ?? process.argv[1] ?? "dial";
-}
 
 export function listenInstall(): InstallResult {
   requireAuth();
@@ -22,7 +19,7 @@ export function listenInstall(): InstallResult {
     throw new DialError("supervisor_unavailable", supervisor.reason);
   }
   try {
-    return installSupervised(resolveDialPath());
+    return installSupervised(resolveListenCommand());
   } catch (err) {
     throw new DialError("install_failed", err instanceof Error ? err.message : String(err));
   }
