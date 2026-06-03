@@ -20,7 +20,7 @@ export function systemdUnitPath(): string {
   return join(homedir(), ".config", "systemd", "user", SYSTEMD_UNIT_NAME);
 }
 
-export function renderSystemdUnit(params: { programPath: string }): string {
+export function renderSystemdUnit(params: { programArgs: string[] }): string {
   // systemd user units start with a minimal PATH; include node's bin dir so
   // dial's `#!/usr/bin/env node` shebang resolves.
   const nodeDir = dirname(process.execPath);
@@ -32,7 +32,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 Environment="PATH=${nodeDir}:/usr/local/bin:/usr/bin:/bin"
-ExecStart=${params.programPath} listen
+ExecStart=${params.programArgs.join(" ")}
 Restart=on-failure
 RestartSec=10
 

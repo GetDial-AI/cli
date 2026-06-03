@@ -35,7 +35,7 @@ export function launchdPlistPath(): string {
 
 export function renderLaunchdPlist(params: {
   label: string;
-  programPath: string;
+  programArgs: string[];
   stdoutPath: string;
   stderrPath: string;
 }): string {
@@ -43,6 +43,7 @@ export function renderLaunchdPlist(params: {
   // so we must prepend the directory of the currently running node (e.g. nvm's bin dir)
   // so the shebang can resolve. Falls back to /usr/local/bin which is where Homebrew puts node.
   const nodeDir = dirname(process.execPath);
+  const programArguments = params.programArgs.map((arg) => `    <string>${arg}</string>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -51,8 +52,7 @@ export function renderLaunchdPlist(params: {
   <string>${params.label}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>${params.programPath}</string>
-    <string>listen</string>
+${programArguments}
   </array>
   <key>RunAtLoad</key>
   <true/>

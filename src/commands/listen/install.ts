@@ -1,9 +1,5 @@
 import { readAuth } from "../../lib/state.ts";
-import { installSupervised, supervisorAvailability } from "../../lib/supervisor/index.ts";
-
-function resolveDialPath(): string {
-  return process.env.DIAL_BIN_OVERRIDE ?? process.argv[1] ?? "dial";
-}
+import { installSupervised, resolveListenCommand, supervisorAvailability } from "../../lib/supervisor/index.ts";
 
 export async function runListenInstall(opts: { json?: boolean }): Promise<number> {
   const auth = readAuth();
@@ -19,7 +15,7 @@ export async function runListenInstall(opts: { json?: boolean }): Promise<number
     return 2;
   }
   try {
-    const result = installSupervised(resolveDialPath());
+    const result = installSupervised(resolveListenCommand());
     if (opts.json) console.log(JSON.stringify({ ok: true, changed: result.changed, unit_path: result.unitPath, warnings: result.warnings }));
     else {
       console.log(`listen service installed${result.changed ? "" : " (no change)"}.`);
