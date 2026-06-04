@@ -26,6 +26,7 @@ export const phoneNumberSchema = z
   .object({
     id: z.string().describe("Phone number id (pn_…)"),
     number: z.string().describe("E.164 phone number"),
+    nickname: z.string().nullable().optional().describe("Human-readable label for the number"),
     country: z.string().optional(),
     inboundInstruction: z.string().nullable().optional(),
   })

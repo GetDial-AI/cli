@@ -118,13 +118,15 @@ number
 
 number
   .command("set <number>")
-  .description("Update a number's inbound instruction. PATCH /api/v1/numbers/<id>.")
-  .requiredOption("--inbound-instruction <text>", "new system prompt for inbound calls to this number")
+  .description("Update a number's properties (at least one flag). PATCH /api/v1/numbers/<id>.")
+  .option("--inbound-instruction <text>", "new system prompt for inbound calls to this number")
+  .option("--nickname <text>", 'human-readable label for the number, e.g. "Support line"; pass "" to clear')
   .option("--json", "machine-readable output")
   .action(async (numberArg: string, opts) =>
     process.exit(await runNumberSet({
       number: numberArg,
       inboundInstruction: opts.inboundInstruction,
+      nickname: opts.nickname,
       json: !!opts.json,
     })),
   );

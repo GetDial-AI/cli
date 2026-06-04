@@ -5,6 +5,7 @@ import { DialError } from "./errors.ts";
 export type PhoneNumberRow = {
   id: string;
   number: string;
+  nickname?: string | null;
   country: string;
   capabilities?: string;
   accountId?: string;
@@ -35,8 +36,16 @@ export async function purchaseNumber(opts: {
 
 export async function setNumberProperties(opts: {
   number: string;
-  inboundInstruction: string;
+  inboundInstruction?: string;
+  /** Human-readable label for the number; an empty string clears it. */
+  nickname?: string;
 }): Promise<PhoneNumberRow> {
+  const body: Record<string, unknown> = {};
+  if (opts.inboundInstruction !== undefined) body.inboundInstruction = opts.inboundInstruction;
+  if (opts.nickname !== undefined) body.nickname = opts.nickname;
+  if (Object.keys(body).length === 0) {
+    throw new DialError("bad_request", "Provide at least one property to update (inboundInstruction or nickname).");
+  }
   const auth = requireAuth();
   // The REST API keys numbers by id; the CLI/tool takes the E.164 number for ergonomics,
   // so resolve it to its id first.
@@ -49,7 +58,7 @@ export async function setNumberProperties(opts: {
   }
   const res = await apiPatch<{ number: PhoneNumberRow }>(
     `/api/v1/numbers/${match.id}`,
-    { inboundInstruction: opts.inboundInstruction },
+    body,
     auth.apiKey,
   );
   if (!res.ok) throw new DialError("update_failed", res.error, res.status);
