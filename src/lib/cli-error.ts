@@ -8,6 +8,7 @@ const EXIT_1_CODES = new Set([
   "number_not_found",
   "not_found",
   "no_pending_signup",
+  "bad_request",
 ]);
 
 /**

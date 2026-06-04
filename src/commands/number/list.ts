@@ -17,7 +17,8 @@ export async function runNumberList(opts: NumberListOptions): Promise<number> {
     }
     for (const n of numbers) {
       const tag = n.id === defaultNumberId ? "  (default)" : "";
-      console.log(`${n.number}  id=${n.id}  ${n.country}${tag}`);
+      const nickname = n.nickname ? `  "${n.nickname}"` : "";
+      console.log(`${n.number}  id=${n.id}  ${n.country}${nickname}${tag}`);
     }
     return 0;
   } catch (e) {

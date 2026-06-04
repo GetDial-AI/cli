@@ -54,6 +54,52 @@ describe("ops/numbers", () => {
     }
   });
 
+  it("setNumberProperties PATCHes only the provided properties", async () => {
+    let patchBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US", nickname: "Support line" } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    const n = await setNumberProperties({ number: "+15550000", nickname: "Support line" });
+    assert.deepEqual(JSON.parse(patchBody), { nickname: "Support line" });
+    assert.equal(n.nickname, "Support line");
+  });
+
+  it("setNumberProperties sends an empty-string nickname (clears it)", async () => {
+    let patchBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US", nickname: null } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    const n = await setNumberProperties({ number: "+15550000", nickname: "" });
+    assert.deepEqual(JSON.parse(patchBody), { nickname: "" });
+    assert.equal(n.nickname, null);
+  });
+
+  it("setNumberProperties throws bad_request when no properties are given", async () => {
+    signIn();
+    try {
+      await setNumberProperties({ number: "+15550000" });
+      assert.fail("expected throw");
+    } catch (e) {
+      assert.ok(isDialError(e) && e.code === "bad_request");
+    }
+  });
+
   it("purchaseNumber throws purchase_failed on non-2xx", async () => {
     api = await startMockApi((m, u) =>
       m === "POST" && u === "/api/v1/numbers" ? { status: 402, json: { error: "payment required" } } : undefined,
