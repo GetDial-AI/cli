@@ -28,11 +28,14 @@ export function matches(obj: unknown, spec: MatchSpec): boolean {
   if (!obj || typeof obj !== "object") return false;
   const record = obj as Record<string, unknown>;
   if (record.type !== spec.eventType) return false;
+  // Field/regex filters address the event's `data` payload by name, e.g.
+  // `-f channel=sms` matches event.data.channel.
+  const data = (record.data ?? {}) as Record<string, unknown>;
   for (const f of spec.fields) {
-    if (String(record[f.name] ?? "") !== f.value) return false;
+    if (String(data[f.name] ?? "") !== f.value) return false;
   }
   for (const r of spec.regexes) {
-    if (!r.regex.test(String(record[r.name] ?? ""))) return false;
+    if (!r.regex.test(String(data[r.name] ?? ""))) return false;
   }
   return true;
 }

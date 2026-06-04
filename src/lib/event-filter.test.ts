@@ -28,30 +28,30 @@ describe("event-filter", () => {
 
   it("matches checks event type", () => {
     const spec = { eventType: "call.ended", fields: [], regexes: [] };
-    assert.ok(matches({ type: "call.ended", from: "+1" }, spec));
+    assert.ok(matches({ type: "call.ended", data: { from: "+1" } }, spec));
     assert.ok(!matches({ type: "message.received" }, spec));
   });
 
-  it("matches checks exact fields", () => {
+  it("matches checks exact fields (in data)", () => {
     const spec = { eventType: "call.ended", fields: [{ name: "to", value: "+14155551234" }], regexes: [] };
-    assert.ok(matches({ type: "call.ended", to: "+14155551234" }, spec));
-    assert.ok(!matches({ type: "call.ended", to: "+19999999999" }, spec));
-    assert.ok(!matches({ type: "call.ended" }, spec));
+    assert.ok(matches({ type: "call.ended", data: { to: "+14155551234" } }, spec));
+    assert.ok(!matches({ type: "call.ended", data: { to: "+19999999999" } }, spec));
+    assert.ok(!matches({ type: "call.ended", data: {} }, spec));
   });
 
-  it("matches checks regex fields", () => {
+  it("matches checks regex fields (in data)", () => {
     const spec = {
       eventType: "message.received",
       fields: [],
       regexes: [parseRegexArg("body=/\\b\\d{6}\\b/")],
     };
-    assert.ok(matches({ type: "message.received", body: "Your code is 847291" }, spec));
-    assert.ok(!matches({ type: "message.received", body: "hi" }, spec));
+    assert.ok(matches({ type: "message.received", data: { body: "Your code is 847291" } }, spec));
+    assert.ok(!matches({ type: "message.received", data: { body: "hi" } }, spec));
   });
 
   it("matches treats missing fields as empty string", () => {
     const spec = { eventType: "call.ended", fields: [{ name: "to", value: "" }], regexes: [] };
-    assert.ok(matches({ type: "call.ended" }, spec));
+    assert.ok(matches({ type: "call.ended", data: {} }, spec));
   });
 
   it("matches rejects non-object input", () => {
