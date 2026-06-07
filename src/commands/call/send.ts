@@ -5,7 +5,8 @@ import { printDialError } from "../../lib/cli-error.ts";
 export type CallSendOptions = {
   to: string;
   outboundInstruction: string;
-  language: string;
+  /** Omitted → the server auto-detects from the destination number's country. */
+  language?: string;
   fromNumberId?: string;
   json: boolean;
 };
