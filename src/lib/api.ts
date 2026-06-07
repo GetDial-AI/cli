@@ -9,8 +9,8 @@ export function baseUrl(): string {
 
 export type ApiResult<T> = { ok: true; status: number; data: T } | { ok: false; status: number; error: string };
 
-export async function apiPost<T>(path: string, body: unknown, apiKey?: string): Promise<ApiResult<T>> {
-  return apiRequest<T>("POST", path, body, apiKey);
+export async function apiPost<T>(path: string, body: unknown, apiKey?: string, extraHeaders?: Record<string, string>): Promise<ApiResult<T>> {
+  return apiRequest<T>("POST", path, body, apiKey, extraHeaders);
 }
 
 export async function apiGet<T>(path: string, apiKey?: string): Promise<ApiResult<T>> {
@@ -21,9 +21,9 @@ export async function apiPatch<T>(path: string, body: unknown, apiKey?: string):
   return apiRequest<T>("PATCH", path, body, apiKey);
 }
 
-async function apiRequest<T>(method: "GET" | "POST" | "PATCH", path: string, body: unknown, apiKey?: string): Promise<ApiResult<T>> {
+async function apiRequest<T>(method: "GET" | "POST" | "PATCH", path: string, body: unknown, apiKey?: string, extraHeaders?: Record<string, string>): Promise<ApiResult<T>> {
   const url = `${baseUrl()}${path}`;
-  const headers: Record<string, string> = { "content-type": "application/json" };
+  const headers: Record<string, string> = { "content-type": "application/json", ...(extraHeaders ?? {}) };
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
 
   try {

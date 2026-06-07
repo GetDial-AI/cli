@@ -20,6 +20,8 @@ export async function placeCall(opts: {
   outboundInstruction: string;
   /** Omitted → the server auto-detects from the destination number's country. */
   language?: string;
+  /** Same key across retries → the server returns the already-placed call instead of dialing again. */
+  idempotencyKey?: string;
   fromNumberId?: string;
 }): Promise<CallRow> {
   const auth = requireAuth();
@@ -33,6 +35,7 @@ export async function placeCall(opts: {
       ...(opts.language && { language: opts.language }),
     },
     auth.apiKey,
+    opts.idempotencyKey ? { "idempotency-key": opts.idempotencyKey } : undefined,
   );
   if (!res.ok) throw new DialError("call_failed", res.error, res.status);
   return res.data.call;
