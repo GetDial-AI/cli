@@ -35,6 +35,21 @@ describe("ops/calls", () => {
     assert.equal(call.id, "c1");
   });
 
+  it("placeCall omits language from the body when not provided (server auto-detects)", async () => {
+    let sentBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/calls") {
+        sentBody = body;
+        return { status: 200, json: { call: { id: "c2", from: "+1", to: "+2", direction: "outbound", status: "queued", instruction: null } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+1", phoneNumberId: "pn_1" });
+    await placeCall({ to: "+2", outboundInstruction: "hi" });
+    assert.ok(!("language" in JSON.parse(sentBody)));
+  });
+
   it("getCall maps 404 to DialError not_found", async () => {
     api = await startMockApi((m, u) =>
       m === "GET" && u.startsWith("/api/v1/calls/") ? { status: 404, json: { error: "no such call" } } : undefined,

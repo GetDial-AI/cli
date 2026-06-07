@@ -7,7 +7,7 @@ import { callSchema } from "../schemas.ts";
 const inputSchema = {
   to: z.string().min(7).describe("Destination phone number, E.164 (e.g. +14155550123)"),
   outboundInstruction: z.string().min(1).describe("System prompt for the AI voice agent on this call"),
-  language: z.string().default("en-US").describe("BCP-47 language tag for the call"),
+  language: z.string().optional().describe("BCP-47 language tag for the call. Omit to auto-detect from the destination number's country (alongside en-US)."),
   fromNumberId: z.string().optional().describe("Number id to call from; defaults to your primary number"),
 };
 
@@ -26,7 +26,7 @@ export const placeCallTool: ToolModule = {
     const call = await placeCall({
       to: args.to as string,
       outboundInstruction: args.outboundInstruction as string,
-      language: (args.language as string) ?? "en-US",
+      language: args.language as string | undefined,
       fromNumberId: args.fromNumberId as string | undefined,
     });
     return jsonResult({

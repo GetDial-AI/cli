@@ -18,14 +18,20 @@ export type CallRow = {
 export async function placeCall(opts: {
   to: string;
   outboundInstruction: string;
-  language: string;
+  /** Omitted → the server auto-detects from the destination number's country. */
+  language?: string;
   fromNumberId?: string;
 }): Promise<CallRow> {
   const auth = requireAuth();
   const fromNumberId = requireFromNumberId(auth, opts.fromNumberId);
   const res = await apiPost<{ call: CallRow }>(
     "/api/v1/calls",
-    { to: opts.to, fromNumberId, outboundInstruction: opts.outboundInstruction, language: opts.language },
+    {
+      to: opts.to,
+      fromNumberId,
+      outboundInstruction: opts.outboundInstruction,
+      ...(opts.language && { language: opts.language }),
+    },
     auth.apiKey,
   );
   if (!res.ok) throw new DialError("call_failed", res.error, res.status);
