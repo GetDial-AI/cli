@@ -7,6 +7,8 @@ export type CallSendOptions = {
   outboundInstruction: string;
   /** Omitted → the server auto-detects from the destination number's country. */
   language?: string;
+  /** Same key across retries → the server returns the already-placed call instead of dialing again. */
+  idempotencyKey?: string;
   fromNumberId?: string;
   json: boolean;
 };
@@ -17,6 +19,7 @@ export async function runCallSend(opts: CallSendOptions): Promise<number> {
       to: opts.to,
       outboundInstruction: opts.outboundInstruction,
       language: opts.language,
+      idempotencyKey: opts.idempotencyKey,
       fromNumberId: opts.fromNumberId,
     });
 

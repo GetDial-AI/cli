@@ -173,6 +173,7 @@ const call = program
   .option("--to <e164>", "destination phone number, E.164 (e.g. +14155551234)")
   .option("--outbound-instruction <text>", "system prompt for the agent that will speak")
   .option("--language <bcp47>", "BCP-47 language tag for the call (default: auto-detect from the destination number's country, alongside en-US)")
+  .option("--idempotency-key <key>", "unique key (e.g. a UUID) making the placement idempotent: re-running with the same key returns the already-placed call instead of dialing again")
   .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number)")
   .option("--json", "machine-readable output")
   .action(async (opts) => {
@@ -184,6 +185,7 @@ const call = program
       to: opts.to,
       outboundInstruction: opts.outboundInstruction,
       language: opts.language,
+      idempotencyKey: opts.idempotencyKey,
       fromNumberId: opts.fromNumberId,
       json: !!opts.json,
     }));

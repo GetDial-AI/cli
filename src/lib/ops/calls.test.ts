@@ -50,6 +50,22 @@ describe("ops/calls", () => {
     assert.ok(!("language" in JSON.parse(sentBody)));
   });
 
+  it("placeCall sends the Idempotency-Key header when provided (and omits it otherwise)", async () => {
+    const seenKeys: Array<string | string[] | undefined> = [];
+    api = await startMockApi((m, u, _body, headers) => {
+      if (m === "POST" && u === "/api/v1/calls") {
+        seenKeys.push(headers?.["idempotency-key"]);
+        return { status: 200, json: { call: { id: "c3", from: "+1", to: "+2", direction: "outbound", status: "queued", instruction: null } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+1", phoneNumberId: "pn_1" });
+    await placeCall({ to: "+2", outboundInstruction: "hi", idempotencyKey: "key-123" });
+    await placeCall({ to: "+2", outboundInstruction: "hi" });
+    assert.deepEqual(seenKeys, ["key-123", undefined]);
+  });
+
   it("getCall maps 404 to DialError not_found", async () => {
     api = await startMockApi((m, u) =>
       m === "GET" && u.startsWith("/api/v1/calls/") ? { status: 404, json: { error: "no such call" } } : undefined,

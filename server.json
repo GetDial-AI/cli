@@ -3,7 +3,7 @@
   "name": "io.github.GetDial-AI/dial",
   "title": "Dial",
   "description": "Communication stack for AI agents: SMS, AI voice calls, phone numbers, and account events.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "websiteUrl": "https://getdial.ai",
   "repository": {
     "url": "https://github.com/GetDial-AI/cli",

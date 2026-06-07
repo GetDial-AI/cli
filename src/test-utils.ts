@@ -5,6 +5,7 @@ export type MockRoute = (
   method: string,
   url: string,
   body: string,
+  headers?: Record<string, string | string[] | undefined>,
 ) => { status: number; json: unknown } | undefined;
 
 /**
@@ -17,7 +18,7 @@ export async function startMockApi(route: MockRoute): Promise<{ url: string; clo
     let body = "";
     req.on("data", (c) => (body += c));
     req.on("end", () => {
-      const r = route(req.method ?? "GET", req.url ?? "/", body);
+      const r = route(req.method ?? "GET", req.url ?? "/", body, req.headers);
       res.setHeader("content-type", "application/json");
       if (!r) {
         res.statusCode = 404;
