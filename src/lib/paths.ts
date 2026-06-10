@@ -1,14 +1,13 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+// Structured state files (auth, pending-signup, local-targets, …) are not
+// listed here: each is owned by a defineVersionedFile definition that derives
+// its own `<base>.v<N>.json` filename. See versioned-file.ts.
 export type Paths = {
   configDir: string;
   dataDir: string;
   stateDir: string;
-  configFile: string;
-  authFile: string;
-  pendingSignupFile: string;
-  localTargetsFile: string;
   listenLog: string;
   listenOutLog: string;
   listenErrLog: string;
@@ -30,10 +29,6 @@ export function paths(): Paths {
     configDir,
     dataDir,
     stateDir,
-    configFile: join(configDir, "config.json"),
-    authFile: join(dataDir, "auth.json"),
-    pendingSignupFile: join(dataDir, "pending-signup.json"),
-    localTargetsFile: join(configDir, "local-targets.json"),
     listenLog: join(stateDir, "listen.log"),
     listenOutLog: join(stateDir, "listen.out.log"),
     listenErrLog: join(stateDir, "listen.err.log"),

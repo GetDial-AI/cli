@@ -1,8 +1,6 @@
-import { mkdirSync, readFileSync, writeFileSync, unlinkSync, statSync, chmodSync } from "node:fs";
-import { dirname } from "node:path";
 import { z } from "zod";
 import { paths } from "./paths.ts";
-import { logger } from "./log.ts";
+import { defineVersionedFile } from "./versioned-file.ts";
 
 export const AuthSchema = z.object({
   apiKey: z.string(),
@@ -20,85 +18,49 @@ export const PendingSignupSchema = z.object({
 });
 export type PendingSignup = z.infer<typeof PendingSignupSchema>;
 
-const CHMOD_UNSUPPORTED_CODES = new Set(["ENOTSUP", "EOPNOTSUPP", "EPERM"]);
+const authFile = defineVersionedFile<Auth>({
+  dir: () => paths().dataDir,
+  base: "auth",
+  version: 1,
+  schema: AuthSchema,
+  migrations: { 0: (legacy) => legacy },
+  secure: true,
+});
 
-function ensureDir(path: string) {
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-  try {
-    chmodSync(dirname(path), 0o700);
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code && CHMOD_UNSUPPORTED_CODES.has(code)) {
-      logger.warn({ err, code, path: dirname(path) }, "chmod 0700 unsupported, continuing");
-      return;
-    }
-    throw err;
-  }
-}
-
-function readSecure<T>(path: string, schema: z.ZodSchema<T>): T | null {
-  let stat;
-  try {
-    stat = statSync(path);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw err;
-  }
-  const mode = stat.mode & 0o777;
-  if (mode & 0o077) {
-    throw new Error(`${path} has insecure permissions (mode ${mode.toString(8)})`);
-  }
-  const raw = readFileSync(path, "utf8");
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    logger.warn({ err, path }, "failed to parse state file");
-    return null;
-  }
-  const result = schema.safeParse(parsed);
-  if (!result.success) {
-    logger.warn({ path, issues: result.error.issues }, "state file did not match expected schema");
-    return null;
-  }
-  return result.data;
-}
-
-function writeSecure(path: string, data: unknown) {
-  ensureDir(path);
-  writeFileSync(path, JSON.stringify(data, null, 2), { mode: 0o600 });
-  chmodSync(path, 0o600);
-}
+const pendingSignupFile = defineVersionedFile<PendingSignup>({
+  dir: () => paths().dataDir,
+  base: "pending-signup",
+  version: 1,
+  schema: PendingSignupSchema,
+  migrations: { 0: (legacy) => legacy },
+  secure: true,
+});
 
 export function readAuth(): Auth | null {
-  return readSecure(paths().authFile, AuthSchema);
+  return authFile.read();
 }
 
 export function writeAuth(auth: Auth): void {
-  writeSecure(paths().authFile, auth);
-}
-
-function unlinkIfExists(path: string): void {
-  try {
-    unlinkSync(path);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw err;
-  }
+  authFile.write(auth);
 }
 
 export function clearAuth(): void {
-  unlinkIfExists(paths().authFile);
+  authFile.clear();
+}
+
+/** Where the API key lives, for display (doctor). */
+export function authFilePath(): string {
+  return authFile.path;
 }
 
 export function readPendingSignup(): PendingSignup | null {
-  return readSecure(paths().pendingSignupFile, PendingSignupSchema);
+  return pendingSignupFile.read();
 }
 
 export function writePendingSignup(p: PendingSignup): void {
-  writeSecure(paths().pendingSignupFile, p);
+  pendingSignupFile.write(p);
 }
 
 export function clearPendingSignup(): void {
-  unlinkIfExists(paths().pendingSignupFile);
+  pendingSignupFile.clear();
 }

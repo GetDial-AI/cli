@@ -1,4 +1,4 @@
-import { readAuth, readPendingSignup, writePendingSignup, clearPendingSignup, writeAuth } from "../state.ts";
+import { readAuth, readPendingSignup, writePendingSignup, clearPendingSignup, writeAuth, authFilePath } from "../state.ts";
 import { apiGet, apiPost, baseUrl, pingBackend } from "../api.ts";
 import { supervisorStatus, lastEventAtFromLog, supervisorAvailability, type SupervisorAvailability } from "../supervisor/index.ts";
 import { paths } from "../paths.ts";
@@ -185,7 +185,7 @@ export async function onboard(opts: OnboardInput): Promise<OnboardResult> {
   return {
     apiKey,
     apiKeyFingerprint: apiKey.slice(-4),
-    apiKeyPath: paths().authFile,
+    apiKeyPath: authFilePath(),
     accountId: res.data.accountId,
     phoneNumber: res.data.phoneNumber ?? null,
     phoneNumberId: res.data.phoneNumberId ?? null,
