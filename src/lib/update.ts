@@ -3,7 +3,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readFileSync, realpathSync 
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { logger } from "./log.ts";
+import { appendJsonl, logger } from "./log.ts";
 import { paths } from "./paths.ts";
 import { defineVersionedFile } from "./versioned-file.ts";
 
@@ -82,6 +82,24 @@ export function installedVersion(): string {
   return pkg.version;
 }
 
+/**
+ * Failures of the background path go to cli.log, never stdout/stderr — the
+ * hook runs under --json consumers and the MCP stdio server.
+ */
+function logUpdateFailure(context: string, err: unknown): void {
+  const line = {
+    ts: new Date().toISOString(),
+    source: "auto-update",
+    context,
+    error: err instanceof Error ? (err.stack ?? err.message) : String(err),
+  };
+  try {
+    appendJsonl(paths().cliLog, line);
+  } catch (logErr) {
+    logger.warn({ err, logErr, context }, "auto-update failed and could not write cli.log");
+  }
+}
+
 /** Spawns the npm update fully detached, stdio appended to cli.log. Never throws. */
 export function spawnDetachedUpdate(): void {
   try {
@@ -93,7 +111,7 @@ export function spawnDetachedUpdate(): void {
     child.unref();
     closeSync(fd);
   } catch (err) {
-    logger.warn({ err }, "failed to spawn detached auto-update");
+    logUpdateFailure("spawn", err);
   }
 }
 
@@ -109,6 +127,6 @@ export function maybeAutoUpdate(command: string): void {
     recordUpdateAttempt(now);
     spawnDetachedUpdate();
   } catch (err) {
-    logger.warn({ err, command }, "auto-update check failed");
+    logUpdateFailure(`check:${command}`, err);
   }
 }
