@@ -22,7 +22,9 @@ import { runLocalTargetAddCmd } from "./commands/local-target/add-cmd.ts";
 import { runLocalTargetRemove } from "./commands/local-target/remove.ts";
 import { runLocalTargetList } from "./commands/local-target/list.ts";
 import { runMcp } from "./commands/mcp.ts";
+import { runUpdate } from "./commands/update.ts";
 import { runUninstall } from "./commands/uninstall.ts";
+import { maybeAutoUpdate } from "./lib/update.ts";
 
 const program = new Command();
 
@@ -31,6 +33,12 @@ program
   .description("Dial CLI — set up your account and run the listen service.")
   .version(VERSION)
   .enablePositionalOptions();
+
+// Hourly detached self-update; a no-op for exempt commands, non-npm installs,
+// fresh stamps, and DIAL_NO_AUTO_UPDATE=1. Never touches stdout/stderr.
+program.hook("preAction", (_thisCommand, actionCommand) => {
+  maybeAutoUpdate(actionCommand.name());
+});
 
 program
   .command("doctor")
@@ -295,6 +303,12 @@ program
   .command("mcp")
   .description("Run a local stdio MCP server exposing Dial as agent tools (reuses your saved API key).")
   .action(async () => process.exit(await runMcp()));
+
+program
+  .command("update")
+  .description("Update the CLI to the latest published version (global npm installs).")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => process.exit(await runUpdate({ json: !!opts.json })));
 
 program
   .command("uninstall")
