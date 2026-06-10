@@ -94,7 +94,9 @@ export function startWorker(apiKey: string, accountId: string): WorkerControls {
 
     pn = new PubNub({
       subscribeKey: creds.subscribeKey,
-      userId: `dial-cli-${accountId}`,
+      // Dashboard, CLI, and SDKs all use the same `dial-{accountId}` identity,
+      // so an account counts as one PubNub MAU regardless of surface.
+      userId: `dial-${accountId}`,
       ssl: true,
       authKey: creds.token,
     });
