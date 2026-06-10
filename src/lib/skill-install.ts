@@ -96,6 +96,25 @@ export type InstallResult = {
   unchanged?: boolean;
 };
 
+export type UninstallSkillResult = {
+  agent: AgentName;
+  /** The skill's directory (`…/skills/dial-cli`), not the SKILL.md inside it. */
+  path: string;
+  removed: boolean;
+};
+
+/** Removes the agent's installed `dial-cli` skill directory, if present. */
+export function uninstallSkill(agent: AgentName, opts: { home?: string; cwd?: string } = {}): UninstallSkillResult {
+  const home = opts.home ?? process.env.HOME ?? homedir();
+  const cwd = opts.cwd ?? process.cwd();
+  const skillDir = dirname(targetPath(agent, home, cwd));
+  if (!existsSync(skillDir)) {
+    return { agent, path: skillDir, removed: false };
+  }
+  rmSync(skillDir, { recursive: true, force: true });
+  return { agent, path: skillDir, removed: true };
+}
+
 export function installSkill(agent: AgentName, opts: { home?: string; cwd?: string } = {}): InstallResult {
   const home = opts.home ?? process.env.HOME ?? homedir();
   const cwd = opts.cwd ?? process.cwd();

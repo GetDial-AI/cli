@@ -22,6 +22,7 @@ import { runLocalTargetAddCmd } from "./commands/local-target/add-cmd.ts";
 import { runLocalTargetRemove } from "./commands/local-target/remove.ts";
 import { runLocalTargetList } from "./commands/local-target/list.ts";
 import { runMcp } from "./commands/mcp.ts";
+import { runUninstall } from "./commands/uninstall.ts";
 
 const program = new Command();
 
@@ -294,6 +295,12 @@ program
   .command("mcp")
   .description("Run a local stdio MCP server exposing Dial as agent tools (reuses your saved API key).")
   .action(async () => process.exit(await runMcp()));
+
+program
+  .command("uninstall")
+  .description("Remove the listen daemon, agent skills, and all local Dial state, then print how to remove the package.")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => process.exit(await runUninstall({ json: !!opts.json })));
 
 program.parseAsync(process.argv).catch((err) => {
   console.error(err instanceof Error ? err.message : String(err));

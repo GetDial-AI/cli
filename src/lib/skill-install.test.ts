@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { installSkill, isSupportedAgent, readSkillMarkdown, SKILL_NAME, SUPPORTED_AGENTS } from "./skill-install.ts";
+import { installSkill, isSupportedAgent, readSkillMarkdown, SKILL_NAME, SUPPORTED_AGENTS, uninstallSkill } from "./skill-install.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(here, "..", "..");
@@ -103,6 +103,28 @@ describe("skill-install", () => {
     const second = installSkill("claude-code", { home: tmp });
     assert.equal(second.written, true);
     assert.notEqual(readFileSync(path, "utf8"), "OUTDATED");
+  });
+
+  it("uninstallSkill removes the installed skill directory", () => {
+    const installed = installSkill("claude-code", { home: tmp });
+    const result = uninstallSkill("claude-code", { home: tmp });
+    assert.equal(result.removed, true);
+    assert.equal(result.path, dirname(installed.path));
+    assert.equal(existsSync(dirname(installed.path)), false);
+  });
+
+  it("uninstallSkill reports removed=false when the skill is absent", () => {
+    const result = uninstallSkill("cursor", { home: tmp });
+    assert.equal(result.removed, false);
+    assert.equal(result.path, join(tmp, `.cursor/skills/${SKILL_NAME}`));
+    assert.equal(existsSync(result.path), false);
+  });
+
+  it("uninstallSkill removes nanoclaw's cwd-scoped skill", () => {
+    installSkill("nanoclaw", { home: tmp, cwd: tmp });
+    const result = uninstallSkill("nanoclaw", { home: tmp, cwd: tmp });
+    assert.equal(result.removed, true);
+    assert.equal(result.path, join(tmp, `.claude/skills/${SKILL_NAME}`));
   });
 
 });
