@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -25,6 +25,19 @@ describe("local-targets", () => {
 
   it("returns an empty list when the registry is missing", () => {
     assert.deepEqual(listTargets(), []);
+  });
+
+  it("adopts a legacy unversioned local-targets.json on first read", () => {
+    const dir = join(tmp, ".config/dial");
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    writeFileSync(
+      join(dir, "local-targets.json"),
+      JSON.stringify({ targets: [{ kind: "url", url: "http://127.0.0.1:8787/a" }] }),
+      { mode: 0o600 },
+    );
+    assert.equal(listTargets().length, 1);
+    assert.equal(existsSync(join(dir, "local-targets.v1.json")), true);
+    assert.equal(existsSync(join(dir, "local-targets.json")), false);
   });
 
   it("accepts every documented loopback host", () => {
@@ -69,7 +82,7 @@ describe("local-targets", () => {
       bearer: "tok_123",
       timeoutSeconds: 10,
     });
-    const file = join(tmp, ".config/dial/local-targets.json");
+    const file = join(tmp, ".config/dial/local-targets.v1.json");
     const mode = statSync(file).mode & 0o777;
     assert.equal(mode, 0o600, `expected 0600 perms, got ${mode.toString(8)}`);
     const [t] = listTargets();

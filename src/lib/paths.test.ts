@@ -27,16 +27,11 @@ describe("paths", () => {
   it("respects XDG env vars when set", () => {
     process.env.XDG_DATA_HOME = "/custom/data";
     assert.equal(paths().dataDir, "/custom/data/dial");
-    assert.equal(paths().authFile, "/custom/data/dial/auth.json");
   });
-  it("exposes per-file paths", () => {
+  it("exposes log and pid paths", () => {
     const p = paths();
-    assert.equal(p.authFile, "/Users/test/.local/share/dial/auth.json");
-    assert.equal(p.pendingSignupFile, "/Users/test/.local/share/dial/pending-signup.json");
     assert.equal(p.listenLog, "/Users/test/.local/state/dial/listen.log");
     assert.equal(p.cliLog, "/Users/test/.local/state/dial/cli.log");
     assert.equal(p.listenPid, "/Users/test/.local/state/dial/listen.pid");
-    assert.equal(p.configFile, "/Users/test/.config/dial/config.json");
-    assert.equal(p.localTargetsFile, "/Users/test/.config/dial/local-targets.json");
   });
 });

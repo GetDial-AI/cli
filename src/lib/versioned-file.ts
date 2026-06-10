@@ -104,7 +104,13 @@ export function defineVersionedFile<T>(opts: VersionedFileOptions<T>): Versioned
     const path = filePath(opts.version);
     const tmp = `${path}.tmp`;
     writeFileSync(tmp, JSON.stringify(value, null, 2), { mode });
-    chmodSync(tmp, mode);
+    try {
+      chmodSync(tmp, mode);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (!code || !CHMOD_UNSUPPORTED_CODES.has(code)) throw err;
+      logger.warn({ err, code, path: tmp }, "chmod unsupported, relying on create mode");
+    }
     renameSync(tmp, path);
   }
 

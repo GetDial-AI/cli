@@ -1,7 +1,7 @@
-import { mkdirSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
-import { dirname, isAbsolute } from "node:path";
+import { isAbsolute } from "node:path";
 import { z } from "zod";
 import { paths } from "./paths.ts";
+import { defineVersionedFile } from "./versioned-file.ts";
 
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "0.0.0.0", "localhost", "::1", "[::1]"]);
 
@@ -65,39 +65,20 @@ export function targetId(t: LocalTarget): string {
   return t.kind === "url" ? t.url : t.path;
 }
 
-function ensureDir(file: string): void {
-  mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
-}
+const registryFile = defineVersionedFile<Registry>({
+  dir: () => paths().configDir,
+  base: "local-targets",
+  version: 1,
+  schema: RegistrySchema,
+  migrations: { 0: (legacy) => legacy },
+});
 
 function readRegistry(): Registry {
-  const file = paths().localTargetsFile;
-  let raw: string;
-  try {
-    raw = readFileSync(file, "utf8");
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return { targets: [] };
-    throw err;
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return { targets: [] };
-  }
-  const result = RegistrySchema.safeParse(parsed);
-  if (!result.success) return { targets: [] };
-  return result.data;
+  return registryFile.read() ?? { targets: [] };
 }
 
 function writeRegistry(reg: Registry): void {
-  const file = paths().localTargetsFile;
-  ensureDir(file);
-  writeFileSync(file, JSON.stringify(reg, null, 2), { mode: 0o600 });
-  try {
-    chmodSync(file, 0o600);
-  } catch {
-    // chmod can fail on some filesystems; the create-mode is the important guarantee
-  }
+  registryFile.write(reg);
 }
 
 export function listTargets(): LocalTarget[] {
