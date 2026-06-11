@@ -21,7 +21,8 @@ export async function runMessageList(opts: MessageListOptions): Promise<number> 
       return 0;
     }
     for (const m of messages) {
-      console.log(`${m.createdAt}  ${(m.direction ?? "").padEnd(8)}  ${m.from} -> ${m.to}  ${m.body}`);
+      const mediaTag = m.media && m.media.length > 0 ? `  [${m.media.length} media]` : "";
+      console.log(`${m.createdAt}  ${(m.direction ?? "").padEnd(8)}  ${m.from} -> ${m.to}  ${m.body}${mediaTag}`);
     }
     return 0;
   } catch (e) {

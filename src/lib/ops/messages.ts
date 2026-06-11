@@ -1,6 +1,17 @@
-import { apiGet, apiPost } from "../api.ts";
+import { readFileSync } from "node:fs";
+import { basename, extname } from "node:path";
+import { apiGet, apiPost, apiPostMultipart, ApiFormData } from "../api.ts";
 import { requireAuth, requireFromNumberId } from "./auth.ts";
 import { DialError } from "./errors.ts";
+
+export type MessageMediaItem = {
+  id: string;
+  /** Stable unauthenticated Dial URL serving the media. */
+  url: string;
+  contentType: string;
+  /** Source URL the media came from; null for direct uploads. */
+  originalUrl: string | null;
+};
 
 export type MessageRow = {
   id: string;
@@ -12,17 +23,93 @@ export type MessageRow = {
   direction?: string;
   channel: string;
   status: string;
+  media?: MessageMediaItem[];
   createdAt?: string;
 };
 
-export async function sendMessage(opts: { to: string; body: string; fromNumberId?: string }): Promise<MessageRow> {
+export const MAX_MEDIA_ITEMS = 10;
+
+// File extensions the API accepts for uploads, mapped to their MIME type
+// (mirrors the server's supported-content-type list).
+const EXT_CONTENT_TYPE: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  ogg: "audio/ogg",
+  wav: "audio/wav",
+  amr: "audio/amr",
+  mp4: "video/mp4",
+  "3gp": "video/3gpp",
+  pdf: "application/pdf",
+  vcf: "text/vcard",
+  ics: "text/calendar",
+};
+
+function isHttpUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value);
+}
+
+/** Read a local media file and resolve its MIME type from the extension. */
+function readMediaFile(path: string): { data: Buffer; contentType: string; name: string } {
+  const ext = extname(path).slice(1).toLowerCase();
+  const contentType = EXT_CONTENT_TYPE[ext];
+  if (!contentType) {
+    const supported = Object.keys(EXT_CONTENT_TYPE).join(", ");
+    throw new DialError("unsupported_media", `unsupported media file extension ".${ext}" (${path}). Supported: ${supported}`);
+  }
+  let data: Buffer;
+  try {
+    data = readFileSync(path);
+  } catch (err) {
+    throw new DialError("media_read_failed", `could not read media file ${path}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  return { data, contentType, name: basename(path) };
+}
+
+export async function sendMessage(opts: {
+  to: string;
+  body: string;
+  fromNumberId?: string;
+  /** Local file paths and/or public http(s) URLs, in send order (max 10). */
+  media?: string[];
+}): Promise<MessageRow> {
   const auth = requireAuth();
   const fromNumberId = requireFromNumberId(auth, opts.fromNumberId);
-  const res = await apiPost<{ message: MessageRow }>(
-    "/api/v1/messages",
-    { to: opts.to, body: opts.body, channel: "sms", fromNumberId },
-    auth.apiKey,
-  );
+  const media = opts.media ?? [];
+  if (media.length > MAX_MEDIA_ITEMS) {
+    throw new DialError("too_much_media", `at most ${MAX_MEDIA_ITEMS} media items are allowed per message (got ${media.length})`);
+  }
+
+  // URLs-only goes as plain JSON; any local file switches to multipart.
+  const hasFiles = media.some((m) => !isHttpUrl(m));
+  let res;
+  if (!hasFiles) {
+    res = await apiPost<{ message: MessageRow }>(
+      "/api/v1/messages",
+      { to: opts.to, body: opts.body, channel: "sms", fromNumberId, ...(media.length ? { mediaUrls: media } : {}) },
+      auth.apiKey,
+    );
+  } else {
+    const form = new ApiFormData();
+    form.set("to", opts.to);
+    form.set("body", opts.body);
+    form.set("channel", "sms");
+    form.set("fromNumberId", fromNumberId);
+    for (const item of media) {
+      if (isHttpUrl(item)) {
+        form.append("mediaUrls", item);
+      } else {
+        const file = readMediaFile(item);
+        form.append("media", new Blob([new Uint8Array(file.data)], { type: file.contentType }), file.name);
+      }
+    }
+    res = await apiPostMultipart<{ message: MessageRow }>("/api/v1/messages", form, auth.apiKey);
+  }
   if (!res.ok) throw new DialError("send_failed", res.error, res.status);
   return res.data.message;
 }

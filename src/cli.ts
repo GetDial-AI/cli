@@ -142,10 +142,11 @@ number
 
 const message = program
   .command("message")
-  .description("Send an SMS. POST /api/v1/messages.")
+  .description("Send an SMS, optionally with media (MMS). POST /api/v1/messages.")
   .option("--to <e164>", "destination phone number, E.164 (e.g. +14155551234)")
   .option("--body <text>", "message body")
   .option("--from-number-id <id>", "phoneNumberId to send from (defaults to onboard's number)")
+  .option("--media <path-or-url>", "media attachment: local file path (uploaded) or public http(s) URL (repeatable, max 10)", (v: string, prev: string[] = []) => [...prev, v], [] as string[])
   .option("--json", "machine-readable output")
   .action(async (opts) => {
     if (!opts.to || !opts.body) {
@@ -156,6 +157,7 @@ const message = program
       to: opts.to,
       body: opts.body,
       fromNumberId: opts.fromNumberId,
+      media: opts.media,
       json: !!opts.json,
     }));
   });
