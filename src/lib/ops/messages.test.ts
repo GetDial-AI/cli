@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeAuth } from "../state.ts";
@@ -34,6 +34,68 @@ describe("ops/messages", () => {
     const msg = await sendMessage({ to: "+15551111", body: "hi" });
     assert.equal(msg.id, "m1");
     assert.equal(msg.status, "queued");
+  });
+
+  it("sendMessage with media URLs only sends JSON with mediaUrls", async () => {
+    let seen: { contentType?: string; body?: string } = {};
+    api = await startMockApi((m, u, body, headers) => {
+      if (m === "POST" && u === "/api/v1/messages") {
+        seen = { contentType: String(headers?.["content-type"] ?? ""), body };
+        return { status: 201, json: { message: { id: "m1", from: "+1", to: "+2", body: "hi", channel: "sms", status: "queued", media: [] } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    await sendMessage({ to: "+15551111", body: "hi", media: ["https://cdn.example.com/a.png"] });
+    assert.match(seen.contentType ?? "", /application\/json/);
+    assert.deepEqual(JSON.parse(seen.body ?? "{}").mediaUrls, ["https://cdn.example.com/a.png"]);
+  });
+
+  it("sendMessage with a local file sends multipart with file bytes and mediaUrls parts", async () => {
+    const filePath = join(tmp, "pic.png");
+    writeFileSync(filePath, Buffer.from("png-bytes"));
+    let seen: { contentType?: string; body?: string } = {};
+    api = await startMockApi((m, u, body, headers) => {
+      if (m === "POST" && u === "/api/v1/messages") {
+        seen = { contentType: String(headers?.["content-type"] ?? ""), body };
+        return { status: 201, json: { message: { id: "m1", from: "+1", to: "+2", body: "hi", channel: "sms", status: "queued" } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    await sendMessage({ to: "+15551111", body: "hi", media: [filePath, "https://cdn.example.com/b.jpg"] });
+    assert.match(seen.contentType ?? "", /multipart\/form-data/);
+    const raw = seen.body ?? "";
+    assert.match(raw, /name="media"; filename="pic\.png"/);
+    assert.match(raw, /Content-Type: image\/png/);
+    assert.match(raw, /png-bytes/);
+    assert.match(raw, /name="mediaUrls"/);
+    assert.match(raw, /https:\/\/cdn\.example\.com\/b\.jpg/);
+    assert.match(raw, /name="fromNumberId"/);
+  });
+
+  it("sendMessage rejects unsupported media file extensions locally", async () => {
+    const filePath = join(tmp, "tool.exe");
+    writeFileSync(filePath, "MZ");
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    try {
+      await sendMessage({ to: "+15551111", body: "hi", media: [filePath] });
+      assert.fail("expected throw");
+    } catch (e) {
+      assert.ok(isDialError(e) && e.code === "unsupported_media");
+    }
+  });
+
+  it("sendMessage rejects more than 10 media items locally", async () => {
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    try {
+      await sendMessage({ to: "+15551111", body: "hi", media: Array.from({ length: 11 }, (_, i) => `https://x.test/${i}.png`) });
+      assert.fail("expected throw");
+    } catch (e) {
+      assert.ok(isDialError(e) && e.code === "too_much_media");
+    }
   });
 
   it("sendMessage throws no_from_number when no default and no override", async () => {
