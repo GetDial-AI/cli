@@ -113,12 +113,14 @@ number
   .command("purchase")
   .description("Purchase an additional phone number. POST /api/v1/numbers.")
   .requiredOption("--inbound-instruction <text>", "system prompt for inbound calls to this number")
+  .option("--inbound-voice-gender <male|female>", "voice gender for inbound calls (defaults to the caller's language default voice)")
   .option("--country <iso2>", "ISO-3166-1 alpha-2 country code (defaults to US server-side)")
   .option("--area-code <code>", "preferred area code (US/CA)")
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(await runNumberPurchase({
       inboundInstruction: opts.inboundInstruction,
+      inboundVoiceGender: opts.inboundVoiceGender,
       country: opts.country,
       areaCode: opts.areaCode,
       json: !!opts.json,
@@ -129,12 +131,14 @@ number
   .command("set <number>")
   .description("Update a number's properties (at least one flag). PATCH /api/v1/numbers/<id>.")
   .option("--inbound-instruction <text>", "new system prompt for inbound calls to this number")
+  .option("--inbound-voice-gender <male|female>", 'voice gender for inbound calls; pass "" to clear (→ caller-language default)')
   .option("--nickname <text>", 'human-readable label for the number, e.g. "Support line"; pass "" to clear')
   .option("--json", "machine-readable output")
   .action(async (numberArg: string, opts) =>
     process.exit(await runNumberSet({
       number: numberArg,
       inboundInstruction: opts.inboundInstruction,
+      inboundVoiceGender: opts.inboundVoiceGender,
       nickname: opts.nickname,
       json: !!opts.json,
     })),
@@ -182,6 +186,7 @@ const call = program
   .option("--to <e164>", "destination phone number, E.164 (e.g. +14155551234)")
   .option("--outbound-instruction <text>", "system prompt for the agent that will speak")
   .option("--language <bcp47>", "BCP-47 language tag for the call (default: auto-detect from the destination number's country, alongside en-US)")
+  .option("--voice-gender <male|female>", "voice gender for the agent (defaults to the language's default voice)")
   .option("--idempotency-key <key>", "unique key (e.g. a UUID) making the placement idempotent: re-running with the same key returns the already-placed call instead of dialing again")
   .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number)")
   .option("--json", "machine-readable output")
@@ -194,6 +199,7 @@ const call = program
       to: opts.to,
       outboundInstruction: opts.outboundInstruction,
       language: opts.language,
+      voiceGender: opts.voiceGender,
       idempotencyKey: opts.idempotencyKey,
       fromNumberId: opts.fromNumberId,
       json: !!opts.json,

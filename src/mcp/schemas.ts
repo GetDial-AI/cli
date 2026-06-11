@@ -29,6 +29,7 @@ export const phoneNumberSchema = z
     nickname: z.string().nullable().optional().describe("Human-readable label for the number"),
     country: z.string().optional(),
     inboundInstruction: z.string().nullable().optional(),
+    inboundVoiceGender: z.string().nullable().optional().describe('Voice gender for inbound calls ("male"/"female"); null → caller-language default'),
   })
   .passthrough();
 
