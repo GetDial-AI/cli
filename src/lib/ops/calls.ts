@@ -20,6 +20,7 @@ export async function placeCall(opts: {
   outboundInstruction: string;
   /** Omitted → the server auto-detects from the destination number's country. */
   language?: string;
+  voiceGender?: string;
   /** Same key across retries → the server returns the already-placed call instead of dialing again. */
   idempotencyKey?: string;
   fromNumberId?: string;
@@ -33,6 +34,8 @@ export async function placeCall(opts: {
       fromNumberId,
       outboundInstruction: opts.outboundInstruction,
       ...(opts.language && { language: opts.language }),
+      // Omitted → the server uses the language's default voice gender.
+      ...(opts.voiceGender ? { voiceGender: opts.voiceGender } : {}),
     },
     auth.apiKey,
     opts.idempotencyKey ? { "idempotency-key": opts.idempotencyKey } : undefined,

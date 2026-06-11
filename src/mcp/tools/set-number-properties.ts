@@ -7,6 +7,7 @@ import { phoneNumberSchema } from "../schemas.ts";
 const inputSchema = {
   number: z.string().min(7).describe("The E.164 phone number to update (e.g. +14155550123)"),
   inboundInstruction: z.string().min(1).optional().describe("New system prompt for inbound calls to this number"),
+  inboundVoiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for inbound calls to this number (defaults to the caller's language default voice)"),
   nickname: z.string().max(100).optional().describe('Human-readable label for the number, e.g. "Support line". Pass an empty string to clear it.'),
 };
 
@@ -25,6 +26,7 @@ export const setNumberPropertiesTool: ToolModule = {
       number: await setNumberProperties({
         number: args.number as string,
         inboundInstruction: args.inboundInstruction as string | undefined,
+        ...(args.inboundVoiceGender !== undefined ? { inboundVoiceGender: args.inboundVoiceGender as string } : {}),
         ...(args.nickname !== undefined ? { nickname: args.nickname as string } : {}),
       }),
     }),
