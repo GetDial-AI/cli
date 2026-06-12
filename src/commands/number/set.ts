@@ -5,7 +5,7 @@ import { printDialError } from "../../lib/cli-error.ts";
 export type NumberSetOptions = {
   number: string;
   inboundInstruction?: string;
-  /** "male"/"female"; an empty string clears it (→ caller-language default). */
+  /** "male"/"female"; an empty string clears it (reverts to the default, female). */
   inboundVoiceGender?: string;
   /** Human-readable label for the number; an empty string clears it. */
   nickname?: string;
