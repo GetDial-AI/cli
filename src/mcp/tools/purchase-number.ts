@@ -6,7 +6,7 @@ import { phoneNumberSchema } from "../schemas.ts";
 
 const inputSchema = {
   inboundInstruction: z.string().min(1).describe("System prompt for inbound calls to this number"),
-  inboundVoiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for inbound calls to this number (defaults to the caller's language default voice)"),
+  inboundVoiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for inbound calls to this number; the default is female"),
   country: z.string().optional().describe("ISO-3166-1 alpha-2 country code (defaults to US server-side)"),
   areaCode: z.string().optional().describe("Preferred area code (US/CA)"),
 };

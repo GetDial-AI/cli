@@ -7,7 +7,7 @@ import { phoneNumberSchema } from "../schemas.ts";
 const inputSchema = {
   number: z.string().min(7).describe("The E.164 phone number to update (e.g. +14155550123)"),
   inboundInstruction: z.string().min(1).optional().describe("New system prompt for inbound calls to this number"),
-  inboundVoiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for inbound calls to this number (defaults to the caller's language default voice)"),
+  inboundVoiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for inbound calls to this number; the default is female"),
   nickname: z.string().max(100).optional().describe('Human-readable label for the number, e.g. "Support line". Pass an empty string to clear it.'),
 };
 

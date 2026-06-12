@@ -34,7 +34,7 @@ export async function placeCall(opts: {
       fromNumberId,
       outboundInstruction: opts.outboundInstruction,
       ...(opts.language && { language: opts.language }),
-      // Omitted → the server uses the language's default voice gender.
+      // Omitted → the server uses the default voice gender (female).
       ...(opts.voiceGender ? { voiceGender: opts.voiceGender } : {}),
     },
     auth.apiKey,

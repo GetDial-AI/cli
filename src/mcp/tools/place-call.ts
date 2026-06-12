@@ -8,7 +8,7 @@ const inputSchema = {
   to: z.string().min(7).describe("Destination phone number, E.164 (e.g. +14155550123)"),
   outboundInstruction: z.string().min(1).describe("System prompt for the AI voice agent on this call"),
   language: z.string().optional().describe("BCP-47 language tag for the call. Omit to auto-detect from the destination number's country (alongside en-US)."),
-  voiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for the agent; defaults to the language's default voice"),
+  voiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for the agent; the default is female"),
   idempotencyKey: z.string().optional().describe("Unique key (e.g. a UUID) making the placement idempotent: retrying with the same key returns the already-placed call instead of dialing again"),
   fromNumberId: z.string().optional().describe("Number id to call from; defaults to your primary number"),
 };
