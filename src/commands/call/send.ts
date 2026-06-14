@@ -8,6 +8,8 @@ export type CallSendOptions = {
   /** Omitted → the server auto-detects from the destination number's country. */
   language?: string;
   voiceGender?: string;
+  /** Forward-to number (E.164): the agent waits for a real human then cold-transfers the call here. */
+  transferTo?: string;
   /** Same key across retries → the server returns the already-placed call instead of dialing again. */
   idempotencyKey?: string;
   fromNumberId?: string;
@@ -21,6 +23,7 @@ export async function runCallSend(opts: CallSendOptions): Promise<number> {
       outboundInstruction: opts.outboundInstruction,
       language: opts.language,
       voiceGender: opts.voiceGender,
+      transferTo: opts.transferTo,
       idempotencyKey: opts.idempotencyKey,
       fromNumberId: opts.fromNumberId,
     });

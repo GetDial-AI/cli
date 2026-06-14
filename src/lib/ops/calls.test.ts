@@ -50,6 +50,23 @@ describe("ops/calls", () => {
     assert.ok(!("language" in JSON.parse(sentBody)));
   });
 
+  it("placeCall includes transferTo in the body when provided (and omits it otherwise)", async () => {
+    const bodies: string[] = [];
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/calls") {
+        bodies.push(body);
+        return { status: 200, json: { call: { id: "c4", from: "+1", to: "+2", direction: "outbound", status: "queued", instruction: null } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+1", phoneNumberId: "pn_1" });
+    await placeCall({ to: "+2", outboundInstruction: "hi", transferTo: "+13105551212" });
+    await placeCall({ to: "+2", outboundInstruction: "hi" });
+    assert.equal(JSON.parse(bodies[0]).transferTo, "+13105551212");
+    assert.ok(!("transferTo" in JSON.parse(bodies[1])));
+  });
+
   it("placeCall sends the Idempotency-Key header when provided (and omits it otherwise)", async () => {
     const seenKeys: Array<string | string[] | undefined> = [];
     api = await startMockApi((m, u, _body, headers) => {

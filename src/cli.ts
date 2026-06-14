@@ -187,6 +187,7 @@ const call = program
   .option("--outbound-instruction <text>", "system prompt for the agent that will speak")
   .option("--language <bcp47>", "BCP-47 language tag for the call (default: auto-detect from the destination number's country, alongside en-US)")
   .option("--voice-gender <male|female>", "voice gender for the agent (default: female; pass male to override)")
+  .option("--transfer-to <e164>", "forward-to number, E.164: the agent waits for a real human (riding out hold/IVR) then cold-transfers the call here")
   .option("--idempotency-key <key>", "unique key (e.g. a UUID) making the placement idempotent: re-running with the same key returns the already-placed call instead of dialing again")
   .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number)")
   .option("--json", "machine-readable output")
@@ -200,6 +201,7 @@ const call = program
       outboundInstruction: opts.outboundInstruction,
       language: opts.language,
       voiceGender: opts.voiceGender,
+      transferTo: opts.transferTo,
       idempotencyKey: opts.idempotencyKey,
       fromNumberId: opts.fromNumberId,
       json: !!opts.json,
