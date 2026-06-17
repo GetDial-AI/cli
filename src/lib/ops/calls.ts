@@ -28,6 +28,7 @@ export async function placeCall(opts: {
   /** Same key across retries → the server returns the already-placed call instead of dialing again. */
   idempotencyKey?: string;
   fromNumberId?: string;
+  maxCallDurationSeconds?: number;
 }): Promise<CallRow> {
   const auth = requireAuth();
   const fromNumberId = requireFromNumberId(auth, opts.fromNumberId);
@@ -41,6 +42,7 @@ export async function placeCall(opts: {
       // Omitted → the server uses the default voice gender (female).
       ...(opts.voiceGender ? { voiceGender: opts.voiceGender } : {}),
       ...(opts.transferTo ? { transferTo: opts.transferTo } : {}),
+      ...(opts.maxCallDurationSeconds !== undefined ? { maxCallDurationSeconds: opts.maxCallDurationSeconds } : {}),
     },
     auth.apiKey,
     opts.idempotencyKey ? { "idempotency-key": opts.idempotencyKey } : undefined,

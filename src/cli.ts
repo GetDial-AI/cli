@@ -133,16 +133,32 @@ number
   .option("--inbound-instruction <text>", "new system prompt for inbound calls to this number")
   .option("--inbound-voice-gender <male|female>", 'voice gender for inbound calls; pass "" to clear (reverts to the default, female)')
   .option("--nickname <text>", 'human-readable label for the number, e.g. "Support line"; pass "" to clear')
+  .option("--max-call-duration <seconds>", "maximum inbound call duration cap for this number (seconds)", (v: string) => {
+    const n = parseInt(v, 10);
+    if (!Number.isInteger(n) || n <= 0 || String(n) !== v.trim()) {
+      console.error(`error: --max-call-duration must be a positive integer (seconds), got: ${v}`);
+      process.exit(2);
+    }
+    return n;
+  })
+  .option("--clear-max-call-duration", "remove the per-number inbound call duration cap")
   .option("--json", "machine-readable output")
-  .action(async (numberArg: string, opts) =>
+  .action(async (numberArg: string, opts) => {
+    let maxCallDurationSeconds: number | null | undefined;
+    if (opts.clearMaxCallDuration) {
+      maxCallDurationSeconds = null;
+    } else if (opts.maxCallDuration !== undefined) {
+      maxCallDurationSeconds = opts.maxCallDuration as number;
+    }
     process.exit(await runNumberSet({
       number: numberArg,
       inboundInstruction: opts.inboundInstruction,
       inboundVoiceGender: opts.inboundVoiceGender,
       nickname: opts.nickname,
+      maxCallDurationSeconds,
       json: !!opts.json,
-    })),
-  );
+    }));
+  });
 
 const message = program
   .command("message")
@@ -190,6 +206,14 @@ const call = program
   .option("--transfer-to <e164>", "forward-to number, E.164: the agent waits for a real human (riding out hold/IVR) then cold-transfers the call here")
   .option("--idempotency-key <key>", "unique key (e.g. a UUID) making the placement idempotent: re-running with the same key returns the already-placed call instead of dialing again")
   .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number)")
+  .option("--max-call-duration <seconds>", "maximum call duration cap (seconds); call is terminated when this limit is reached", (v: string) => {
+    const n = parseInt(v, 10);
+    if (!Number.isInteger(n) || n <= 0 || String(n) !== v.trim()) {
+      console.error(`error: --max-call-duration must be a positive integer (seconds), got: ${v}`);
+      process.exit(2);
+    }
+    return n;
+  })
   .option("--json", "machine-readable output")
   .action(async (opts) => {
     if (!opts.to || !opts.outboundInstruction) {
@@ -204,6 +228,7 @@ const call = program
       transferTo: opts.transferTo,
       idempotencyKey: opts.idempotencyKey,
       fromNumberId: opts.fromNumberId,
+      maxCallDurationSeconds: opts.maxCallDuration as number | undefined,
       json: !!opts.json,
     }));
   });

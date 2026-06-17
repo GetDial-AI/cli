@@ -13,6 +13,7 @@ export type CallSendOptions = {
   /** Same key across retries → the server returns the already-placed call instead of dialing again. */
   idempotencyKey?: string;
   fromNumberId?: string;
+  maxCallDurationSeconds?: number;
   json: boolean;
 };
 
@@ -26,6 +27,7 @@ export async function runCallSend(opts: CallSendOptions): Promise<number> {
       transferTo: opts.transferTo,
       idempotencyKey: opts.idempotencyKey,
       fromNumberId: opts.fromNumberId,
+      maxCallDurationSeconds: opts.maxCallDurationSeconds,
     });
 
     const waitCmd = `dial wait-for call.ended -f callId=${c.id} --json`;
