@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import { VERSION } from "./lib/version.ts";
 import { runDoctor } from "./commands/doctor.ts";
+import { runBilling } from "./commands/billing.ts";
 import { runSignup } from "./commands/signup.ts";
 import { runOnboard } from "./commands/onboard.ts";
 import { runListen } from "./commands/listen/index.ts";
@@ -45,6 +46,12 @@ program
   .description("Report state and what to do next.")
   .option("--json", "machine-readable output")
   .action(async (opts) => process.exit(await runDoctor({ json: !!opts.json })));
+
+program
+  .command("billing")
+  .description("Show account billing: balance, plan, per-number mode, recent usage. GET /api/v1/billing.")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => process.exit(await runBilling({ json: !!opts.json })));
 
 program
   .command("signup <email>")
