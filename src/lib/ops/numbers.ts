@@ -45,7 +45,8 @@ export async function setNumberProperties(opts: {
   /** Human-readable label for the number; an empty string clears it. */
   nickname?: string;
   /**
-   * Per-number inbound call duration cap in seconds.
+   * Per-number call duration cap in seconds, applied as a hard ceiling to both
+   * inbound and outbound calls on the number.
    * Pass `null` to clear; omit to leave unchanged.
    */
   maxCallDurationSeconds?: number | null;
