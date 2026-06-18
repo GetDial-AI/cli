@@ -37,7 +37,7 @@ describe("ops/billing", () => {
               subscription: null,
               numbers: [{ id: "pn_1", number: "+15550000", mode: "PAYG" }],
               recentUsage: [],
-              paymentMethods: [{ id: "pm_1", brand: "visa", last4: "4242", expMonth: 4, expYear: 2027, isDefault: true }],
+              paymentMethods: [{ id: "pm_1", type: "card", brand: "visa", last4: "4242", expMonth: 4, expYear: 2027, email: null, isDefault: true }],
             },
           }
         : undefined,
@@ -48,6 +48,7 @@ describe("ops/billing", () => {
     assert.equal(b.balanceCents, 500);
     assert.equal(b.subscription, null);
     assert.equal(b.numbers[0].mode, "PAYG");
+    assert.equal(b.paymentMethods[0].type, "card");
     assert.equal(b.paymentMethods[0].brand, "visa");
     assert.equal(b.paymentMethods[0].isDefault, true);
   });

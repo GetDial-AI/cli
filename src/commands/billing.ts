@@ -46,9 +46,13 @@ export async function runBilling(opts: BillingOptions): Promise<number> {
     if (billing.paymentMethods.length > 0) {
       console.log(`payment methods:`);
       for (const p of billing.paymentMethods) {
-        const exp = `${String(p.expMonth).padStart(2, "0")}/${String(p.expYear).slice(-2)}`;
         const tag = p.isDefault ? "  (default)" : "";
-        console.log(`  ${p.brand} •••• ${p.last4}  exp ${exp}${tag}`);
+        if (p.type === "card") {
+          const exp = `${String(p.expMonth).padStart(2, "0")}/${String(p.expYear).slice(-2)}`;
+          console.log(`  ${p.brand} •••• ${p.last4}  exp ${exp}${tag}`);
+        } else {
+          console.log(`  ${p.type}${p.email ? `  ${p.email}` : ""}${tag}`);
+        }
       }
     }
     return 0;

@@ -31,10 +31,12 @@ export type BillingDeposit = {
 export type BillingPricing = { monthlyCents: number; annualCents: number };
 export type BillingPaymentMethod = {
   id: string;
+  type: string;
   brand: string;
   last4: string;
   expMonth: number;
   expYear: number;
+  email: string | null;
   isDefault: boolean;
 };
 export type Billing = {
