@@ -24,13 +24,11 @@ export async function listNumbers(): Promise<{ numbers: PhoneNumberRow[]; defaul
 export async function purchaseNumber(opts: {
   inboundInstruction: string;
   inboundVoiceGender?: string;
-  country?: string;
   areaCode?: string;
 }): Promise<PhoneNumberRow> {
   const auth = requireAuth();
   const body: Record<string, unknown> = { inboundInstruction: opts.inboundInstruction };
   if (opts.inboundVoiceGender) body.inboundVoiceGender = opts.inboundVoiceGender;
-  if (opts.country) body.country = opts.country;
   if (opts.areaCode) body.areaCode = opts.areaCode;
   const res = await apiPost<{ number: PhoneNumberRow }>("/api/v1/numbers", body, auth.apiKey);
   if (!res.ok) throw new DialError("purchase_failed", res.error, res.status);

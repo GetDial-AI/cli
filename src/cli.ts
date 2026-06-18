@@ -121,14 +121,12 @@ number
   .description("Purchase an additional phone number. POST /api/v1/numbers.")
   .requiredOption("--inbound-instruction <text>", "system prompt for inbound calls to this number")
   .option("--inbound-voice-gender <male|female>", "voice gender for inbound calls (default: female; pass male to override)")
-  .option("--country <iso2>", "ISO-3166-1 alpha-2 country code (defaults to US server-side)")
-  .option("--area-code <code>", "preferred area code (US/CA)")
+  .option("--area-code <code>", "preferred US area code (only US numbers can be provisioned)")
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(await runNumberPurchase({
       inboundInstruction: opts.inboundInstruction,
       inboundVoiceGender: opts.inboundVoiceGender,
-      country: opts.country,
       areaCode: opts.areaCode,
       json: !!opts.json,
     })),
