@@ -2,27 +2,38 @@ import { apiGet } from "../api.ts";
 import { requireAuth } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
-// `dial billing` — read-only account billing. Wraps GET /api/v1/billing.
+// `dial billing` — read-only account billing. Wraps GET /api/v1/billing. Billing
+// management (subscribe, top up, cancel) is a browser/dashboard flow, not a CLI verb.
+
+export type BillingInterval = "monthly" | "annual";
 
 export type BillingSubscription = {
   periodStart: string;
   periodEnd: string;
   quantity: number;
-  interval: "monthly" | "annual";
+  interval: BillingInterval;
+  cancelAtPeriodEnd: boolean;
 };
-export type BillingNumber = { id: string; number: string; mode: "PAYG" | "FIXED" };
+export type BillingNumber = { id: string; number: string; nickname: string | null; mode: "PAYG" | "FIXED" };
 export type BillingUsageRow = {
   occurredAt: string;
   fareName: string;
+  number: string | null;
   billedQuantity: number;
   totalCents: number;
   attribution: "wallet" | "entitlement";
+};
+export type BillingDeposit = {
+  createdAt: string;
+  amountCents: number;
+  kind: "card" | "welcome" | "manual";
 };
 export type Billing = {
   balanceCents: number;
   subscription: BillingSubscription | null;
   numbers: BillingNumber[];
   recentUsage: BillingUsageRow[];
+  deposits: BillingDeposit[];
 };
 
 export async function getBilling(): Promise<Billing> {

@@ -49,7 +49,7 @@ program
 
 program
   .command("billing")
-  .description("Show account billing: balance, plan, per-number mode, recent usage. GET /api/v1/billing.")
+  .description("Show account billing: balance, plan, per-number mode, recent activity. GET /api/v1/billing.")
   .option("--json", "machine-readable output")
   .action(async (opts) => process.exit(await runBilling({ json: !!opts.json })));
 

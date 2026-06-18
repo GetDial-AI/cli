@@ -17,20 +17,30 @@ export async function runBilling(opts: BillingOptions): Promise<number> {
     if (billing.subscription) {
       const s = billing.subscription;
       const numbers = `${s.quantity} number${s.quantity === 1 ? "" : "s"}`;
-      console.log(`plan:      subscribed (${s.interval}, ${numbers}) — renews ${s.periodEnd}`);
+      const renewal = s.cancelAtPeriodEnd ? `cancels ${s.periodEnd}` : `renews ${s.periodEnd}`;
+      console.log(`plan:      subscribed (${s.interval}, ${numbers}) — ${renewal}`);
     } else {
       console.log(`plan:      pay-as-you-go`);
     }
     if (billing.numbers.length > 0) {
       console.log(`numbers:`);
       for (const n of billing.numbers) {
-        console.log(`  ${n.number}  ${n.mode === "FIXED" ? "subscription" : "pay-as-you-go"}  id=${n.id}`);
+        const mode = n.mode === "FIXED" ? "subscription" : "pay-as-you-go";
+        const nick = n.nickname ? `  "${n.nickname}"` : "";
+        console.log(`  ${n.number}${nick}  ${mode}  id=${n.id}`);
       }
     }
     if (billing.recentUsage.length > 0) {
       console.log(`recent usage:`);
       for (const u of billing.recentUsage) {
-        console.log(`  ${u.occurredAt}  ${u.fareName}  x${u.billedQuantity}  ${usd(u.totalCents)}  (${u.attribution})`);
+        const on = u.number ? `  ${u.number}` : "";
+        console.log(`  ${u.occurredAt}  ${u.fareName}${on}  x${u.billedQuantity}  ${usd(u.totalCents)}  (${u.attribution})`);
+      }
+    }
+    if (billing.deposits.length > 0) {
+      console.log(`recent credits:`);
+      for (const d of billing.deposits) {
+        console.log(`  ${d.createdAt}  +${usd(d.amountCents)}  (${d.kind})`);
       }
     }
     return 0;
