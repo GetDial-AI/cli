@@ -28,12 +28,14 @@ export type BillingDeposit = {
   amountCents: number;
   kind: "card" | "welcome" | "manual";
 };
+export type BillingPricing = { monthlyCents: number; annualCents: number };
 export type Billing = {
   balanceCents: number;
   subscription: BillingSubscription | null;
   numbers: BillingNumber[];
   recentUsage: BillingUsageRow[];
   deposits: BillingDeposit[];
+  pricing: BillingPricing;
 };
 
 export async function getBilling(): Promise<Billing> {
