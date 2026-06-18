@@ -43,6 +43,14 @@ export async function runBilling(opts: BillingOptions): Promise<number> {
         console.log(`  ${d.createdAt}  +${usd(d.amountCents)}  (${d.kind})`);
       }
     }
+    if (billing.paymentMethods.length > 0) {
+      console.log(`payment methods:`);
+      for (const p of billing.paymentMethods) {
+        const exp = `${String(p.expMonth).padStart(2, "0")}/${String(p.expYear).slice(-2)}`;
+        const tag = p.isDefault ? "  (default)" : "";
+        console.log(`  ${p.brand} •••• ${p.last4}  exp ${exp}${tag}`);
+      }
+    }
     return 0;
   } catch (e) {
     if (isDialError(e)) return printDialError(opts.json, e);
