@@ -133,7 +133,7 @@ number
   .option("--inbound-instruction <text>", "new system prompt for inbound calls to this number")
   .option("--inbound-voice-gender <male|female>", 'voice gender for inbound calls; pass "" to clear (reverts to the default, female)')
   .option("--nickname <text>", 'human-readable label for the number, e.g. "Support line"; pass "" to clear')
-  .option("--max-call-duration <seconds>", "maximum inbound call duration cap for this number (seconds)", (v: string) => {
+  .option("--max-call-duration <seconds>", "call duration cap for this number, in seconds, applied as a hard ceiling to both inbound and outbound calls (the smallest of the per-number, account, and per-call caps wins)", (v: string) => {
     const n = parseInt(v, 10);
     if (!Number.isInteger(n) || n <= 0 || String(n) !== v.trim()) {
       console.error(`error: --max-call-duration must be a positive integer (seconds), got: ${v}`);
@@ -141,7 +141,7 @@ number
     }
     return n;
   })
-  .option("--clear-max-call-duration", "remove the per-number inbound call duration cap")
+  .option("--clear-max-call-duration", "remove the per-number call duration cap")
   .option("--json", "machine-readable output")
   .action(async (numberArg: string, opts) => {
     let maxCallDurationSeconds: number | null | undefined;

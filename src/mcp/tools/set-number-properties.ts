@@ -9,7 +9,7 @@ const inputSchema = {
   inboundInstruction: z.string().min(1).optional().describe("New system prompt for inbound calls to this number"),
   inboundVoiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for inbound calls to this number; the default is female"),
   nickname: z.string().max(100).optional().describe('Human-readable label for the number, e.g. "Support line". Pass an empty string to clear it.'),
-  maxCallDurationSeconds: z.number().int().positive().nullable().optional().describe("Maximum inbound call duration cap for this number (seconds). Pass null to clear the cap; omit to leave it unchanged."),
+  maxCallDurationSeconds: z.number().int().positive().nullable().optional().describe("Call duration cap for this number, in seconds, applied as a hard ceiling to both inbound and outbound calls (the smallest of the per-number, account, and per-call caps wins). Pass null to clear the cap; omit to leave it unchanged."),
 };
 
 export const setNumberPropertiesTool: ToolModule = {
