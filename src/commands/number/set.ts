@@ -9,6 +9,12 @@ export type NumberSetOptions = {
   inboundVoiceGender?: string;
   /** Human-readable label for the number; an empty string clears it. */
   nickname?: string;
+  /**
+   * Per-number call duration cap in seconds, applied as a hard ceiling to both
+   * inbound and outbound calls on the number.
+   * `null` clears the cap; `undefined` leaves it unchanged.
+   */
+  maxCallDurationSeconds?: number | null;
   json: boolean;
 };
 
@@ -19,6 +25,7 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       inboundInstruction: opts.inboundInstruction,
       ...(opts.inboundVoiceGender !== undefined ? { inboundVoiceGender: opts.inboundVoiceGender } : {}),
       ...(opts.nickname !== undefined ? { nickname: opts.nickname } : {}),
+      ...(opts.maxCallDurationSeconds !== undefined ? { maxCallDurationSeconds: opts.maxCallDurationSeconds } : {}),
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, number: n }));

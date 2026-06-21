@@ -12,6 +12,7 @@ const inputSchema = {
   transferTo: z.string().optional().describe("Forward-to number, E.164: the agent waits for a real human (riding out hold/IVR) then cold-transfers the call here. Must differ from `to` and the from number."),
   idempotencyKey: z.string().optional().describe("Unique key (e.g. a UUID) making the placement idempotent: retrying with the same key returns the already-placed call instead of dialing again"),
   fromNumberId: z.string().optional().describe("Number id to call from; defaults to your primary number"),
+  maxCallDurationSeconds: z.number().int().positive().optional().describe("Maximum call duration cap (seconds); the call is terminated when this limit is reached"),
 };
 
 export const placeCallTool: ToolModule = {
@@ -34,6 +35,7 @@ export const placeCallTool: ToolModule = {
       transferTo: args.transferTo as string | undefined,
       idempotencyKey: args.idempotencyKey as string | undefined,
       fromNumberId: args.fromNumberId as string | undefined,
+      maxCallDurationSeconds: args.maxCallDurationSeconds as number | undefined,
     });
     return jsonResult({
       call,

@@ -100,6 +100,40 @@ describe("ops/numbers", () => {
     }
   });
 
+  it("setNumberProperties sends maxCallDurationSeconds when set", async () => {
+    let patchBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US" } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    await setNumberProperties({ number: "+15550000", maxCallDurationSeconds: 300 });
+    assert.deepEqual(JSON.parse(patchBody), { maxCallDurationSeconds: 300 });
+  });
+
+  it("setNumberProperties sends null maxCallDurationSeconds to clear the cap", async () => {
+    let patchBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US" } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    await setNumberProperties({ number: "+15550000", maxCallDurationSeconds: null });
+    assert.deepEqual(JSON.parse(patchBody), { maxCallDurationSeconds: null });
+  });
+
   it("purchaseNumber throws purchase_failed on non-2xx", async () => {
     api = await startMockApi((m, u) =>
       m === "POST" && u === "/api/v1/numbers" ? { status: 402, json: { error: "payment required" } } : undefined,
