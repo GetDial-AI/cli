@@ -30,13 +30,6 @@ export async function runBilling(opts: BillingOptions): Promise<number> {
         console.log(`  ${n.number}${nick}  ${mode}  id=${n.id}`);
       }
     }
-    if (billing.recentUsage.length > 0) {
-      console.log(`recent usage:`);
-      for (const u of billing.recentUsage) {
-        const on = u.number ? `  ${u.number}` : "";
-        console.log(`  ${u.occurredAt}  ${u.fareName}${on}  x${u.billedQuantity}  ${usd(u.totalCents)}  (${u.attribution})`);
-      }
-    }
     if (billing.deposits.length > 0) {
       console.log(`recent credits:`);
       for (const d of billing.deposits) {

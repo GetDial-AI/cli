@@ -15,18 +15,12 @@ export type BillingSubscription = {
   cancelAtPeriodEnd: boolean;
 };
 export type BillingNumber = { id: string; number: string; nickname: string | null; mode: "PAYG" | "FIXED" };
-export type BillingUsageRow = {
-  occurredAt: string;
-  fareName: string;
-  number: string | null;
-  billedQuantity: number;
-  totalCents: number;
-  attribution: "wallet" | "entitlement";
-};
 export type BillingDeposit = {
   createdAt: string;
   amountCents: number;
   kind: "card" | "welcome" | "manual";
+  /** Stripe invoice id backing this deposit (card top-ups only; null otherwise). */
+  invoiceId: string | null;
 };
 export type BillingPricing = { monthlyCents: number; annualCents: number };
 export type BillingPaymentMethod = {
@@ -43,7 +37,7 @@ export type Billing = {
   balanceCents: number;
   subscription: BillingSubscription | null;
   numbers: BillingNumber[];
-  recentUsage: BillingUsageRow[];
+  /** Recent wallet credits (top-ups, welcome credit, manual grants), newest first. */
   deposits: BillingDeposit[];
   pricing: BillingPricing;
   paymentMethods: BillingPaymentMethod[];
