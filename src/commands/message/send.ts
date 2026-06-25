@@ -21,7 +21,6 @@ export async function runMessageSend(opts: MessageSendOptions): Promise<number> 
       console.log(`  to:       ${m.to}`);
       console.log(`  body:     ${m.body}`);
       console.log(`  status:   ${m.status}`);
-      console.log(`  sid:      ${m.sid}`);
     }
     return 0;
   } catch (e) {

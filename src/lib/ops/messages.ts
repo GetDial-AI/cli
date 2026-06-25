@@ -4,7 +4,6 @@ import { DialError } from "./errors.ts";
 
 export type MessageRow = {
   id: string;
-  sid?: string;
   phoneNumberId?: string;
   from: string;
   to: string;
