@@ -20,7 +20,7 @@ export async function sendMessage(opts: { to: string; body: string; fromNumberId
   const fromNumberId = requireFromNumberId(auth, opts.fromNumberId);
   const res = await apiPost<{ message: MessageRow }>(
     "/api/v1/messages",
-    { to: opts.to, body: opts.body, channel: "sms", fromNumberId },
+    { to: opts.to, body: opts.body, fromNumberId },
     auth.apiKey,
   );
   if (!res.ok) throw new DialError("send_failed", res.error, res.status);
