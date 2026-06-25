@@ -1,7 +1,7 @@
 import { request } from "undici";
 import { logger } from "./log.ts";
 
-const DEFAULT_BASE = "https://getdial.ai";
+const DEFAULT_BASE = "https://api.getdial.ai";
 
 export function baseUrl(): string {
   return process.env.DIAL_API_URL ?? DEFAULT_BASE;
