@@ -38,7 +38,16 @@ async function apiRequest<T>(method: "GET" | "POST" | "PATCH", path: string, bod
     if (res.statusCode >= 200 && res.statusCode < 300) {
       return { ok: true, status: res.statusCode, data: parsed as T };
     }
-    const errMsg = (parsed as { error?: string } | null)?.error ?? text ?? `HTTP ${res.statusCode}`;
+    // The server's `error` field is usually a string, but validation failures
+    // return a structured object (Zod's flatten). Stringify those as JSON rather
+    // than letting them coerce to "[object Object]", so the real reason survives.
+    const rawError = (parsed as { error?: unknown } | null)?.error;
+    const errMsg =
+      typeof rawError === "string"
+        ? rawError
+        : rawError != null
+          ? JSON.stringify(rawError)
+          : text || `HTTP ${res.statusCode}`;
     return { ok: false, status: res.statusCode, error: errMsg };
   } catch (err) {
     return { ok: false, status: 0, error: err instanceof Error ? err.message : String(err) };

@@ -4,7 +4,6 @@ import { DialError } from "./errors.ts";
 
 export type MessageRow = {
   id: string;
-  sid?: string;
   phoneNumberId?: string;
   from: string;
   to: string;
@@ -18,6 +17,9 @@ export type MessageRow = {
 export async function sendMessage(opts: { to: string; body: string; fromNumberId?: string }): Promise<MessageRow> {
   const auth = requireAuth();
   const fromNumberId = requireFromNumberId(auth, opts.fromNumberId);
+  // No `channel`: the server determines it from the from-number (a standard number
+  // sends SMS; an iMessage number sends iMessage with RCS/SMS fallback) and its send
+  // schema is strict — sending a stale `channel` field is rejected as a 400.
   const res = await apiPost<{ message: MessageRow }>(
     "/api/v1/messages",
     { to: opts.to, body: opts.body, fromNumberId },
