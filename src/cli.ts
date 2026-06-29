@@ -120,14 +120,18 @@ number
   .command("purchase")
   .description("Purchase an additional phone number. POST /api/v1/numbers.")
   .requiredOption("--inbound-instruction <text>", "system prompt for inbound calls to this number")
+  .requiredOption("--explicit-programmatic-consent <text>", "required attestation that the account holder consented to provisioning this number programmatically (stored on the number)")
   .option("--inbound-voice-gender <male|female>", "voice gender for inbound calls (default: female; pass male to override)")
-  .option("--area-code <code>", "preferred US area code (only US numbers can be provisioned)")
+  .option("--area-code <code>", "preferred US area code (only US numbers can be provisioned; ignored with --include-imessage)")
+  .option("--include-imessage", "provision an iMessage number (pay-as-you-go only; provisioned asynchronously — poll `dial number list` until ready)")
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(await runNumberPurchase({
       inboundInstruction: opts.inboundInstruction,
+      explicitProgrammaticConsent: opts.explicitProgrammaticConsent,
       inboundVoiceGender: opts.inboundVoiceGender,
       areaCode: opts.areaCode,
+      includeImessage: !!opts.includeImessage,
       json: !!opts.json,
     })),
   );

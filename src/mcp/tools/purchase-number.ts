@@ -6,8 +6,10 @@ import { phoneNumberSchema } from "../schemas.ts";
 
 const inputSchema = {
   inboundInstruction: z.string().min(1).describe("System prompt for inbound calls to this number"),
+  explicitProgrammaticConsent: z.string().min(1).max(2000).describe("Required attestation (max 2000 chars) that the account holder consented to provisioning this number programmatically; stored on the number"),
   inboundVoiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for inbound calls to this number; the default is female"),
-  areaCode: z.string().optional().describe("Preferred US area code; omitted → any available US number. Only US numbers can be provisioned at this time"),
+  areaCode: z.string().optional().describe("Preferred US area code; omitted → any available US number. Only US numbers can be provisioned at this time. Ignored for iMessage numbers"),
+  includeImessage: z.boolean().optional().describe('Provision an iMessage number (pay-as-you-go only; provisioned asynchronously — poll List Numbers until setupStatus is "ready")'),
 };
 
 export const purchaseNumberTool: ToolModule = {
@@ -23,8 +25,10 @@ export const purchaseNumberTool: ToolModule = {
     jsonResult({
       number: await purchaseNumber({
         inboundInstruction: args.inboundInstruction as string,
+        explicitProgrammaticConsent: args.explicitProgrammaticConsent as string,
         inboundVoiceGender: args.inboundVoiceGender as string | undefined,
         areaCode: args.areaCode as string | undefined,
+        includeImessage: args.includeImessage as boolean | undefined,
       }),
     }),
 };
