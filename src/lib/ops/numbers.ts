@@ -11,6 +11,7 @@ export type PhoneNumberRow = {
   accountId?: string;
   createdAt?: string;
   inboundInstruction?: string | null;
+  inboundVoiceGender?: string | null;
 };
 
 export async function listNumbers(): Promise<{ numbers: PhoneNumberRow[]; defaultNumberId: string | null }> {
@@ -22,12 +23,12 @@ export async function listNumbers(): Promise<{ numbers: PhoneNumberRow[]; defaul
 
 export async function purchaseNumber(opts: {
   inboundInstruction: string;
-  country?: string;
+  inboundVoiceGender?: string;
   areaCode?: string;
 }): Promise<PhoneNumberRow> {
   const auth = requireAuth();
   const body: Record<string, unknown> = { inboundInstruction: opts.inboundInstruction };
-  if (opts.country) body.country = opts.country;
+  if (opts.inboundVoiceGender) body.inboundVoiceGender = opts.inboundVoiceGender;
   if (opts.areaCode) body.areaCode = opts.areaCode;
   const res = await apiPost<{ number: PhoneNumberRow }>("/api/v1/numbers", body, auth.apiKey);
   if (!res.ok) throw new DialError("purchase_failed", res.error, res.status);
@@ -37,14 +38,25 @@ export async function purchaseNumber(opts: {
 export async function setNumberProperties(opts: {
   number: string;
   inboundInstruction?: string;
+  /** "male"/"female"; an empty string clears it (reverts to the default, female). */
+  inboundVoiceGender?: string;
   /** Human-readable label for the number; an empty string clears it. */
   nickname?: string;
+  /**
+   * Per-number call duration cap in seconds, applied as a hard ceiling to both
+   * inbound and outbound calls on the number.
+   * Pass `null` to clear; omit to leave unchanged.
+   */
+  maxCallDurationSeconds?: number | null;
 }): Promise<PhoneNumberRow> {
   const body: Record<string, unknown> = {};
   if (opts.inboundInstruction !== undefined) body.inboundInstruction = opts.inboundInstruction;
+  // Empty string clears the override → send null (the enum API rejects "").
+  if (opts.inboundVoiceGender !== undefined) body.inboundVoiceGender = opts.inboundVoiceGender || null;
   if (opts.nickname !== undefined) body.nickname = opts.nickname;
+  if (opts.maxCallDurationSeconds !== undefined) body.maxCallDurationSeconds = opts.maxCallDurationSeconds;
   if (Object.keys(body).length === 0) {
-    throw new DialError("bad_request", "Provide at least one property to update (inboundInstruction or nickname).");
+    throw new DialError("bad_request", "Provide at least one property to update (inboundInstruction, inboundVoiceGender, nickname, or maxCallDurationSeconds).");
   }
   const auth = requireAuth();
   // The REST API keys numbers by id; the CLI/tool takes the E.164 number for ergonomics,

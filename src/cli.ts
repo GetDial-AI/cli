@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import { VERSION } from "./lib/version.ts";
 import { runDoctor } from "./commands/doctor.ts";
+import { runBilling } from "./commands/billing.ts";
 import { runSignup } from "./commands/signup.ts";
 import { runOnboard } from "./commands/onboard.ts";
 import { runListen } from "./commands/listen/index.ts";
@@ -45,6 +46,12 @@ program
   .description("Report state and what to do next.")
   .option("--json", "machine-readable output")
   .action(async (opts) => process.exit(await runDoctor({ json: !!opts.json })));
+
+program
+  .command("billing")
+  .description("Show account billing: balance, plan, per-number mode, recent activity. GET /api/v1/billing.")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => process.exit(await runBilling({ json: !!opts.json })));
 
 program
   .command("signup <email>")
@@ -113,13 +120,13 @@ number
   .command("purchase")
   .description("Purchase an additional phone number. POST /api/v1/numbers.")
   .requiredOption("--inbound-instruction <text>", "system prompt for inbound calls to this number")
-  .option("--country <iso2>", "ISO-3166-1 alpha-2 country code (defaults to US server-side)")
-  .option("--area-code <code>", "preferred area code (US/CA)")
+  .option("--inbound-voice-gender <male|female>", "voice gender for inbound calls (default: female; pass male to override)")
+  .option("--area-code <code>", "preferred US area code (only US numbers can be provisioned)")
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(await runNumberPurchase({
       inboundInstruction: opts.inboundInstruction,
-      country: opts.country,
+      inboundVoiceGender: opts.inboundVoiceGender,
       areaCode: opts.areaCode,
       json: !!opts.json,
     })),
@@ -129,16 +136,34 @@ number
   .command("set <number>")
   .description("Update a number's properties (at least one flag). PATCH /api/v1/numbers/<id>.")
   .option("--inbound-instruction <text>", "new system prompt for inbound calls to this number")
+  .option("--inbound-voice-gender <male|female>", 'voice gender for inbound calls; pass "" to clear (reverts to the default, female)')
   .option("--nickname <text>", 'human-readable label for the number, e.g. "Support line"; pass "" to clear')
+  .option("--max-call-duration <seconds>", "call duration cap for this number, in seconds, applied as a hard ceiling to both inbound and outbound calls (the smallest of the per-number, account, and per-call caps wins)", (v: string) => {
+    const n = parseInt(v, 10);
+    if (!Number.isInteger(n) || n <= 0 || String(n) !== v.trim()) {
+      console.error(`error: --max-call-duration must be a positive integer (seconds), got: ${v}`);
+      process.exit(2);
+    }
+    return n;
+  })
+  .option("--clear-max-call-duration", "remove the per-number call duration cap")
   .option("--json", "machine-readable output")
-  .action(async (numberArg: string, opts) =>
+  .action(async (numberArg: string, opts) => {
+    let maxCallDurationSeconds: number | null | undefined;
+    if (opts.clearMaxCallDuration) {
+      maxCallDurationSeconds = null;
+    } else if (opts.maxCallDuration !== undefined) {
+      maxCallDurationSeconds = opts.maxCallDuration as number;
+    }
     process.exit(await runNumberSet({
       number: numberArg,
       inboundInstruction: opts.inboundInstruction,
+      inboundVoiceGender: opts.inboundVoiceGender,
       nickname: opts.nickname,
+      maxCallDurationSeconds,
       json: !!opts.json,
-    })),
-  );
+    }));
+  });
 
 const message = program
   .command("message")
@@ -184,8 +209,18 @@ const call = program
   .option("--to <e164>", "destination phone number, E.164 (e.g. +14155551234)")
   .option("--outbound-instruction <text>", "system prompt for the agent that will speak")
   .option("--language <bcp47>", "BCP-47 language tag for the call (default: auto-detect from the destination number's country, alongside en-US)")
+  .option("--voice-gender <male|female>", "voice gender for the agent (default: female; pass male to override)")
+  .option("--transfer-to <e164>", "forward-to number, E.164: the agent waits for a real human (riding out hold/IVR) then cold-transfers the call here")
   .option("--idempotency-key <key>", "unique key (e.g. a UUID) making the placement idempotent: re-running with the same key returns the already-placed call instead of dialing again")
   .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number)")
+  .option("--max-call-duration <seconds>", "maximum call duration cap (seconds); call is terminated when this limit is reached", (v: string) => {
+    const n = parseInt(v, 10);
+    if (!Number.isInteger(n) || n <= 0 || String(n) !== v.trim()) {
+      console.error(`error: --max-call-duration must be a positive integer (seconds), got: ${v}`);
+      process.exit(2);
+    }
+    return n;
+  })
   .option("--json", "machine-readable output")
   .action(async (opts) => {
     if (!opts.to || !opts.outboundInstruction) {
@@ -196,8 +231,11 @@ const call = program
       to: opts.to,
       outboundInstruction: opts.outboundInstruction,
       language: opts.language,
+      voiceGender: opts.voiceGender,
+      transferTo: opts.transferTo,
       idempotencyKey: opts.idempotencyKey,
       fromNumberId: opts.fromNumberId,
+      maxCallDurationSeconds: opts.maxCallDuration as number | undefined,
       json: !!opts.json,
     }));
   });

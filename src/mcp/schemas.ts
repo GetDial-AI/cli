@@ -29,6 +29,7 @@ export const phoneNumberSchema = z
     nickname: z.string().nullable().optional().describe("Human-readable label for the number"),
     country: z.string().optional(),
     inboundInstruction: z.string().nullable().optional(),
+    inboundVoiceGender: z.string().nullable().optional().describe('Voice gender for inbound calls ("male"/"female"); null → female (the default)'),
   })
   .passthrough();
 
@@ -41,6 +42,7 @@ export const messageSchema = z
     channel: z.string().optional(),
     direction: z.string().optional(),
     status: statusSchema,
+    statusError: z.string().nullish().describe("Failure reason when status is undelivered/failed"),
     createdAt: z.string().optional(),
   })
   .passthrough();

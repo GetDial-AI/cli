@@ -12,6 +12,8 @@ export type CallRow = {
   duration?: number;
   transcript?: string | null;
   instruction: string | null;
+  transferTo?: string | null;
+  transferredAt?: string | null;
   createdAt?: string;
 };
 
@@ -20,9 +22,13 @@ export async function placeCall(opts: {
   outboundInstruction: string;
   /** Omitted → the server auto-detects from the destination number's country. */
   language?: string;
+  voiceGender?: string;
+  /** Forward-to number (E.164): the agent waits for a real human then cold-transfers the call here. */
+  transferTo?: string;
   /** Same key across retries → the server returns the already-placed call instead of dialing again. */
   idempotencyKey?: string;
   fromNumberId?: string;
+  maxCallDurationSeconds?: number;
 }): Promise<CallRow> {
   const auth = requireAuth();
   const fromNumberId = requireFromNumberId(auth, opts.fromNumberId);
@@ -33,6 +39,10 @@ export async function placeCall(opts: {
       fromNumberId,
       outboundInstruction: opts.outboundInstruction,
       ...(opts.language && { language: opts.language }),
+      // Omitted → the server uses the default voice gender (female).
+      ...(opts.voiceGender ? { voiceGender: opts.voiceGender } : {}),
+      ...(opts.transferTo ? { transferTo: opts.transferTo } : {}),
+      ...(opts.maxCallDurationSeconds !== undefined ? { maxCallDurationSeconds: opts.maxCallDurationSeconds } : {}),
     },
     auth.apiKey,
     opts.idempotencyKey ? { "idempotency-key": opts.idempotencyKey } : undefined,

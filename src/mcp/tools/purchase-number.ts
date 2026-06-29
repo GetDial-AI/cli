@@ -6,8 +6,8 @@ import { phoneNumberSchema } from "../schemas.ts";
 
 const inputSchema = {
   inboundInstruction: z.string().min(1).describe("System prompt for inbound calls to this number"),
-  country: z.string().optional().describe("ISO-3166-1 alpha-2 country code (defaults to US server-side)"),
-  areaCode: z.string().optional().describe("Preferred area code (US/CA)"),
+  inboundVoiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for inbound calls to this number; the default is female"),
+  areaCode: z.string().optional().describe("Preferred US area code; omitted → any available US number. Only US numbers can be provisioned at this time"),
 };
 
 export const purchaseNumberTool: ToolModule = {
@@ -23,7 +23,7 @@ export const purchaseNumberTool: ToolModule = {
     jsonResult({
       number: await purchaseNumber({
         inboundInstruction: args.inboundInstruction as string,
-        country: args.country as string | undefined,
+        inboundVoiceGender: args.inboundVoiceGender as string | undefined,
         areaCode: args.areaCode as string | undefined,
       }),
     }),

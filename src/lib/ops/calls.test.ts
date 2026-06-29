@@ -50,6 +50,23 @@ describe("ops/calls", () => {
     assert.ok(!("language" in JSON.parse(sentBody)));
   });
 
+  it("placeCall includes transferTo in the body when provided (and omits it otherwise)", async () => {
+    const bodies: string[] = [];
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/calls") {
+        bodies.push(body);
+        return { status: 200, json: { call: { id: "c4", from: "+1", to: "+2", direction: "outbound", status: "queued", instruction: null } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+1", phoneNumberId: "pn_1" });
+    await placeCall({ to: "+2", outboundInstruction: "hi", transferTo: "+13105551212" });
+    await placeCall({ to: "+2", outboundInstruction: "hi" });
+    assert.equal(JSON.parse(bodies[0]).transferTo, "+13105551212");
+    assert.ok(!("transferTo" in JSON.parse(bodies[1])));
+  });
+
   it("placeCall sends the Idempotency-Key header when provided (and omits it otherwise)", async () => {
     const seenKeys: Array<string | string[] | undefined> = [];
     api = await startMockApi((m, u, _body, headers) => {
@@ -64,6 +81,36 @@ describe("ops/calls", () => {
     await placeCall({ to: "+2", outboundInstruction: "hi", idempotencyKey: "key-123" });
     await placeCall({ to: "+2", outboundInstruction: "hi" });
     assert.deepEqual(seenKeys, ["key-123", undefined]);
+  });
+
+  it("placeCall includes maxCallDurationSeconds in POST body when set", async () => {
+    let requestBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/calls") {
+        requestBody = body;
+        return { status: 200, json: { call: { id: "c5", from: "+1", to: "+2", direction: "outbound", status: "queued", instruction: null } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+1", phoneNumberId: "pn_1" });
+    await placeCall({ to: "+2", outboundInstruction: "hi", language: "en-US", maxCallDurationSeconds: 120 });
+    assert.equal(JSON.parse(requestBody).maxCallDurationSeconds, 120);
+  });
+
+  it("placeCall omits maxCallDurationSeconds from POST body when not set", async () => {
+    let requestBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/calls") {
+        requestBody = body;
+        return { status: 200, json: { call: { id: "c6", from: "+1", to: "+2", direction: "outbound", status: "queued", instruction: null } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+1", phoneNumberId: "pn_1" });
+    await placeCall({ to: "+2", outboundInstruction: "hi", language: "en-US" });
+    assert.ok(!("maxCallDurationSeconds" in JSON.parse(requestBody)));
   });
 
   it("getCall maps 404 to DialError not_found", async () => {

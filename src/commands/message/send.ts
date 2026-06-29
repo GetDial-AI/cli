@@ -26,7 +26,6 @@ export async function runMessageSend(opts: MessageSendOptions): Promise<number> 
         console.log(`  media:    ${item.url} (${item.contentType})`);
       }
       console.log(`  status:   ${m.status}`);
-      console.log(`  sid:      ${m.sid}`);
     }
     return 0;
   } catch (e) {

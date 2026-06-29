@@ -4,7 +4,7 @@ import { printDialError } from "../../lib/cli-error.ts";
 
 export type NumberPurchaseOptions = {
   inboundInstruction: string;
-  country?: string;
+  inboundVoiceGender?: string;
   areaCode?: string;
   json: boolean;
 };
@@ -13,7 +13,7 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
   try {
     const n = await purchaseNumber({
       inboundInstruction: opts.inboundInstruction,
-      country: opts.country,
+      inboundVoiceGender: opts.inboundVoiceGender,
       areaCode: opts.areaCode,
     });
     if (opts.json) {

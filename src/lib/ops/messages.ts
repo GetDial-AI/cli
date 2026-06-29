@@ -15,7 +15,6 @@ export type MessageMediaItem = {
 
 export type MessageRow = {
   id: string;
-  sid?: string;
   phoneNumberId?: string;
   from: string;
   to: string;
@@ -85,20 +84,22 @@ export async function sendMessage(opts: {
     throw new DialError("too_much_media", `at most ${MAX_MEDIA_ITEMS} media items are allowed per message (got ${media.length})`);
   }
 
+  // No `channel`: the server determines it from the from-number (a standard number
+  // sends SMS; an iMessage number sends iMessage with RCS/SMS fallback) and its send
+  // schema is strict — sending a stale `channel` field is rejected as a 400.
   // URLs-only goes as plain JSON; any local file switches to multipart.
   const hasFiles = media.some((m) => !isHttpUrl(m));
   let res;
   if (!hasFiles) {
     res = await apiPost<{ message: MessageRow }>(
       "/api/v1/messages",
-      { to: opts.to, body: opts.body, channel: "sms", fromNumberId, ...(media.length ? { mediaUrls: media } : {}) },
+      { to: opts.to, body: opts.body, fromNumberId, ...(media.length ? { mediaUrls: media } : {}) },
       auth.apiKey,
     );
   } else {
     const form = new ApiFormData();
     form.set("to", opts.to);
     form.set("body", opts.body);
-    form.set("channel", "sms");
     form.set("fromNumberId", fromNumberId);
     for (const item of media) {
       if (isHttpUrl(item)) {

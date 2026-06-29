@@ -7,9 +7,13 @@ export type CallSendOptions = {
   outboundInstruction: string;
   /** Omitted → the server auto-detects from the destination number's country. */
   language?: string;
+  voiceGender?: string;
+  /** Forward-to number (E.164): the agent waits for a real human then cold-transfers the call here. */
+  transferTo?: string;
   /** Same key across retries → the server returns the already-placed call instead of dialing again. */
   idempotencyKey?: string;
   fromNumberId?: string;
+  maxCallDurationSeconds?: number;
   json: boolean;
 };
 
@@ -19,8 +23,11 @@ export async function runCallSend(opts: CallSendOptions): Promise<number> {
       to: opts.to,
       outboundInstruction: opts.outboundInstruction,
       language: opts.language,
+      voiceGender: opts.voiceGender,
+      transferTo: opts.transferTo,
       idempotencyKey: opts.idempotencyKey,
       fromNumberId: opts.fromNumberId,
+      maxCallDurationSeconds: opts.maxCallDurationSeconds,
     });
 
     const waitCmd = `dial wait-for call.ended -f callId=${c.id} --json`;

@@ -5,7 +5,7 @@ import { logger } from "./log.ts";
 // check) — Node's global FormData would be coerced to a text/plain string.
 export { UndiciFormData as ApiFormData };
 
-const DEFAULT_BASE = "https://getdial.ai";
+const DEFAULT_BASE = "https://api.getdial.ai";
 
 export function baseUrl(): string {
   return process.env.DIAL_API_URL ?? DEFAULT_BASE;
@@ -31,7 +31,16 @@ function toResult<T>(statusCode: number, text: string): ApiResult<T> {
   if (statusCode >= 200 && statusCode < 300) {
     return { ok: true, status: statusCode, data: parsed as T };
   }
-  const errMsg = (parsed as { error?: string } | null)?.error ?? text ?? `HTTP ${statusCode}`;
+  // The server's `error` field is usually a string, but validation failures
+  // return a structured object (Zod's flatten). Stringify those as JSON rather
+  // than letting them coerce to "[object Object]", so the real reason survives.
+  const rawError = (parsed as { error?: unknown } | null)?.error;
+  const errMsg =
+    typeof rawError === "string"
+      ? rawError
+      : rawError != null
+        ? JSON.stringify(rawError)
+        : text || `HTTP ${statusCode}`;
   return { ok: false, status: statusCode, error: errMsg };
 }
 
