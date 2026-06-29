@@ -42,6 +42,7 @@ export const messageSchema = z
     channel: z.string().optional(),
     direction: z.string().optional(),
     status: statusSchema,
+    statusError: z.string().nullish().describe("Failure reason when status is undelivered/failed"),
     createdAt: z.string().optional(),
   })
   .passthrough();
