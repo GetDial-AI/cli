@@ -1,7 +1,12 @@
 import { request } from "undici";
 import { logger } from "./log.ts";
+import { VERSION } from "./version.ts";
 
 const DEFAULT_BASE = "https://api.getdial.ai";
+
+// Identifies the CLI on every request, so server-side request logs attribute
+// provisioning (and everything else) to the client + version that made the call.
+const USER_AGENT = `@getdial/cli/${VERSION}`;
 
 export function baseUrl(): string {
   return process.env.DIAL_API_URL ?? DEFAULT_BASE;
@@ -23,7 +28,7 @@ export async function apiPatch<T>(path: string, body: unknown, apiKey?: string):
 
 async function apiRequest<T>(method: "GET" | "POST" | "PATCH", path: string, body: unknown, apiKey?: string, extraHeaders?: Record<string, string>): Promise<ApiResult<T>> {
   const url = `${baseUrl()}${path}`;
-  const headers: Record<string, string> = { "content-type": "application/json", ...(extraHeaders ?? {}) };
+  const headers: Record<string, string> = { "content-type": "application/json", "user-agent": USER_AGENT, ...(extraHeaders ?? {}) };
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
 
   try {

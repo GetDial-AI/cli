@@ -8,6 +8,7 @@ export type PhoneNumberRow = {
   nickname?: string | null;
   country: string;
   capabilities?: string;
+  setupStatus?: string;
   accountId?: string;
   createdAt?: string;
   inboundInstruction?: string | null;
@@ -23,13 +24,22 @@ export async function listNumbers(): Promise<{ numbers: PhoneNumberRow[]; defaul
 
 export async function purchaseNumber(opts: {
   inboundInstruction: string;
+  /** Required attestation that the account holder consented to provisioning this number programmatically. */
+  explicitProgrammaticConsent: string;
   inboundVoiceGender?: string;
   areaCode?: string;
+  /** When true, provision an iMessage number (async; setupStatus starts "provisioning"). */
+  includeImessage?: boolean;
 }): Promise<PhoneNumberRow> {
   const auth = requireAuth();
-  const body: Record<string, unknown> = { inboundInstruction: opts.inboundInstruction };
+  const body: Record<string, unknown> = {
+    inboundInstruction: opts.inboundInstruction,
+    explicitProgrammaticConsent: opts.explicitProgrammaticConsent,
+  };
   if (opts.inboundVoiceGender) body.inboundVoiceGender = opts.inboundVoiceGender;
-  if (opts.areaCode) body.areaCode = opts.areaCode;
+  // iMessage numbers ignore areaCode, so only send it for standard numbers.
+  if (opts.includeImessage) body.capabilities = ["sms", "call", "imessage"];
+  else if (opts.areaCode) body.areaCode = opts.areaCode;
   const res = await apiPost<{ number: PhoneNumberRow }>("/api/v1/numbers", body, auth.apiKey);
   if (!res.ok) throw new DialError("purchase_failed", res.error, res.status);
   return res.data.number;
