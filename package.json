@@ -1,6 +1,6 @@
 {
   "name": "@getdial/cli",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "description": "Dial CLI — install, sign up, and run the local listen service.",
   "license": "MIT",
   "repository": {

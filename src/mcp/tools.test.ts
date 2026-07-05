@@ -5,7 +5,9 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { z } from "zod";
 import { tools } from "./tools/index.ts";
+import { sendMessageTool } from "./tools/send-message.ts";
 
 // One tool per non-excluded `dial` command (`dial listen` worker + `dial mcp` itself excluded).
 const EXPECTED = [
@@ -55,6 +57,13 @@ describe("mcp tools", () => {
   it("is a superset of the remote MCP tool names", () => {
     const names = new Set(tools.map((t) => t.name));
     for (const r of REMOTE) assert.ok(names.has(r), `missing remote tool: ${r}`);
+  });
+
+  it("send_message accepts media-only sends, mediaUrls, and a forceAudioFile boolean", () => {
+    const schema = z.object(sendMessageTool.config.inputSchema as z.ZodRawShape);
+    assert.equal(schema.safeParse({ to: "+14155550123", mediaUrls: ["https://cdn.example.com/a.m4a"] }).success, true);
+    assert.equal(schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: true }).success, true);
+    assert.equal(schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: "true" }).success, false);
   });
 
   it("serves tools/list over stdio with only JSON-RPC on stdout", async () => {
