@@ -72,10 +72,13 @@ function readMediaFile(path: string): { data: Buffer; contentType: string; name:
 
 export async function sendMessage(opts: {
   to: string;
-  body: string;
+  /** Optional when media is attached — a media-only send records an empty body. */
+  body?: string;
   fromNumberId?: string;
   /** Local file paths and/or public http(s) URLs, in send order (max 10). */
   media?: string[];
+  /** Send an audio attachment as a regular file attachment instead of an iMessage voice message. */
+  forceAudioFile?: boolean;
 }): Promise<MessageRow> {
   const auth = requireAuth();
   const fromNumberId = requireFromNumberId(auth, opts.fromNumberId);
@@ -93,14 +96,21 @@ export async function sendMessage(opts: {
   if (!hasFiles) {
     res = await apiPost<{ message: MessageRow }>(
       "/api/v1/messages",
-      { to: opts.to, body: opts.body, fromNumberId, ...(media.length ? { mediaUrls: media } : {}) },
+      {
+        to: opts.to,
+        ...(opts.body ? { body: opts.body } : {}),
+        fromNumberId,
+        ...(media.length ? { mediaUrls: media } : {}),
+        ...(opts.forceAudioFile ? { forceAudioFile: true } : {}),
+      },
       auth.apiKey,
     );
   } else {
     const form = new ApiFormData();
     form.set("to", opts.to);
-    form.set("body", opts.body);
+    if (opts.body) form.set("body", opts.body);
     form.set("fromNumberId", fromNumberId);
+    if (opts.forceAudioFile) form.set("forceAudioFile", "true");
     for (const item of media) {
       if (isHttpUrl(item)) {
         form.append("mediaUrls", item);

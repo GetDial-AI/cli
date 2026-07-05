@@ -4,16 +4,25 @@ import { printDialError } from "../../lib/cli-error.ts";
 
 export type MessageSendOptions = {
   to: string;
-  body: string;
+  /** Optional when --media is given (a media-only send). */
+  body?: string;
   fromNumberId?: string;
   /** Local file paths and/or public http(s) URLs (repeatable --media). */
   media?: string[];
+  /** Send an audio attachment as a regular file attachment instead of an iMessage voice message. */
+  forceAudioFile?: boolean;
   json: boolean;
 };
 
 export async function runMessageSend(opts: MessageSendOptions): Promise<number> {
   try {
-    const m = await sendMessage({ to: opts.to, body: opts.body, fromNumberId: opts.fromNumberId, media: opts.media });
+    const m = await sendMessage({
+      to: opts.to,
+      body: opts.body,
+      fromNumberId: opts.fromNumberId,
+      media: opts.media,
+      forceAudioFile: opts.forceAudioFile,
+    });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, message: m }));
     } else {

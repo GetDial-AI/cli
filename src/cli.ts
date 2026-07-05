@@ -176,10 +176,15 @@ const message = program
   .option("--body <text>", "message body")
   .option("--from-number-id <id>", "phoneNumberId to send from (defaults to onboard's number)")
   .option("--media <path-or-url>", "media attachment: local file path (uploaded) or public http(s) URL (repeatable, max 10)", (v: string, prev: string[] = []) => [...prev, v], [] as string[])
+  .option("--force-audio-file", "send an audio attachment as a regular file attachment instead of an iMessage voice message")
   .option("--json", "machine-readable output")
   .action(async (opts) => {
-    if (!opts.to || !opts.body) {
-      console.error("error: --to and --body are required to send a message. Use `dial message list` to list, or `dial message --help` for usage.");
+    if (!opts.to) {
+      console.error("error: --to is required to send a message. Use `dial message list` to list, or `dial message --help` for usage.");
+      process.exit(2);
+    }
+    if (!opts.body && (opts.media ?? []).length === 0) {
+      console.error("error: provide --body, --media, or both — a message needs text or an attachment.");
       process.exit(2);
     }
     process.exit(await runMessageSend({
@@ -187,6 +192,7 @@ const message = program
       body: opts.body,
       fromNumberId: opts.fromNumberId,
       media: opts.media,
+      forceAudioFile: !!opts.forceAudioFile,
       json: !!opts.json,
     }));
   });

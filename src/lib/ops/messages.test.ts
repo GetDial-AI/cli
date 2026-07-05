@@ -76,6 +76,44 @@ describe("ops/messages", () => {
     assert.match(raw, /name="fromNumberId"/);
   });
 
+  it("sendMessage omits the body for a media-only send and forwards forceAudioFile (JSON)", async () => {
+    let seen: { body?: string } = {};
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/messages") {
+        seen = { body };
+        return { status: 201, json: { message: { id: "m1", from: "+1", to: "+2", body: "", channel: "unknown", status: "unknown", media: [] } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    await sendMessage({ to: "+15551111", media: ["https://cdn.example.com/note.m4a"], forceAudioFile: true });
+    const parsed = JSON.parse(seen.body ?? "{}");
+    assert.equal("body" in parsed, false);
+    assert.equal(parsed.forceAudioFile, true);
+    assert.deepEqual(parsed.mediaUrls, ["https://cdn.example.com/note.m4a"]);
+  });
+
+  it("sendMessage carries forceAudioFile as a text part and omits an absent body (multipart)", async () => {
+    const filePath = join(tmp, "note.m4a");
+    writeFileSync(filePath, Buffer.from("m4a-bytes"));
+    let seen: { body?: string } = {};
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/messages") {
+        seen = { body };
+        return { status: 201, json: { message: { id: "m1", from: "+1", to: "+2", body: "", channel: "unknown", status: "unknown", media: [] } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    await sendMessage({ to: "+15551111", media: [filePath], forceAudioFile: true });
+    const raw = seen.body ?? "";
+    assert.match(raw, /name="forceAudioFile"/);
+    assert.match(raw, /true/);
+    assert.doesNotMatch(raw, /name="body"/);
+  });
+
   it("sendMessage rejects unsupported media file extensions locally", async () => {
     const filePath = join(tmp, "tool.exe");
     writeFileSync(filePath, "MZ");
