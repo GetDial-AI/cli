@@ -3,6 +3,7 @@ import { listNumbersTool } from "./list-numbers.ts";
 import { purchaseNumberTool } from "./purchase-number.ts";
 import { setNumberPropertiesTool } from "./set-number-properties.ts";
 import { sendMessageTool } from "./send-message.ts";
+import { replyToMessageTool } from "./reply-to-message.ts";
 import { listMessagesTool } from "./list-messages.ts";
 import { placeCallTool } from "./place-call.ts";
 import { listCallsTool } from "./list-calls.ts";
@@ -25,6 +26,7 @@ export const tools: ToolModule[] = [
   purchaseNumberTool,
   setNumberPropertiesTool,
   sendMessageTool,
+  replyToMessageTool,
   listMessagesTool,
   placeCallTool,
   listCallsTool,

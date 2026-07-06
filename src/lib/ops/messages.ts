@@ -23,6 +23,10 @@ export type MessageRow = {
   channel: string;
   status: string;
   media?: MessageMediaItem[];
+  /** Id of the message this one replies or reacts to; null for ordinary messages. */
+  replyToId?: string | null;
+  /** The reaction this message carries (a reaction name or an emoji); null otherwise. */
+  reaction?: string | null;
   createdAt?: string;
 };
 
@@ -139,4 +143,24 @@ export async function listMessages(opts: {
   const res = await apiGet<{ messages: MessageRow[] }>(qs ? `/api/v1/messages?${qs}` : "/api/v1/messages", auth.apiKey);
   if (!res.ok) throw new DialError("list_failed", res.error, res.status);
   return res.data.messages ?? [];
+}
+
+export async function replyToMessage(opts: {
+  messageId: string;
+  body?: string;
+  reaction?: string;
+}): Promise<MessageRow> {
+  const auth = requireAuth();
+  // No `to`/`fromNumberId`: the server derives both from the target message —
+  // the reply stays in the conversation the target is part of.
+  const payload: Record<string, string> = {};
+  if (opts.body !== undefined) payload.body = opts.body;
+  if (opts.reaction !== undefined) payload.reaction = opts.reaction;
+  const res = await apiPost<{ message: MessageRow }>(
+    `/api/v1/messages/${encodeURIComponent(opts.messageId)}/reply`,
+    payload,
+    auth.apiKey,
+  );
+  if (!res.ok) throw new DialError("reply_failed", res.error, res.status);
+  return res.data.message;
 }

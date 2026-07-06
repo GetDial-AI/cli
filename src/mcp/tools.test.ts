@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { tools } from "./tools/index.ts";
 import { sendMessageTool } from "./tools/send-message.ts";
+import { replyToMessageTool } from "./tools/reply-to-message.ts";
 
 // One tool per non-excluded `dial` command (`dial listen` worker + `dial mcp` itself excluded).
 const EXPECTED = [
@@ -15,6 +16,7 @@ const EXPECTED = [
   "purchase_number",
   "set_number_properties",
   "send_message",
+  "reply_to_message",
   "list_messages",
   "place_call",
   "list_calls",
@@ -36,6 +38,7 @@ const EXPECTED = [
 // a strict superset. Hardcoded because the repos can't import one another.
 const REMOTE = [
   "send_message",
+  "reply_to_message",
   "list_messages",
   "place_call",
   "list_calls",
@@ -48,7 +51,7 @@ const REMOTE = [
 ];
 
 describe("mcp tools", () => {
-  it("registers exactly the expected 19 tools with unique names", () => {
+  it("registers exactly the expected 20 tools with unique names", () => {
     const names = tools.map((t) => t.name);
     assert.equal(new Set(names).size, names.length, "tool names must be unique");
     assert.deepEqual([...names].sort(), [...EXPECTED].sort());
@@ -64,6 +67,14 @@ describe("mcp tools", () => {
     assert.equal(schema.safeParse({ to: "+14155550123", mediaUrls: ["https://cdn.example.com/a.m4a"] }).success, true);
     assert.equal(schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: true }).success, true);
     assert.equal(schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: "true" }).success, false);
+  });
+
+  it("reply_to_message takes a messageId plus optional body/reaction strings", () => {
+    const schema = z.object(replyToMessageTool.config.inputSchema as z.ZodRawShape);
+    assert.equal(schema.safeParse({ messageId: "msg_1", body: "on my way" }).success, true);
+    assert.equal(schema.safeParse({ messageId: "msg_1", reaction: "🔥" }).success, true);
+    assert.equal(schema.safeParse({ body: "no target" }).success, false);
+    assert.equal(schema.safeParse({ messageId: "msg_1", reaction: 7 }).success, false);
   });
 
   it("serves tools/list over stdio with only JSON-RPC on stdout", async () => {
@@ -85,6 +96,6 @@ describe("mcp tools", () => {
     const parsed = lines.map((l) => JSON.parse(l));
     const listResp = parsed.find((m) => m.id === 2);
     assert.ok(listResp, "no tools/list response on stdout");
-    assert.equal(listResp.result.tools.length, 19);
+    assert.equal(listResp.result.tools.length, 20);
   });
 });

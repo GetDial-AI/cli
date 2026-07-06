@@ -43,6 +43,8 @@ export const messageSchema = z
     direction: z.string().optional(),
     status: statusSchema,
     statusError: z.string().nullish().describe("Failure reason when status is undelivered/failed"),
+    replyToId: z.string().nullish().describe("Id of the message this one replies or reacts to; null for ordinary messages"),
+    reaction: z.string().nullish().describe("The reaction this message carries (a reaction name or an emoji); null otherwise"),
     createdAt: z.string().optional(),
   })
   .passthrough();
