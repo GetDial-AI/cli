@@ -54,6 +54,7 @@ dial wait-for message.received --field to=+14155550123
 | `dial number set <number>` | Update a number's inbound instruction. |
 | `dial message` | Send an SMS. |
 | `dial message list` | List recent messages. |
+| `dial message reply` | Reply or react to a message. |
 | `dial call` | Place an outbound AI voice call. |
 | `dial call list` | List recent calls. |
 | `dial call get <id>` | Fetch a single call — status, duration, transcript. |

@@ -14,6 +14,7 @@ import { runNumberList } from "./commands/number/list.ts";
 import { runNumberPurchase } from "./commands/number/purchase.ts";
 import { runNumberSet } from "./commands/number/set.ts";
 import { runMessageSend } from "./commands/message/send.ts";
+import { runMessageReply } from "./commands/message/reply.ts";
 import { runMessageList } from "./commands/message/list.ts";
 import { runCallSend } from "./commands/call/send.ts";
 import { runCallList } from "./commands/call/list.ts";
@@ -193,6 +194,25 @@ const message = program
       fromNumberId: opts.fromNumberId,
       media: opts.media,
       forceAudioFile: !!opts.forceAudioFile,
+      json: !!opts.json,
+    }));
+  });
+
+message
+  .command("reply <messageId>")
+  .description("Reply or react to a message. POST /api/v1/messages/:id/reply.")
+  .option("--body <text>", "reply text (threads under the target on iMessage numbers)")
+  .option("--react <reaction>", "reaction: love|like|dislike|laugh|emphasize|question, or a single emoji")
+  .option("--json", "machine-readable output")
+  .action(async (messageId: string, opts) => {
+    if ((opts.body === undefined) === (opts.react === undefined)) {
+      console.error("error: provide exactly one of --body or --react. Use `dial message reply --help` for usage.");
+      process.exit(2);
+    }
+    process.exit(await runMessageReply({
+      messageId,
+      body: opts.body,
+      react: opts.react,
       json: !!opts.json,
     }));
   });
