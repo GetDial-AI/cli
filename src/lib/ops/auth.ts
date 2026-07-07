@@ -30,3 +30,20 @@ export function requireFromNumber(auth: Auth, override?: string): string {
   }
   return ref;
 }
+
+/**
+ * Pick the from-number selector field for send/call requests. `--from-number`
+ * (flexible ref) and `--from-number-id` (id only) are mutually exclusive —
+ * both given fails fast here, before any request; neither falls back to the
+ * saved default id via the legacy field.
+ */
+export function resolveFromSelector(
+  auth: Auth,
+  opts: { fromNumber?: string; fromNumberId?: string },
+): { fromNumber: string } | { fromNumberId: string } {
+  if (opts.fromNumber && opts.fromNumberId) {
+    throw new DialError("from_number_conflict", "Provide only one of --from-number and --from-number-id.");
+  }
+  if (opts.fromNumber) return { fromNumber: opts.fromNumber };
+  return { fromNumberId: requireFromNumberId(auth, opts.fromNumberId) };
+}

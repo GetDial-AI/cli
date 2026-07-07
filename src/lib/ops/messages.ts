@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { basename, extname } from "node:path";
 import { apiGet, apiPost, apiPostMultipart, ApiFormData } from "../api.ts";
-import { requireAuth, requireFromNumberId } from "./auth.ts";
+import { requireAuth, resolveFromSelector } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
 export type MessageMediaItem = {
@@ -78,6 +78,8 @@ export async function sendMessage(opts: {
   to: string;
   /** Optional when media is attached — a media-only send records an empty body. */
   body?: string;
+  /** Flexible ref: number id, owned E.164, or nickname. Exclusive with fromNumberId. */
+  fromNumber?: string;
   fromNumberId?: string;
   /** Local file paths and/or public http(s) URLs, in send order (max 10). */
   media?: string[];
@@ -85,7 +87,7 @@ export async function sendMessage(opts: {
   forceAudioFile?: boolean;
 }): Promise<MessageRow> {
   const auth = requireAuth();
-  const fromNumberId = requireFromNumberId(auth, opts.fromNumberId);
+  const from = resolveFromSelector(auth, opts);
   const media = opts.media ?? [];
   if (media.length > MAX_MEDIA_ITEMS) {
     throw new DialError("too_much_media", `at most ${MAX_MEDIA_ITEMS} media items are allowed per message (got ${media.length})`);
@@ -103,7 +105,7 @@ export async function sendMessage(opts: {
       {
         to: opts.to,
         ...(opts.body ? { body: opts.body } : {}),
-        fromNumberId,
+        ...from,
         ...(media.length ? { mediaUrls: media } : {}),
         ...(opts.forceAudioFile ? { forceAudioFile: true } : {}),
       },
@@ -113,7 +115,7 @@ export async function sendMessage(opts: {
     const form = new ApiFormData();
     form.set("to", opts.to);
     if (opts.body) form.set("body", opts.body);
-    form.set("fromNumberId", fromNumberId);
+    for (const [field, value] of Object.entries(from)) form.set(field, value);
     if (opts.forceAudioFile) form.set("forceAudioFile", "true");
     for (const item of media) {
       if (isHttpUrl(item)) {

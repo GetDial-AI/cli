@@ -177,7 +177,8 @@ const message = program
   .description("Send an SMS, optionally with media (MMS). POST /api/v1/messages.")
   .option("--to <e164>", "destination phone number, E.164 (e.g. +14155551234)")
   .option("--body <text>", "message body")
-  .option("--from-number-id <id>", "phoneNumberId to send from (defaults to onboard's number)")
+  .option("--from-number <ref>", "number to send from: id, owned E.164, or nickname (defaults to onboard's number; exclusive with --from-number-id)")
+  .option("--from-number-id <id>", "phoneNumberId to send from (defaults to onboard's number; exclusive with --from-number)")
   .option("--media <path-or-url>", "media attachment: local file path (uploaded) or public http(s) URL (repeatable, max 10)", (v: string, prev: string[] = []) => [...prev, v], [] as string[])
   .option("--force-audio-file", "send an audio attachment as a regular file attachment instead of an iMessage voice message")
   .option("--json", "machine-readable output")
@@ -193,6 +194,7 @@ const message = program
     process.exit(await runMessageSend({
       to: opts.to,
       body: opts.body,
+      fromNumber: opts.fromNumber,
       fromNumberId: opts.fromNumberId,
       media: opts.media,
       forceAudioFile: !!opts.forceAudioFile,
@@ -284,7 +286,8 @@ const call = program
   .option("--voice-gender <male|female>", "voice gender for the agent (default: female; pass male to override)")
   .option("--transfer-to <e164>", "forward-to number, E.164: the agent waits for a real human (riding out hold/IVR) then cold-transfers the call here")
   .option("--idempotency-key <key>", "unique key (e.g. a UUID) making the placement idempotent: re-running with the same key returns the already-placed call instead of dialing again")
-  .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number)")
+  .option("--from-number <ref>", "number to call from: id, owned E.164, or nickname (defaults to onboard's number; exclusive with --from-number-id)")
+  .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number; exclusive with --from-number)")
   .option("--max-call-duration <seconds>", "maximum call duration cap (seconds); call is terminated when this limit is reached", (v: string) => {
     const n = parseInt(v, 10);
     if (!Number.isInteger(n) || n <= 0 || String(n) !== v.trim()) {
@@ -306,6 +309,7 @@ const call = program
       voiceGender: opts.voiceGender,
       transferTo: opts.transferTo,
       idempotencyKey: opts.idempotencyKey,
+      fromNumber: opts.fromNumber,
       fromNumberId: opts.fromNumberId,
       maxCallDurationSeconds: opts.maxCallDuration as number | undefined,
       json: !!opts.json,

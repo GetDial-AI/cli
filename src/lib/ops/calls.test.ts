@@ -113,6 +113,42 @@ describe("ops/calls", () => {
     assert.ok(!("maxCallDurationSeconds" in JSON.parse(requestBody)));
   });
 
+  it("placeCall sends an explicit fromNumber ref instead of fromNumberId", async () => {
+    let requestBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/calls") {
+        requestBody = body;
+        return { status: 200, json: { call: { id: "c7", from: "+1", to: "+2", direction: "outbound", status: "queued", instruction: null } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+1", phoneNumberId: "pn_1" });
+    await placeCall({ to: "+2", outboundInstruction: "hi", fromNumber: "Support line" });
+    const body = JSON.parse(requestBody);
+    assert.equal(body.fromNumber, "Support line");
+    assert.ok(!("fromNumberId" in body));
+  });
+
+  it("placeCall fails fast when both from selectors are given, before any request", async () => {
+    let requests = 0;
+    api = await startMockApi(() => {
+      requests += 1;
+      return { status: 200, json: {} };
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+1", phoneNumberId: "pn_1" });
+    await assert.rejects(
+      placeCall({ to: "+2", outboundInstruction: "hi", fromNumber: "Support line", fromNumberId: "pn_1" }),
+      (err: unknown) => {
+        assert.ok(isDialError(err));
+        assert.equal(err.code, "from_number_conflict");
+        return true;
+      },
+    );
+    assert.equal(requests, 0);
+  });
+
   it("getCall maps 404 to DialError not_found", async () => {
     api = await startMockApi((m, u) =>
       m === "GET" && u.startsWith("/api/v1/calls/") ? { status: 404, json: { error: "no such call" } } : undefined,

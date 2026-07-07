@@ -12,6 +12,8 @@ export type CallSendOptions = {
   transferTo?: string;
   /** Same key across retries → the server returns the already-placed call instead of dialing again. */
   idempotencyKey?: string;
+  /** Flexible ref: number id, owned E.164, or nickname. Exclusive with fromNumberId. */
+  fromNumber?: string;
   fromNumberId?: string;
   maxCallDurationSeconds?: number;
   json: boolean;
@@ -26,6 +28,7 @@ export async function runCallSend(opts: CallSendOptions): Promise<number> {
       voiceGender: opts.voiceGender,
       transferTo: opts.transferTo,
       idempotencyKey: opts.idempotencyKey,
+      fromNumber: opts.fromNumber,
       fromNumberId: opts.fromNumberId,
       maxCallDurationSeconds: opts.maxCallDurationSeconds,
     });
