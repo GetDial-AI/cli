@@ -11,6 +11,13 @@ const inputSchema = {
   voiceGender: z.enum(["male", "female"]).optional().describe("Voice gender for the agent; the default is female"),
   transferTo: z.string().optional().describe("Forward-to number, E.164: the agent waits for a real human (riding out hold/IVR) then cold-transfers the call here. Must differ from `to` and the from number."),
   idempotencyKey: z.string().optional().describe("Unique key (e.g. a UUID) making the placement idempotent: retrying with the same key returns the already-placed call instead of dialing again"),
+  fromNumber: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Number to call from: a phone number id, one of your numbers in E.164, or a nickname. Exclusive with fromNumberId; omit both to use your primary number",
+    ),
   fromNumberId: z.string().optional().describe("Number id to call from; defaults to your primary number"),
   maxCallDurationSeconds: z.number().int().positive().optional().describe("Maximum call duration cap (seconds); the call is terminated when this limit is reached"),
 };
@@ -34,6 +41,7 @@ export const placeCallTool: ToolModule = {
       voiceGender: args.voiceGender as string | undefined,
       transferTo: args.transferTo as string | undefined,
       idempotencyKey: args.idempotencyKey as string | undefined,
+      fromNumber: args.fromNumber as string | undefined,
       fromNumberId: args.fromNumberId as string | undefined,
       maxCallDurationSeconds: args.maxCallDurationSeconds as number | undefined,
     });
