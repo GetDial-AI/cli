@@ -19,7 +19,8 @@ export const startTypingTool: ToolModule = {
       "Show a typing indicator to the recipient, as if someone were composing a message from your number. " +
       "iMessage numbers display it; standard (SMS) numbers have no typing concept and silently ignore it, " +
       "so this is safe to call unconditionally before a send. Fire-and-forget and free. " +
-      "The indicator is never cleared automatically — pair every start_typing with a stop_typing.",
+      "Delivering a message or reaction clears the indicator natively on the recipient's device — " +
+      "call start_typing again after a send to keep composing, and stop_typing when you stop without sending.",
     inputSchema,
     outputSchema: { ok: z.boolean() },
     annotations: { openWorldHint: true },
