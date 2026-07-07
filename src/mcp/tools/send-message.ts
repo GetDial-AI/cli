@@ -7,6 +7,13 @@ import { messageSchema } from "../schemas.ts";
 const inputSchema = {
   to: z.string().min(7).describe("Destination phone number, E.164 (e.g. +14155550123)"),
   body: z.string().optional().describe("Message body; optional when mediaUrls is given (media-only send)"),
+  fromNumber: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Number to send from: a phone number id, one of your numbers in E.164, or a nickname. Exclusive with fromNumberId; omit both to use your primary number",
+    ),
   fromNumberId: z.string().optional().describe("Number id to send from; defaults to your primary number"),
   mediaUrls: z
     .array(z.string().url())
@@ -36,6 +43,7 @@ export const sendMessageTool: ToolModule = {
       message: await sendMessage({
         to: args.to as string,
         body: args.body as string | undefined,
+        fromNumber: args.fromNumber as string | undefined,
         fromNumberId: args.fromNumberId as string | undefined,
         media: args.mediaUrls as string[] | undefined,
         forceAudioFile: args.forceAudioFile as boolean | undefined,

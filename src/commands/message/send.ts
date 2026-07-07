@@ -6,6 +6,8 @@ export type MessageSendOptions = {
   to: string;
   /** Optional when --media is given (a media-only send). */
   body?: string;
+  /** Flexible ref: number id, owned E.164, or nickname. Exclusive with fromNumberId. */
+  fromNumber?: string;
   fromNumberId?: string;
   /** Local file paths and/or public http(s) URLs (repeatable --media). */
   media?: string[];
@@ -19,6 +21,7 @@ export async function runMessageSend(opts: MessageSendOptions): Promise<number> 
     const m = await sendMessage({
       to: opts.to,
       body: opts.body,
+      fromNumber: opts.fromNumber,
       fromNumberId: opts.fromNumberId,
       media: opts.media,
       forceAudioFile: opts.forceAudioFile,

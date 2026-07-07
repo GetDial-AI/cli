@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from "../api.ts";
-import { requireAuth, requireFromNumberId } from "./auth.ts";
+import { requireAuth, resolveFromSelector } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
 export type CallRow = {
@@ -27,16 +27,18 @@ export async function placeCall(opts: {
   transferTo?: string;
   /** Same key across retries → the server returns the already-placed call instead of dialing again. */
   idempotencyKey?: string;
+  /** Flexible ref: number id, owned E.164, or nickname. Exclusive with fromNumberId. */
+  fromNumber?: string;
   fromNumberId?: string;
   maxCallDurationSeconds?: number;
 }): Promise<CallRow> {
   const auth = requireAuth();
-  const fromNumberId = requireFromNumberId(auth, opts.fromNumberId);
+  const from = resolveFromSelector(auth, opts);
   const res = await apiPost<{ call: CallRow }>(
     "/api/v1/calls",
     {
       to: opts.to,
-      fromNumberId,
+      ...from,
       outboundInstruction: opts.outboundInstruction,
       ...(opts.language && { language: opts.language }),
       // Omitted → the server uses the default voice gender (female).

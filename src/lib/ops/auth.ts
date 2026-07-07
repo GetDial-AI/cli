@@ -18,3 +18,32 @@ export function requireFromNumberId(auth: Auth, override?: string): string {
   }
   return id;
 }
+
+/**
+ * Resolve a flexible from-number ref (id, owned E.164, or nickname): explicit
+ * override, else the saved default number id (an id is a valid ref), else throw.
+ */
+export function requireFromNumber(auth: Auth, override?: string): string {
+  const ref = override ?? auth.phoneNumberId;
+  if (!ref) {
+    throw new DialError("no_from_number", "No default phoneNumberId in auth. Pass --from-number <id|E.164|nickname>.");
+  }
+  return ref;
+}
+
+/**
+ * Pick the from-number selector field for send/call requests. `--from-number`
+ * (flexible ref) and `--from-number-id` (id only) are mutually exclusive —
+ * both given fails fast here, before any request; neither falls back to the
+ * saved default id via the legacy field.
+ */
+export function resolveFromSelector(
+  auth: Auth,
+  opts: { fromNumber?: string; fromNumberId?: string },
+): { fromNumber: string } | { fromNumberId: string } {
+  if (opts.fromNumber && opts.fromNumberId) {
+    throw new DialError("from_number_conflict", "Provide only one of --from-number and --from-number-id.");
+  }
+  if (opts.fromNumber) return { fromNumber: opts.fromNumber };
+  return { fromNumberId: requireFromNumberId(auth, opts.fromNumberId) };
+}

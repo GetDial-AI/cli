@@ -9,6 +9,9 @@ import { z } from "zod";
 import { tools } from "./tools/index.ts";
 import { sendMessageTool } from "./tools/send-message.ts";
 import { replyToMessageTool } from "./tools/reply-to-message.ts";
+import { placeCallTool } from "./tools/place-call.ts";
+import { startTypingTool } from "./tools/start-typing.ts";
+import { stopTypingTool } from "./tools/stop-typing.ts";
 
 // One tool per non-excluded `dial` command (`dial listen` worker + `dial mcp` itself excluded).
 const EXPECTED = [
@@ -17,6 +20,8 @@ const EXPECTED = [
   "set_number_properties",
   "send_message",
   "reply_to_message",
+  "start_typing",
+  "stop_typing",
   "list_messages",
   "place_call",
   "list_calls",
@@ -39,6 +44,8 @@ const EXPECTED = [
 const REMOTE = [
   "send_message",
   "reply_to_message",
+  "start_typing",
+  "stop_typing",
   "list_messages",
   "place_call",
   "list_calls",
@@ -51,7 +58,7 @@ const REMOTE = [
 ];
 
 describe("mcp tools", () => {
-  it("registers exactly the expected 20 tools with unique names", () => {
+  it("registers exactly the expected 22 tools with unique names", () => {
     const names = tools.map((t) => t.name);
     assert.equal(new Set(names).size, names.length, "tool names must be unique");
     assert.deepEqual([...names].sort(), [...EXPECTED].sort());
@@ -67,6 +74,23 @@ describe("mcp tools", () => {
     assert.equal(schema.safeParse({ to: "+14155550123", mediaUrls: ["https://cdn.example.com/a.m4a"] }).success, true);
     assert.equal(schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: true }).success, true);
     assert.equal(schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: "true" }).success, false);
+  });
+
+  it("typing tools require toNumber and fromNumber, and reject a value field", () => {
+    for (const tool of [startTypingTool, stopTypingTool]) {
+      const schema = z.object(tool.config.inputSchema as z.ZodRawShape).strict();
+      assert.equal(schema.safeParse({ toNumber: "+14155550123", fromNumber: "Support line" }).success, true);
+      assert.equal(schema.safeParse({ toNumber: "+14155550123" }).success, false, `${tool.name}: fromNumber required`);
+      assert.equal(schema.safeParse({ fromNumber: "pn_1" }).success, false, `${tool.name}: toNumber required`);
+      assert.equal(schema.safeParse({ toNumber: "+14155550123", fromNumber: "pn_1", value: true }).success, false);
+    }
+  });
+
+  it("send_message and place_call accept the flexible fromNumber selector", () => {
+    const send = z.object(sendMessageTool.config.inputSchema as z.ZodRawShape);
+    assert.equal(send.safeParse({ to: "+14155550123", body: "hi", fromNumber: "Support line" }).success, true);
+    const call = z.object(placeCallTool.config.inputSchema as z.ZodRawShape);
+    assert.equal(call.safeParse({ to: "+14155550123", outboundInstruction: "x", fromNumber: "Support line" }).success, true);
   });
 
   it("reply_to_message takes a messageId plus optional body/reaction strings", () => {
@@ -96,6 +120,6 @@ describe("mcp tools", () => {
     const parsed = lines.map((l) => JSON.parse(l));
     const listResp = parsed.find((m) => m.id === 2);
     assert.ok(listResp, "no tools/list response on stdout");
-    assert.equal(listResp.result.tools.length, 20);
+    assert.equal(listResp.result.tools.length, 22);
   });
 });

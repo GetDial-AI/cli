@@ -16,6 +16,8 @@ import { runNumberSet } from "./commands/number/set.ts";
 import { runMessageSend } from "./commands/message/send.ts";
 import { runMessageReply } from "./commands/message/reply.ts";
 import { runMessageList } from "./commands/message/list.ts";
+import { runTypingStart } from "./commands/typing/start.ts";
+import { runTypingStop } from "./commands/typing/stop.ts";
 import { runCallSend } from "./commands/call/send.ts";
 import { runCallList } from "./commands/call/list.ts";
 import { runCallGet } from "./commands/call/get.ts";
@@ -175,7 +177,8 @@ const message = program
   .description("Send an SMS, optionally with media (MMS). POST /api/v1/messages.")
   .option("--to <e164>", "destination phone number, E.164 (e.g. +14155551234)")
   .option("--body <text>", "message body")
-  .option("--from-number-id <id>", "phoneNumberId to send from (defaults to onboard's number)")
+  .option("--from-number <ref>", "number to send from: id, owned E.164, or nickname (defaults to onboard's number; exclusive with --from-number-id)")
+  .option("--from-number-id <id>", "phoneNumberId to send from (defaults to onboard's number; exclusive with --from-number)")
   .option("--media <path-or-url>", "media attachment: local file path (uploaded) or public http(s) URL (repeatable, max 10)", (v: string, prev: string[] = []) => [...prev, v], [] as string[])
   .option("--force-audio-file", "send an audio attachment as a regular file attachment instead of an iMessage voice message")
   .option("--json", "machine-readable output")
@@ -191,6 +194,7 @@ const message = program
     process.exit(await runMessageSend({
       to: opts.to,
       body: opts.body,
+      fromNumber: opts.fromNumber,
       fromNumberId: opts.fromNumberId,
       media: opts.media,
       forceAudioFile: !!opts.forceAudioFile,
@@ -233,6 +237,46 @@ message
     })),
   );
 
+const typing = program
+  .command("typing")
+  .description("Show or clear a typing indicator. iMessage numbers display it; SMS numbers ignore it. POST /api/v1/typing.");
+
+typing
+  .command("start")
+  .description("Show a typing indicator to a recipient, as if composing a message from your number.")
+  .option("--to-number <e164>", "recipient phone number, E.164 (e.g. +14155551234)")
+  .option("--from-number <ref>", "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => {
+    if (!opts.toNumber) {
+      console.error("error: --to-number is required. Use `dial typing start --help` for usage.");
+      process.exit(2);
+    }
+    process.exit(await runTypingStart({
+      toNumber: opts.toNumber,
+      fromNumber: opts.fromNumber,
+      json: !!opts.json,
+    }));
+  });
+
+typing
+  .command("stop")
+  .description("Clear a typing indicator previously shown with `typing start`.")
+  .option("--to-number <e164>", "recipient phone number, E.164 (e.g. +14155551234)")
+  .option("--from-number <ref>", "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => {
+    if (!opts.toNumber) {
+      console.error("error: --to-number is required. Use `dial typing stop --help` for usage.");
+      process.exit(2);
+    }
+    process.exit(await runTypingStop({
+      toNumber: opts.toNumber,
+      fromNumber: opts.fromNumber,
+      json: !!opts.json,
+    }));
+  });
+
 const call = program
   .command("call")
   .description("Place an outbound voice call. POST /api/v1/calls.")
@@ -242,7 +286,8 @@ const call = program
   .option("--voice-gender <male|female>", "voice gender for the agent (default: female; pass male to override)")
   .option("--transfer-to <e164>", "forward-to number, E.164: the agent waits for a real human (riding out hold/IVR) then cold-transfers the call here")
   .option("--idempotency-key <key>", "unique key (e.g. a UUID) making the placement idempotent: re-running with the same key returns the already-placed call instead of dialing again")
-  .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number)")
+  .option("--from-number <ref>", "number to call from: id, owned E.164, or nickname (defaults to onboard's number; exclusive with --from-number-id)")
+  .option("--from-number-id <id>", "phoneNumberId to call from (defaults to onboard's number; exclusive with --from-number)")
   .option("--max-call-duration <seconds>", "maximum call duration cap (seconds); call is terminated when this limit is reached", (v: string) => {
     const n = parseInt(v, 10);
     if (!Number.isInteger(n) || n <= 0 || String(n) !== v.trim()) {
@@ -264,6 +309,7 @@ const call = program
       voiceGender: opts.voiceGender,
       transferTo: opts.transferTo,
       idempotencyKey: opts.idempotencyKey,
+      fromNumber: opts.fromNumber,
       fromNumberId: opts.fromNumberId,
       maxCallDurationSeconds: opts.maxCallDuration as number | undefined,
       json: !!opts.json,

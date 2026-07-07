@@ -36,6 +36,60 @@ describe("ops/messages", () => {
     assert.equal(msg.status, "queued");
   });
 
+  it("sendMessage sends an explicit fromNumber ref instead of fromNumberId", async () => {
+    let seenBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/messages") {
+        seenBody = body;
+        return { status: 201, json: { message: { id: "m9", from: "+1", to: "+2", body: "hi", channel: "sms", status: "queued" } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    await sendMessage({ to: "+15551111", body: "hi", fromNumber: "Support line" });
+    const body = JSON.parse(seenBody);
+    assert.equal(body.fromNumber, "Support line");
+    assert.ok(!("fromNumberId" in body));
+  });
+
+  it("sendMessage sends fromNumber as a multipart part for file sends", async () => {
+    const filePath = join(tmp, "pic.png");
+    writeFileSync(filePath, Buffer.from("png-bytes"));
+    let seenBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/messages") {
+        seenBody = body;
+        return { status: 201, json: { message: { id: "m10", from: "+1", to: "+2", body: "hi", channel: "sms", status: "queued" } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    await sendMessage({ to: "+15551111", body: "hi", fromNumber: "Support line", media: [filePath] });
+    assert.match(seenBody, /name="fromNumber"/);
+    assert.ok(!/name="fromNumberId"/.test(seenBody));
+  });
+
+  it("sendMessage fails fast when both from selectors are given, before any request", async () => {
+    let requests = 0;
+    api = await startMockApi(() => {
+      requests += 1;
+      return { status: 200, json: {} };
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    await assert.rejects(
+      sendMessage({ to: "+15551111", body: "hi", fromNumber: "Support line", fromNumberId: "pn_1" }),
+      (err: unknown) => {
+        assert.ok(isDialError(err));
+        assert.equal(err.code, "from_number_conflict");
+        return true;
+      },
+    );
+    assert.equal(requests, 0);
+  });
+
   it("sendMessage with media URLs only sends JSON with mediaUrls", async () => {
     let seen: { contentType?: string; body?: string } = {};
     api = await startMockApi((m, u, body, headers) => {
