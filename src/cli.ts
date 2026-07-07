@@ -16,6 +16,8 @@ import { runNumberSet } from "./commands/number/set.ts";
 import { runMessageSend } from "./commands/message/send.ts";
 import { runMessageReply } from "./commands/message/reply.ts";
 import { runMessageList } from "./commands/message/list.ts";
+import { runTypingStart } from "./commands/typing/start.ts";
+import { runTypingStop } from "./commands/typing/stop.ts";
 import { runCallSend } from "./commands/call/send.ts";
 import { runCallList } from "./commands/call/list.ts";
 import { runCallGet } from "./commands/call/get.ts";
@@ -232,6 +234,46 @@ message
       json: !!opts.json,
     })),
   );
+
+const typing = program
+  .command("typing")
+  .description("Show or clear a typing indicator. iMessage numbers display it; SMS numbers ignore it. POST /api/v1/typing.");
+
+typing
+  .command("start")
+  .description("Show a typing indicator to a recipient, as if composing a message from your number.")
+  .option("--to-number <e164>", "recipient phone number, E.164 (e.g. +14155551234)")
+  .option("--from-number <ref>", "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => {
+    if (!opts.toNumber) {
+      console.error("error: --to-number is required. Use `dial typing start --help` for usage.");
+      process.exit(2);
+    }
+    process.exit(await runTypingStart({
+      toNumber: opts.toNumber,
+      fromNumber: opts.fromNumber,
+      json: !!opts.json,
+    }));
+  });
+
+typing
+  .command("stop")
+  .description("Clear a typing indicator previously shown with `typing start`.")
+  .option("--to-number <e164>", "recipient phone number, E.164 (e.g. +14155551234)")
+  .option("--from-number <ref>", "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => {
+    if (!opts.toNumber) {
+      console.error("error: --to-number is required. Use `dial typing stop --help` for usage.");
+      process.exit(2);
+    }
+    process.exit(await runTypingStop({
+      toNumber: opts.toNumber,
+      fromNumber: opts.fromNumber,
+      json: !!opts.json,
+    }));
+  });
 
 const call = program
   .command("call")
