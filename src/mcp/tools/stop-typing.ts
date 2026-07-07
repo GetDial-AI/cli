@@ -16,8 +16,9 @@ export const stopTypingTool: ToolModule = {
   config: {
     title: "Stop typing indicator",
     description:
-      "Clear a typing indicator previously shown with start_typing. Delivering a message clears it naturally — " +
-      "call this when you stop composing without sending. Standard (SMS) numbers silently ignore it.",
+      "Clear a typing indicator previously shown with start_typing. The indicator is never cleared " +
+      "automatically — call this whenever you are done composing, whether or not you sent a message. " +
+      "Standard (SMS) numbers silently ignore it.",
     inputSchema,
     outputSchema: { ok: z.boolean() },
     annotations: { openWorldHint: true },
