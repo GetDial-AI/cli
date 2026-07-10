@@ -30,6 +30,7 @@ export const phoneNumberSchema = z
     country: z.string().optional(),
     inboundInstruction: z.string().nullable().optional(),
     inboundVoiceGender: z.string().nullable().optional().describe('Voice gender for inbound calls ("male"/"female"); null → female (the default)'),
+    inboundLanguage: z.string().nullable().optional().describe("BCP-47 language tag inbound calls are pinned to; null → detected from the caller's country prefix per call"),
   })
   .passthrough();
 

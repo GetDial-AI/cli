@@ -7,6 +7,8 @@ export type NumberSetOptions = {
   inboundInstruction?: string;
   /** "male"/"female"; an empty string clears it (reverts to the default, female). */
   inboundVoiceGender?: string;
+  /** BCP-47 tag pinning inbound calls to one language; an empty string clears it (reverts to per-call detection). */
+  inboundLanguage?: string;
   /** Human-readable label for the number; an empty string clears it. */
   nickname?: string;
   /**
@@ -24,6 +26,7 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       number: opts.number,
       inboundInstruction: opts.inboundInstruction,
       ...(opts.inboundVoiceGender !== undefined ? { inboundVoiceGender: opts.inboundVoiceGender } : {}),
+      ...(opts.inboundLanguage !== undefined ? { inboundLanguage: opts.inboundLanguage } : {}),
       ...(opts.nickname !== undefined ? { nickname: opts.nickname } : {}),
       ...(opts.maxCallDurationSeconds !== undefined ? { maxCallDurationSeconds: opts.maxCallDurationSeconds } : {}),
     });
@@ -36,6 +39,7 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       console.log(`  nickname:              ${n.nickname ?? ""}`);
       console.log(`  inbound instruction:   ${n.inboundInstruction ?? ""}`);
       console.log(`  inbound voice gender:  ${n.inboundVoiceGender ?? ""}`);
+      console.log(`  inbound language:      ${n.inboundLanguage ?? ""}`);
     }
     return 0;
   } catch (e) {

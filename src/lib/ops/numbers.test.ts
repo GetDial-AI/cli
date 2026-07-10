@@ -90,6 +90,26 @@ describe("ops/numbers", () => {
     assert.equal(n.nickname, null);
   });
 
+  it("setNumberProperties sends inboundLanguage, mapping an empty string to null (clears it)", async () => {
+    let patchBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US", inboundLanguage: "es-ES" } } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    const n = await setNumberProperties({ number: "+15550000", inboundLanguage: "es-ES" });
+    assert.deepEqual(JSON.parse(patchBody), { inboundLanguage: "es-ES" });
+    assert.equal(n.inboundLanguage, "es-ES");
+    await setNumberProperties({ number: "+15550000", inboundLanguage: "" });
+    assert.deepEqual(JSON.parse(patchBody), { inboundLanguage: null });
+  });
+
   it("setNumberProperties throws bad_request when no properties are given", async () => {
     signIn();
     try {

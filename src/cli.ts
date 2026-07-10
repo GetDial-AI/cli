@@ -125,6 +125,7 @@ number
   .requiredOption("--inbound-instruction <text>", "system prompt for inbound calls to this number")
   .requiredOption("--explicit-programmatic-consent <text>", "required attestation that the account holder consented to provisioning this number programmatically (stored on the number)")
   .option("--inbound-voice-gender <male|female>", "voice gender for inbound calls (default: female; pass male to override)")
+  .option("--inbound-language <bcp47>", "language tag inbound calls are pinned to (default: detect from the caller's country prefix, alongside en-US)")
   .option("--area-code <code>", "preferred US area code (only US numbers can be provisioned; ignored with --include-imessage)")
   .option("--include-imessage", "provision an iMessage number (pay-as-you-go only; provisioned asynchronously — poll `dial number list` until ready)")
   .option("--json", "machine-readable output")
@@ -133,6 +134,7 @@ number
       inboundInstruction: opts.inboundInstruction,
       explicitProgrammaticConsent: opts.explicitProgrammaticConsent,
       inboundVoiceGender: opts.inboundVoiceGender,
+      inboundLanguage: opts.inboundLanguage,
       areaCode: opts.areaCode,
       includeImessage: !!opts.includeImessage,
       json: !!opts.json,
@@ -144,6 +146,7 @@ number
   .description("Update a number's properties (at least one flag). PATCH /api/v1/numbers/<id>.")
   .option("--inbound-instruction <text>", "new system prompt for inbound calls to this number")
   .option("--inbound-voice-gender <male|female>", 'voice gender for inbound calls; pass "" to clear (reverts to the default, female)')
+  .option("--inbound-language <bcp47>", 'language tag inbound calls are pinned to; pass "" to clear (reverts to detecting from the caller\'s country prefix)')
   .option("--nickname <text>", 'human-readable label for the number, e.g. "Support line"; pass "" to clear')
   .option("--max-call-duration <seconds>", "call duration cap for this number, in seconds, applied as a hard ceiling to both inbound and outbound calls (the smallest of the per-number, account, and per-call caps wins)", (v: string) => {
     const n = parseInt(v, 10);
@@ -166,6 +169,7 @@ number
       number: numberArg,
       inboundInstruction: opts.inboundInstruction,
       inboundVoiceGender: opts.inboundVoiceGender,
+      inboundLanguage: opts.inboundLanguage,
       nickname: opts.nickname,
       maxCallDurationSeconds,
       json: !!opts.json,

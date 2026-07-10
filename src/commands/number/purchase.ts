@@ -6,6 +6,7 @@ export type NumberPurchaseOptions = {
   inboundInstruction: string;
   explicitProgrammaticConsent: string;
   inboundVoiceGender?: string;
+  inboundLanguage?: string;
   areaCode?: string;
   includeImessage?: boolean;
   json: boolean;
@@ -17,6 +18,7 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
       inboundInstruction: opts.inboundInstruction,
       explicitProgrammaticConsent: opts.explicitProgrammaticConsent,
       inboundVoiceGender: opts.inboundVoiceGender,
+      inboundLanguage: opts.inboundLanguage,
       areaCode: opts.areaCode,
       includeImessage: opts.includeImessage,
     });
