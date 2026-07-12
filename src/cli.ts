@@ -67,7 +67,7 @@ program
   .command("onboard")
   .description("Verify the OTP and finish onboarding.")
   .option("--verification-id <id>", "explicit verification id (falls back to local pending signup)")
-  .requiredOption("--code <code>", "6-digit OTP from your email")
+  .option("--code <code>", "6-digit OTP from your email (omit if already signed in — the command just installs the --agent skill and skips verification)")
   .option("--inbound-instruction <text>", "system prompt for inbound calls to your auto-provisioned number (required for a new account; ignored when signing in)")
   .option(
     "--agent <name>",

@@ -1,5 +1,8 @@
 import { onboard } from "../lib/ops/account.ts";
 import { isDialError } from "../lib/ops/errors.ts";
+import { readAuth, authFilePath } from "../lib/state.ts";
+import { installSkill, isSupportedAgent, SUPPORTED_AGENTS, type AgentName, type InstallResult } from "../lib/skill-install.ts";
+import { supervisorAvailability } from "../lib/supervisor/index.ts";
 
 function maskApiKey(key: string): string {
   return key.length >= 4 ? `sk_live_***${key.slice(-4)}` : "sk_live_***";
@@ -7,11 +10,30 @@ function maskApiKey(key: string): string {
 
 export type OnboardOptions = {
   verificationId?: string;
-  code: string;
+  code?: string;
   inboundInstruction?: string;
   agents?: string[];
   json?: boolean;
 };
+
+// Install skills for each requested agent — mirrors the loop inside
+// `onboard()` in ops/account.ts. Used by the signed-in-only branch below,
+// which skips OTP verification entirely.
+function installAgentSkills(agents: string[]): Array<InstallResult | { agent: string; error: string }> {
+  const skills: Array<InstallResult | { agent: string; error: string }> = [];
+  for (const requested of agents) {
+    if (!isSupportedAgent(requested)) {
+      skills.push({ agent: requested, error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.` });
+      continue;
+    }
+    try {
+      skills.push(installSkill(requested as AgentName));
+    } catch (err) {
+      skills.push({ agent: requested, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return skills;
+}
 
 const LISTEN_QUESTION = "Install the background notification listening service?";
 const LISTEN_RATIONALE =
@@ -24,6 +46,46 @@ const FINALIZATION_HINT =
   "To finalize onboarding, ask the user this question before continuing with any other task. If the user's original request was something else (e.g. \"call X\", \"send Y\"), briefly pause that task, ask the question, get an answer, then resume.";
 
 export async function runOnboard(opts: OnboardOptions): Promise<number> {
+  // Skill-install-only branch: when --code isn't supplied, we can't (and shouldn't)
+  // re-verify — but if the machine is already signed in, the useful thing to do
+  // is just install any --agent skills the caller asked for. This is what agents
+  // following the docs on an already-onboarded account hit when they read the
+  // integration page: signup is a no-op, all that's left is the skill drop-in.
+  if (!opts.code) {
+    const auth = readAuth();
+    if (!auth) {
+      const message = "Not signed in. Run `dial signup <email>` first, then re-run with --code from your inbox.";
+      if (opts.json) console.log(JSON.stringify({ ok: false, code: "not_signed_in", error: message }));
+      else console.error(message);
+      return 1;
+    }
+    const skills = installAgentSkills(opts.agents ?? []);
+    const supervisor = supervisorAvailability();
+    if (opts.json) {
+      console.log(JSON.stringify({
+        ok: true,
+        alreadySignedIn: true,
+        apiKeyFingerprint: auth.apiKey.slice(-4),
+        apiKeyMasked: maskApiKey(auth.apiKey),
+        apiKeyPath: authFilePath(),
+        accountId: auth.accountId,
+        phoneNumber: auth.phoneNumber ?? null,
+        phoneNumberId: auth.phoneNumberId ?? null,
+        listen: { installed: false, autoInstalled: false, canInstall: supervisor.available, unavailableReason: supervisor.available ? null : supervisor.reason },
+        skills,
+        agentHint: { action: "skip", kind: "already_signed_in", note: "Account is already signed in; verification was skipped and only the requested --agent skills were installed." },
+      }));
+    } else {
+      console.log(`already signed in as ${auth.email || "(unknown email)"} — skipped verification.`);
+      console.log(`  api key: ${maskApiKey(auth.apiKey)}   (saved at ${authFilePath()})`);
+      for (const r of skills) {
+        if ("error" in r) console.log(`  skill (${r.agent}):  failed — ${r.error}`);
+        else if (r.written) console.log(`  skill (${r.agent}):  installed → ${r.path}`);
+        else if (r.unchanged) console.log(`  skill (${r.agent}):  already up to date → ${r.path}`);
+      }
+    }
+    return 0;
+  }
   let result;
   try {
     result = await onboard({
