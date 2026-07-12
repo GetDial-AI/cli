@@ -22,6 +22,9 @@ export async function runBilling(opts: BillingOptions): Promise<number> {
     } else {
       console.log(`plan:      pay-as-you-go`);
     }
+    if (billing.numbersReleaseAt) {
+      console.log(`at risk:   balance is negative — all numbers release ${billing.numbersReleaseAt} for non-payment (top up to keep them)`);
+    }
     if (billing.numbers.length > 0) {
       console.log(`numbers:`);
       for (const n of billing.numbers) {

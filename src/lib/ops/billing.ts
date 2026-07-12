@@ -35,6 +35,12 @@ export type BillingPaymentMethod = {
 };
 export type Billing = {
   balanceCents: number;
+  /**
+   * ISO date-time when all the account's numbers will be released for non-payment
+   * (end of the 30-day grace period), or null when nothing is at risk. Non-null
+   * only for a pay-as-you-go account whose balance is negative.
+   */
+  numbersReleaseAt: string | null;
   subscription: BillingSubscription | null;
   numbers: BillingNumber[];
   /** Recent wallet credits (top-ups, welcome credit, manual grants), newest first. */
