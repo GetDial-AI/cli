@@ -34,9 +34,9 @@ describe("ops/billing", () => {
             status: 200,
             json: {
               balanceCents: 500,
+              numbersReleaseAt: null,
               subscription: null,
               numbers: [{ id: "pn_1", number: "+15550000", mode: "PAYG" }],
-              recentUsage: [],
               paymentMethods: [{ id: "pm_1", type: "card", brand: "visa", last4: "4242", expMonth: 4, expYear: 2027, email: null, isDefault: true }],
             },
           }
@@ -46,6 +46,7 @@ describe("ops/billing", () => {
     signIn();
     const b = await getBilling();
     assert.equal(b.balanceCents, 500);
+    assert.equal(b.numbersReleaseAt, null);
     assert.equal(b.subscription, null);
     assert.equal(b.numbers[0].mode, "PAYG");
     assert.equal(b.paymentMethods[0].type, "card");
