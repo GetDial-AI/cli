@@ -29,6 +29,12 @@ import { runMcp } from "./commands/mcp.ts";
 import { runUpdate } from "./commands/update.ts";
 import { runUninstall } from "./commands/uninstall.ts";
 import { maybeAutoUpdate } from "./lib/update.ts";
+import { isSandbox, SANDBOX_DISABLED_COMMANDS, sandboxDisabledMessage } from "./lib/sandbox.ts";
+
+// Sandbox mode (ephemeral agent container behind the OneCLI proxy): hide and
+// disable machine-lifecycle / onboarding commands, and let requests go out
+// keyless so the proxy injects auth. Computed once (memoized in lib/sandbox).
+const sandbox = isSandbox();
 
 const program = new Command();
 
@@ -56,16 +62,18 @@ program
   .option("--json", "machine-readable output")
   .action(async (opts) => process.exit(await runBilling({ json: !!opts.json })));
 
-program
-  .command("signup <email>")
-  .description("Request an email OTP for the given address.")
-  .option("--force", "overwrite any pending signup")
-  .option("--json", "machine-readable output")
-  .action(async (email, opts) => process.exit(await runSignup(email, { force: !!opts.force, json: !!opts.json })));
+if (!sandbox)
+  program
+    .command("signup <email>")
+    .description("Request an email OTP for the given address.")
+    .option("--force", "overwrite any pending signup")
+    .option("--json", "machine-readable output")
+    .action(async (email, opts) => process.exit(await runSignup(email, { force: !!opts.force, json: !!opts.json })));
 
-program
-  .command("onboard")
-  .description("Verify the OTP and finish onboarding.")
+if (!sandbox)
+  program
+    .command("onboard")
+    .description("Verify the OTP and finish onboarding.")
   .option("--verification-id <id>", "explicit verification id (falls back to local pending signup)")
   .option("--code <code>", "6-digit OTP from your email (omit if already signed in — the command just installs the --agent skill and skips verification)")
   .option("--inbound-instruction <text>", "system prompt for inbound calls to your auto-provisioned number (required for a new account; ignored when signing in)")
@@ -86,28 +94,30 @@ program
     })),
   );
 
-const listen = program
-  .command("listen")
-  .description("Run the listen worker (used by launchd/systemd).")
-  .action(async () => process.exit(await runListen()));
+if (!sandbox) {
+  const listen = program
+    .command("listen")
+    .description("Run the listen worker (used by launchd/systemd).")
+    .action(async () => process.exit(await runListen()));
 
-listen
-  .command("install")
-  .description("Install the listen daemon (launchd or systemd user unit).")
-  .option("--json", "machine-readable output")
-  .action(async (opts) => process.exit(await runListenInstall({ json: !!opts.json })));
+  listen
+    .command("install")
+    .description("Install the listen daemon (launchd or systemd user unit).")
+    .option("--json", "machine-readable output")
+    .action(async (opts) => process.exit(await runListenInstall({ json: !!opts.json })));
 
-listen
-  .command("uninstall")
-  .description("Stop and remove the listen daemon.")
-  .option("--json", "machine-readable output")
-  .action(async (opts) => process.exit(await runListenUninstall({ json: !!opts.json })));
+  listen
+    .command("uninstall")
+    .description("Stop and remove the listen daemon.")
+    .option("--json", "machine-readable output")
+    .action(async (opts) => process.exit(await runListenUninstall({ json: !!opts.json })));
 
-listen
-  .command("status")
-  .description("Report listen daemon state and last events.")
-  .option("--json", "machine-readable output")
-  .action(async (opts) => process.exit(await runListenStatus({ json: !!opts.json })));
+  listen
+    .command("status")
+    .description("Report listen daemon state and last events.")
+    .option("--json", "machine-readable output")
+    .action(async (opts) => process.exit(await runListenStatus({ json: !!opts.json })));
+}
 
 const number = program
   .command("number")
@@ -344,63 +354,65 @@ call
     process.exit(await runCallGet({ callId, json: !!opts.json })),
   );
 
-const localTarget = program
-  .command("local-target")
-  .description("Register local fan-out targets the listen daemon delivers events to.")
-  .enablePositionalOptions();
+if (!sandbox) {
+  const localTarget = program
+    .command("local-target")
+    .description("Register local fan-out targets the listen daemon delivers events to.")
+    .enablePositionalOptions();
 
-const localTargetAdd = localTarget
-  .command("add")
-  .description("Register a new local fan-out target (url or cmd).")
-  .enablePositionalOptions();
+  const localTargetAdd = localTarget
+    .command("add")
+    .description("Register a new local fan-out target (url or cmd).")
+    .enablePositionalOptions();
 
-localTargetAdd
-  .command("url <url>")
-  .description("Register a loopback HTTP endpoint. The daemon POSTs each event JSON to <url>.")
-  .option("--secret <value>", "HMAC-SHA256 key. The daemon signs each request body and sends the hex digest.")
-  .option("--signature-header <name>", "HTTP header for the HMAC signature (defaults to X-Dial-Signature; only used with --secret)")
-  .option("--bearer <token>", "static bearer token, sent as `Authorization: Bearer <token>`")
-  .option("--timeout <seconds>", "per-attempt timeout (default 5)", (v: string) => parseInt(v, 10))
-  .option("--json", "machine-readable output")
-  .action(async (url: string, opts) =>
-    process.exit(await runLocalTargetAddUrl({
-      url,
-      secret: opts.secret,
-      signatureHeader: opts.signatureHeader,
-      bearer: opts.bearer,
-      timeoutSeconds: opts.timeout as number | undefined,
-      json: !!opts.json,
-    })),
-  );
+  localTargetAdd
+      .command("url <url>")
+    .description("Register a loopback HTTP endpoint. The daemon POSTs each event JSON to <url>.")
+    .option("--secret <value>", "HMAC-SHA256 key. The daemon signs each request body and sends the hex digest.")
+    .option("--signature-header <name>", "HTTP header for the HMAC signature (defaults to X-Dial-Signature; only used with --secret)")
+    .option("--bearer <token>", "static bearer token, sent as `Authorization: Bearer <token>`")
+    .option("--timeout <seconds>", "per-attempt timeout (default 5)", (v: string) => parseInt(v, 10))
+    .option("--json", "machine-readable output")
+    .action(async (url: string, opts) =>
+      process.exit(await runLocalTargetAddUrl({
+        url,
+        secret: opts.secret,
+        signatureHeader: opts.signatureHeader,
+        bearer: opts.bearer,
+        timeoutSeconds: opts.timeout as number | undefined,
+        json: !!opts.json,
+      })),
+    );
 
-localTargetAdd
-  .command("cmd <path> [args...]")
-  .description("Register an executable. The daemon spawns it per event with the event JSON as the final positional argument.")
-  .option("--timeout <seconds>", "per-attempt timeout (default 5)", (v: string) => parseInt(v, 10))
-  .option("--json", "machine-readable output")
-  .passThroughOptions(true)
-  .action(async (path: string, args: string[], opts) =>
-    process.exit(await runLocalTargetAddCmd({
-      path,
-      args: args ?? [],
-      timeoutSeconds: opts.timeout as number | undefined,
-      json: !!opts.json,
-    })),
-  );
+  localTargetAdd
+    .command("cmd <path> [args...]")
+    .description("Register an executable. The daemon spawns it per event with the event JSON as the final positional argument.")
+    .option("--timeout <seconds>", "per-attempt timeout (default 5)", (v: string) => parseInt(v, 10))
+    .option("--json", "machine-readable output")
+    .passThroughOptions(true)
+    .action(async (path: string, args: string[], opts) =>
+      process.exit(await runLocalTargetAddCmd({
+        path,
+        args: args ?? [],
+        timeoutSeconds: opts.timeout as number | undefined,
+        json: !!opts.json,
+      })),
+    );
 
-localTarget
-  .command("remove <id>")
-  .description("Unregister a target by id (URL for url targets, path for cmd targets).")
-  .option("--json", "machine-readable output")
-  .action(async (id: string, opts) =>
-    process.exit(await runLocalTargetRemove({ id, json: !!opts.json })),
-  );
+  localTarget
+    .command("remove <id>")
+    .description("Unregister a target by id (URL for url targets, path for cmd targets).")
+    .option("--json", "machine-readable output")
+    .action(async (id: string, opts) =>
+      process.exit(await runLocalTargetRemove({ id, json: !!opts.json })),
+    );
 
-localTarget
-  .command("list")
-  .description("List the local targets currently registered for fan-out.")
-  .option("--json", "machine-readable output")
-  .action(async (opts) => process.exit(await runLocalTargetList({ json: !!opts.json })));
+  localTarget
+    .command("list")
+    .description("List the local targets currently registered for fan-out.")
+    .option("--json", "machine-readable output")
+    .action(async (opts) => process.exit(await runLocalTargetList({ json: !!opts.json })));
+}
 
 program
   .command("wait-for <event-type>")
@@ -419,22 +431,37 @@ program
     }))
   );
 
-program
-  .command("mcp")
-  .description("Run a local stdio MCP server exposing Dial as agent tools (reuses your saved API key).")
-  .action(async () => process.exit(await runMcp()));
+if (!sandbox)
+  program
+    .command("mcp")
+    .description("Run a local stdio MCP server exposing Dial as agent tools (reuses your saved API key).")
+    .action(async () => process.exit(await runMcp()));
 
-program
-  .command("update")
-  .description("Update the CLI to the latest published version (global npm installs).")
-  .option("--json", "machine-readable output")
-  .action(async (opts) => process.exit(await runUpdate({ json: !!opts.json })));
+if (!sandbox)
+  program
+    .command("update")
+    .description("Update the CLI to the latest published version (global npm installs).")
+    .option("--json", "machine-readable output")
+    .action(async (opts) => process.exit(await runUpdate({ json: !!opts.json })));
 
-program
-  .command("uninstall")
-  .description("Remove the listen daemon, agent skills, and all local Dial state, then print how to remove the package.")
-  .option("--json", "machine-readable output")
-  .action(async (opts) => process.exit(await runUninstall({ json: !!opts.json })));
+if (!sandbox)
+  program
+    .command("uninstall")
+    .description("Remove the listen daemon, agent skills, and all local Dial state, then print how to remove the package.")
+    .option("--json", "machine-readable output")
+    .action(async (opts) => process.exit(await runUninstall({ json: !!opts.json })));
+
+// In sandbox mode the commands above are never registered, so invoking one
+// would otherwise surface commander's generic "unknown command". Intercept the
+// disabled verb first and print a message that names sandbox mode + the escape
+// hatches, so the agent isn't left guessing.
+if (sandbox) {
+  const invoked = process.argv.slice(2).find((a) => !a.startsWith("-"));
+  if (invoked && (SANDBOX_DISABLED_COMMANDS as readonly string[]).includes(invoked)) {
+    console.error(sandboxDisabledMessage(invoked));
+    process.exit(2);
+  }
+}
 
 program.parseAsync(process.argv).catch((err) => {
   console.error(err instanceof Error ? err.message : String(err));
