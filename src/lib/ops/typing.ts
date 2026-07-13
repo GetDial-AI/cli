@@ -1,5 +1,5 @@
 import { apiPost } from "../api.ts";
-import { requireAuth, requireFromNumber } from "./auth.ts";
+import { maybeAuth, requireFromNumber } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
 /**
@@ -14,12 +14,12 @@ export async function setTyping(opts: {
   /** Flexible ref: number id, owned E.164, or nickname. Defaults to the onboarded number. */
   fromNumber?: string;
 }): Promise<{ ok: boolean }> {
-  const auth = requireAuth();
+  const auth = maybeAuth();
   const fromNumber = requireFromNumber(auth, opts.fromNumber);
   const res = await apiPost<{ ok: boolean }>(
     "/api/v1/typing",
     { toNumber: opts.toNumber, value: opts.value, fromNumber },
-    auth.apiKey,
+    auth?.apiKey,
   );
   if (!res.ok) throw new DialError("typing_failed", res.error, res.status);
   return res.data;
