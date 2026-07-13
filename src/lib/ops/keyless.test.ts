@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { writeAuth } from "../state.ts";
 import { startMockApi } from "../../test-utils.ts";
 import { resetSandboxCacheForTests } from "../sandbox.ts";
-import { requireAuth } from "./auth.ts";
+import { maybeAuth } from "./auth.ts";
 import { getBilling } from "./billing.ts";
 import { isDialError } from "./errors.ts";
 
@@ -39,19 +39,17 @@ describe("keyless auth (sandbox mode)", () => {
     resetSandboxCacheForTests();
   });
 
-  it("requireAuth returns a keyless sentinel when sandboxed with no auth file", () => {
+  it("maybeAuth returns undefined (keyless) when sandboxed with no auth file", () => {
     process.env.DIAL_SANDBOX = "1";
     resetSandboxCacheForTests();
-    const auth = requireAuth();
-    assert.equal(auth.apiKey, "");
-    assert.equal(auth.phoneNumberId, null);
+    assert.equal(maybeAuth(), undefined);
   });
 
-  it("requireAuth still throws not_signed_in when NOT sandboxed and no auth file", () => {
+  it("maybeAuth still throws not_signed_in when NOT sandboxed and no auth file", () => {
     process.env.DIAL_SANDBOX = "0";
     resetSandboxCacheForTests();
     try {
-      requireAuth();
+      maybeAuth();
       assert.fail("expected throw");
     } catch (e) {
       assert.ok(isDialError(e) && e.code === "not_signed_in");

@@ -1,5 +1,5 @@
 import { apiGet } from "../api.ts";
-import { requireAuth } from "./auth.ts";
+import { maybeAuth } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
 // `dial billing` — read-only account billing. Wraps GET /api/v1/billing. Billing
@@ -50,8 +50,8 @@ export type Billing = {
 };
 
 export async function getBilling(): Promise<Billing> {
-  const auth = requireAuth();
-  const res = await apiGet<Billing>("/api/v1/billing", auth.apiKey);
+  const auth = maybeAuth();
+  const res = await apiGet<Billing>("/api/v1/billing", auth?.apiKey);
   if (!res.ok) throw new DialError("billing_failed", res.error, res.status);
   return res.data;
 }

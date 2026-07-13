@@ -3,7 +3,7 @@ import { supervisorStatus } from "../supervisor/index.ts";
 import { parseFieldArg, parseRegexArg, type MatchSpec } from "../event-filter.ts";
 import { currentSize, findLatestMatch, tailUntilMatch } from "../log-tail.ts";
 import { apiPost } from "../api.ts";
-import { requireAuth } from "./auth.ts";
+import { maybeAuth } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
 const PER_POLL_SECONDS = 30;
@@ -53,7 +53,7 @@ async function waitFromLog(spec: MatchSpec, opts: WaitForInput): Promise<WaitFor
 }
 
 async function waitFromApi(spec: MatchSpec, opts: WaitForInput): Promise<WaitForResult> {
-  const auth = requireAuth();
+  const auth = maybeAuth();
 
   const filters: Record<string, string> = {};
   for (const f of spec.fields) filters[f.name] = f.value;
@@ -73,7 +73,7 @@ async function waitFromApi(spec: MatchSpec, opts: WaitForInput): Promise<WaitFor
         regexFilters: Object.keys(regexFilters).length > 0 ? regexFilters : undefined,
         timeout,
       },
-      auth.apiKey,
+      auth?.apiKey,
     );
 
     if (res.ok && res.data?.event) {

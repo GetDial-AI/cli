@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { basename, extname } from "node:path";
 import { apiGet, apiPost, apiPostMultipart, ApiFormData } from "../api.ts";
-import { requireAuth, resolveFromSelector } from "./auth.ts";
+import { maybeAuth, resolveFromSelector } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
 export type MessageMediaItem = {
@@ -86,7 +86,7 @@ export async function sendMessage(opts: {
   /** Send an audio attachment as a regular file attachment instead of an iMessage voice message. */
   forceAudioFile?: boolean;
 }): Promise<MessageRow> {
-  const auth = requireAuth();
+  const auth = maybeAuth();
   const from = resolveFromSelector(auth, opts);
   const media = opts.media ?? [];
   if (media.length > MAX_MEDIA_ITEMS) {
@@ -109,7 +109,7 @@ export async function sendMessage(opts: {
         ...(media.length ? { mediaUrls: media } : {}),
         ...(opts.forceAudioFile ? { forceAudioFile: true } : {}),
       },
-      auth.apiKey,
+      auth?.apiKey,
     );
   } else {
     const form = new ApiFormData();
@@ -125,7 +125,7 @@ export async function sendMessage(opts: {
         form.append("media", new Blob([new Uint8Array(file.data)], { type: file.contentType }), file.name);
       }
     }
-    res = await apiPostMultipart<{ message: MessageRow }>("/api/v1/messages", form, auth.apiKey);
+    res = await apiPostMultipart<{ message: MessageRow }>("/api/v1/messages", form, auth?.apiKey);
   }
   if (!res.ok) throw new DialError("send_failed", res.error, res.status);
   return res.data.message;
@@ -136,13 +136,13 @@ export async function listMessages(opts: {
   direction?: string;
   since?: string;
 }): Promise<MessageRow[]> {
-  const auth = requireAuth();
+  const auth = maybeAuth();
   const params = new URLSearchParams();
   if (opts.numberId) params.set("numberId", opts.numberId);
   if (opts.direction) params.set("direction", opts.direction);
   if (opts.since) params.set("since", opts.since);
   const qs = params.toString();
-  const res = await apiGet<{ messages: MessageRow[] }>(qs ? `/api/v1/messages?${qs}` : "/api/v1/messages", auth.apiKey);
+  const res = await apiGet<{ messages: MessageRow[] }>(qs ? `/api/v1/messages?${qs}` : "/api/v1/messages", auth?.apiKey);
   if (!res.ok) throw new DialError("list_failed", res.error, res.status);
   return res.data.messages ?? [];
 }
@@ -152,7 +152,7 @@ export async function replyToMessage(opts: {
   body?: string;
   reaction?: string;
 }): Promise<MessageRow> {
-  const auth = requireAuth();
+  const auth = maybeAuth();
   // No `to`/`fromNumberId`: the server derives both from the target message —
   // the reply stays in the conversation the target is part of.
   const payload: Record<string, string> = {};
@@ -161,7 +161,7 @@ export async function replyToMessage(opts: {
   const res = await apiPost<{ message: MessageRow }>(
     `/api/v1/messages/${encodeURIComponent(opts.messageId)}/reply`,
     payload,
-    auth.apiKey,
+    auth?.apiKey,
   );
   if (!res.ok) throw new DialError("reply_failed", res.error, res.status);
   return res.data.message;

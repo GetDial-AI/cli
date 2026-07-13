@@ -9,11 +9,11 @@ import {
   type InstallResult,
 } from "../supervisor/index.ts";
 import { paths } from "../paths.ts";
-import { requireAuth } from "./auth.ts";
+import { maybeAuth } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
 export function listenInstall(): InstallResult {
-  requireAuth();
+  maybeAuth();
   const supervisor = supervisorAvailability();
   if (!supervisor.available) {
     throw new DialError("supervisor_unavailable", supervisor.reason);
