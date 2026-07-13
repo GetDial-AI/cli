@@ -6,6 +6,21 @@ function humanRender(r: DoctorReport): string {
   const lines: string[] = [];
   lines.push(`dial ${r.cli.version}  (node ${r.cli.node})`);
   lines.push(`backend:     ${r.backend.url}  ${r.backend.reachable ? `reachable${r.backend.latencyMs != null ? ` (${r.backend.latencyMs}ms)` : ""}` : "UNREACHABLE"}`);
+  if (r.sandbox) {
+    // Sandbox: no local key — the gateway injects credentials. Don't say "not
+    // signed in" (misleading) or surface pending-otp/listen (all disabled here).
+    lines.push(`mode:        sandbox (credentials injected by the gateway)`);
+    lines.push(
+      `auth:        ${r.auth.keyValid ? "credential connected via the gateway" : "no valid Dial credential connected in the vault"}`,
+    );
+    lines.push("");
+    lines.push(
+      r.nextStep === "ready"
+        ? "next: ready"
+        : "next: connect the Dial credential in your gateway/vault (this agent has none)",
+    );
+    return lines.join("\n");
+  }
   if (r.auth.signedIn) {
     lines.push(`auth:        signed in as ${r.auth.email} (account ${r.auth.accountId}, key sk_live_***${r.auth.apiKeyFingerprint})${r.auth.keyValid === false ? "  [key rejected by backend]" : ""}`);
   } else {

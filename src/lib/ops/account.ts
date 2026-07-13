@@ -4,6 +4,7 @@ import { supervisorStatus, lastEventAtFromLog, supervisorAvailability, type Supe
 import { paths } from "../paths.ts";
 import { VERSION } from "../version.ts";
 import { installSkill, isSupportedAgent, SUPPORTED_AGENTS, type AgentName, type InstallResult } from "../skill-install.ts";
+import { isSandbox } from "../sandbox.ts";
 import { DialError } from "./errors.ts";
 
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
@@ -24,11 +25,38 @@ export type DoctorReport = {
   };
   pendingOtp: { verificationId: string | null; ageSeconds: number | null; expired: boolean | null };
   listen: { installed: boolean; running: boolean; lastEventAt: string | null };
-  nextStep: "install" | "signup" | "onboard" | "resend_otp" | "install_listen" | "ready";
+  sandbox: boolean;
+  nextStep: "install" | "signup" | "onboard" | "resend_otp" | "install_listen" | "ready" | "connect_credential";
 };
 
 export async function accountStatus(): Promise<DoctorReport> {
   const ping = await pingBackend();
+
+  if (isSandbox()) {
+    // No local auth file in a sandbox — the gateway injects the credential.
+    // Probe keyless (the proxy adds the Authorization header) to report whether
+    // the credential is actually connected in the vault. Never suggest
+    // signup/onboard/listen here — those are disabled in a sandbox.
+    const probe = await apiGet<unknown>("/api/v1/account");
+    const connected = probe.ok;
+    return {
+      cli: { version: VERSION, node: process.versions.node },
+      backend: { url: baseUrl(), reachable: ping.reachable, latencyMs: ping.latencyMs },
+      auth: {
+        signedIn: connected,
+        email: null,
+        accountId: null,
+        apiKeyPresent: connected,
+        apiKeyFingerprint: null,
+        keyValid: connected,
+      },
+      pendingOtp: { verificationId: null, ageSeconds: null, expired: null },
+      listen: { installed: false, running: false, lastEventAt: null },
+      sandbox: true,
+      nextStep: connected ? "ready" : "connect_credential",
+    };
+  }
+
   const auth = readAuth();
   const pending = readPendingSignup();
 
@@ -79,6 +107,7 @@ export async function accountStatus(): Promise<DoctorReport> {
       expired: pendingExpired,
     },
     listen: listenState,
+    sandbox: false,
     nextStep,
   };
 }
