@@ -1,6 +1,17 @@
-import { request, fetch as undiciFetch, FormData as UndiciFormData } from "undici";
+import { request, fetch as undiciFetch, FormData as UndiciFormData, setGlobalDispatcher, EnvHttpProxyAgent } from "undici";
 import { logger } from "./log.ts";
 import { VERSION } from "./version.ts";
+
+// Route this package's undici requests through HTTP(S)_PROXY when one is set.
+// The `undici` npm package keeps its OWN global dispatcher, which — unlike
+// Node's built-in fetch (wired by NODE_USE_ENV_PROXY) — ignores the proxy env
+// vars. In a proxied environment (e.g. the NanoClaw agent sandbox, where the
+// OneCLI gateway sits on HTTPS_PROXY and injects the Authorization header for
+// api.getdial.ai) our `request()`/`fetch()` calls would otherwise bypass the
+// gateway entirely and go out UNAUTHENTICATED → 401. Opt in explicitly.
+if (process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy) {
+  setGlobalDispatcher(new EnvHttpProxyAgent());
+}
 
 // The bundled undici only multipart-encodes its own FormData class (realm
 // check) — Node's global FormData would be coerced to a text/plain string.
