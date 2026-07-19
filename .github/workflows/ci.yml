@@ -1,0 +1,129 @@
+name: CI
+
+# PR and main gate. Every pull request into main — and every push to main —
+# must pass tests, linting, and formatting. On pull requests we additionally
+# require a package.json version bump whenever src/, package.json, or
+# package-lock.json changes (those are the inputs that change the published
+# artifact). Every job installs with `npm ci`, which refuses to run when
+# package.json and package-lock.json disagree — that is our stale-lockfile
+# guard.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+      - name: Type-check / build
+        run: npm run build
+      - name: Test
+        run: npm test
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+      - name: Check formatting
+        run: npm run format:check
+
+  version-bump:
+    # Publishing a new artifact requires a new version. Enforce a bump on any
+    # PR that touches the sources of that artifact: src/, package.json, or
+    # package-lock.json (a dependency change alters the shipped bundle even
+    # when package.json's own version line is untouched).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Require version bump when src/ or lockfile changes
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E '^(src/|package\.json$|package-lock\.json$)' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No src/, package.json, or package-lock.json changes — version bump not required."
+            {
+              echo "## Version bump not required"
+              echo ""
+              echo "This PR doesn't touch \`src/**\`, \`package.json\`, or \`package-lock.json\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          BASE_VERSION=$(git show "$BASE_SHA:package.json" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); console.log(j.version)')
+          HEAD_VERSION=$(node -p "require('./package.json').version")
+
+          echo "base version: $BASE_VERSION"
+          echo "head version: $HEAD_VERSION"
+          echo "changed files:"
+          echo "$CHANGED" | sed 's/^/  - /'
+
+          if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+            {
+              echo "## Version bump required"
+              echo ""
+              echo "This PR changes files under \`src/\`, \`package.json\`, or \`package-lock.json\` but doesn't bump \`package.json\` version (still \`$HEAD_VERSION\`)."
+              echo ""
+              echo "Bump \`package.json\` version before merging."
+              echo ""
+              echo "**Changed files:**"
+              echo ""
+              echo '```'
+              echo "$CHANGED"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::package.json version unchanged ($HEAD_VERSION) despite src/ or lockfile changes. Bump the version."
+            exit 1
+          fi
+
+          {
+            echo "## Version bump OK"
+            echo ""
+            echo "\`$BASE_VERSION\` → \`$HEAD_VERSION\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Version bumped: $BASE_VERSION → $HEAD_VERSION."
