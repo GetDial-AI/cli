@@ -1,12 +1,13 @@
 name: CI
 
-# PR and main gate. Every pull request into main — and every push to main —
-# must pass tests, linting, and formatting. On pull requests we additionally
-# require a package.json version bump whenever src/, package.json, or
-# package-lock.json changes (those are the inputs that change the published
-# artifact). Every job installs with `npm ci`, which refuses to run when
-# package.json and package-lock.json disagree — that is our stale-lockfile
-# guard.
+# PR and main gate — a single job whose steps run in order:
+#   version bump check → install → format check → lint → tests
+#
+# The version-bump step runs only on pull requests and requires a strictly
+# greater package.json version whenever src/, package.json, or
+# package-lock.json changes (the inputs that change the published artifact).
+# Install uses `npm ci`, which refuses to run when package.json and
+# package-lock.json disagree — that is our stale-lockfile guard.
 
 on:
   pull_request:
@@ -22,64 +23,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - name: Install dependencies (frozen lockfile)
-        run: npm ci
-      - name: Type-check / build
-        run: npm run build
-      - name: Test
-        run: npm test
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - name: Install dependencies (frozen lockfile)
-        run: npm ci
-      - name: Lint
-        run: npm run lint
-
-  format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - name: Install dependencies (frozen lockfile)
-        run: npm ci
-      - name: Check formatting
-        run: npm run format:check
-
-  version-bump:
-    # Publishing a new artifact requires a new version. Enforce a bump on any
-    # PR that touches the sources of that artifact: src/, package.json, or
-    # package-lock.json (a dependency change alters the shipped bundle even
-    # when package.json's own version line is untouched).
-    if: github.event_name == 'pull_request'
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          # Full history so the version-bump step can read the base version
+          # and compute the merge-base.
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
 
-      - name: Require version bump when src/ or lockfile changes
+      - name: Version bump check
+        # PR-only: on push to main there is no base/head PR to compare.
+        if: github.event_name == 'pull_request'
         # Pass the PR SHAs through env rather than interpolating ${{ ... }}
         # directly into the shell — avoids GitHub Actions script injection if a
         # future edit swaps in an attacker-controllable field (title, head_ref).
@@ -147,3 +107,15 @@ jobs:
             echo "\`$BASE_VERSION\` → \`$HEAD_VERSION\`."
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Version bumped: $BASE_VERSION → $HEAD_VERSION."
+
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
