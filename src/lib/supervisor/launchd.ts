@@ -22,7 +22,8 @@ function redactBuffers(err: unknown): unknown {
   for (const k of ["stderr", "stdout", "output"]) {
     const v = e[k];
     if (Buffer.isBuffer(v)) redacted[k] = v.toString().trim();
-    else if (Array.isArray(v)) redacted[k] = v.map((x) => (Buffer.isBuffer(x) ? x.toString().trim() : x));
+    else if (Array.isArray(v))
+      redacted[k] = v.map((x) => (Buffer.isBuffer(x) ? x.toString().trim() : x));
   }
   return redacted;
 }
@@ -43,7 +44,9 @@ export function renderLaunchdPlist(params: {
   // so we must prepend the directory of the currently running node (e.g. nvm's bin dir)
   // so the shebang can resolve. Falls back to /usr/local/bin which is where Homebrew puts node.
   const nodeDir = dirname(process.execPath);
-  const programArguments = params.programArgs.map((arg) => `    <string>${arg}</string>`).join("\n");
+  const programArguments = params.programArgs
+    .map((arg) => `    <string>${arg}</string>`)
+    .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -99,7 +102,10 @@ export function launchctlLoad(plistPath: string): void {
     execFileSync("launchctl", ["bootstrap", `gui/${uid}`, plistPath], { stdio: "pipe" });
     return;
   } catch (bootstrapErr) {
-    logger.warn({ err: redactBuffers(bootstrapErr) }, "launchctl bootstrap failed, falling back to legacy load");
+    logger.warn(
+      { err: redactBuffers(bootstrapErr) },
+      "launchctl bootstrap failed, falling back to legacy load",
+    );
   }
   // launchctl load -w prints "Load failed: ..." to stderr but exits 0,
   // so we must inspect stderr ourselves to detect the failure.
@@ -134,12 +140,19 @@ export function launchctlUnload(plistPath: string): void {
 
 export function launchctlStatus(): { running: boolean; pid: number | null } {
   try {
-    const out = execFileSync("launchctl", ["list"], { stdio: ["ignore", "pipe", "ignore"] }).toString();
-    const line = out.split("\n").find((l) => l.endsWith(`\t${LAUNCHD_LABEL}`) || l.endsWith(` ${LAUNCHD_LABEL}`));
+    const out = execFileSync("launchctl", ["list"], {
+      stdio: ["ignore", "pipe", "ignore"],
+    }).toString();
+    const line = out
+      .split("\n")
+      .find((l) => l.endsWith(`\t${LAUNCHD_LABEL}`) || l.endsWith(` ${LAUNCHD_LABEL}`));
     if (!line) return { running: false, pid: null };
     const cols = line.split(/\s+/);
     const pid = parseInt(cols[0], 10);
-    return { running: Number.isFinite(pid) && pid > 0, pid: Number.isFinite(pid) && pid > 0 ? pid : null };
+    return {
+      running: Number.isFinite(pid) && pid > 0,
+      pid: Number.isFinite(pid) && pid > 0 ? pid : null,
+    };
   } catch (err) {
     logger.warn({ err: redactBuffers(err) }, "launchctl list failed");
     return { running: false, pid: null };

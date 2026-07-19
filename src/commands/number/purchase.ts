@@ -32,7 +32,9 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
       // iMessage numbers provision asynchronously: the number is returned right
       // away in setupStatus "provisioning". Tell the user to poll before using it.
       if (opts.includeImessage) {
-        console.log(`  status:   ${n.setupStatus ?? "provisioning"} — run \`dial number list\` until it's "ready" before sending or calling from it.`);
+        console.log(
+          `  status:   ${n.setupStatus ?? "provisioning"} — run \`dial number list\` until it's "ready" before sending or calling from it.`,
+        );
       }
     }
     return 0;

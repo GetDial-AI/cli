@@ -11,7 +11,13 @@ import {
   resetSandboxCacheForTests,
 } from "./sandbox.ts";
 
-const ENV_KEYS = ["DIAL_SANDBOX", "HTTPS_PROXY", "HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR"] as const;
+const ENV_KEYS = [
+  "DIAL_SANDBOX",
+  "HTTPS_PROXY",
+  "HOME",
+  "XDG_DATA_HOME",
+  "XDG_RUNTIME_DIR",
+] as const;
 
 describe("sandbox", () => {
   let tmp: string;

@@ -1,4 +1,4 @@
-import { waitForEvent } from "../lib/ops/events.ts";
+import { waitForEvent, type WaitForResult } from "../lib/ops/events.ts";
 import { isDialError } from "../lib/ops/errors.ts";
 
 export type WaitForOptions = {
@@ -10,7 +10,7 @@ export type WaitForOptions = {
 };
 
 export async function runWaitFor(opts: WaitForOptions): Promise<number> {
-  let r;
+  let r: WaitForResult;
   try {
     r = await waitForEvent({
       eventType: opts.eventType,
@@ -27,7 +27,7 @@ export async function runWaitFor(opts: WaitForOptions): Promise<number> {
 
   // Hit: print the raw line and succeed.
   if (!r.timedOut && r.line != null) {
-    process.stdout.write(r.line + "\n");
+    process.stdout.write(`${r.line}\n`);
     return 0;
   }
 
@@ -37,7 +37,7 @@ export async function runWaitFor(opts: WaitForOptions): Promise<number> {
       console.log(JSON.stringify({ ok: false, timeout: true, source: "log", event: r.event }));
     } else {
       console.error(`timed out after ${opts.timeoutSeconds}s; latest matching entry in log:`);
-      process.stdout.write(r.line + "\n");
+      process.stdout.write(`${r.line}\n`);
     }
     return 1;
   }
@@ -47,7 +47,9 @@ export async function runWaitFor(opts: WaitForOptions): Promise<number> {
     if (opts.json) {
       console.log(JSON.stringify({ ok: false, timeout: true, source: null, event: null }));
     } else {
-      console.error(`timed out after ${opts.timeoutSeconds}s; no matching ${opts.eventType} entry in log.`);
+      console.error(
+        `timed out after ${opts.timeoutSeconds}s; no matching ${opts.eventType} entry in log.`,
+      );
     }
     return 2;
   }
@@ -56,7 +58,9 @@ export async function runWaitFor(opts: WaitForOptions): Promise<number> {
   if (opts.json) {
     console.log(JSON.stringify({ ok: false, timeout: true, source: "api", event: null }));
   } else {
-    console.error(`timed out after ${opts.timeoutSeconds}s; no matching ${opts.eventType} via API fallback.`);
+    console.error(
+      `timed out after ${opts.timeoutSeconds}s; no matching ${opts.eventType} via API fallback.`,
+    );
   }
   return 2;
 }

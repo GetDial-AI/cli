@@ -10,7 +10,9 @@ import { fanout } from "./fanout.ts";
 
 let tmp: string;
 
-function startServer(handler: (req: IncomingMessage, res: ServerResponse, body: string) => void): Promise<{ server: Server; port: number }> {
+function startServer(
+  handler: (req: IncomingMessage, res: ServerResponse, body: string) => void,
+): Promise<{ server: Server; port: number }> {
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       const chunks: Buffer[] = [];
@@ -41,12 +43,16 @@ describe("fanout url target", () => {
   });
 
   it("POSTs the event JSON, signs with HMAC, sends bearer, and reports delivered", async () => {
-    let received: { body: string; signature: string | undefined; authorization: string | undefined } | null = null;
+    let received: {
+      body: string;
+      signature: string | undefined;
+      authorization: string | undefined;
+    } | null = null;
     const { server, port } = await startServer((req, res, body) => {
       received = {
         body,
         signature: req.headers["x-dial-signature"] as string | undefined,
-        authorization: req.headers["authorization"] as string | undefined,
+        authorization: req.headers.authorization as string | undefined,
       };
       res.statusCode = 200;
       res.end("ok");
@@ -67,10 +73,10 @@ describe("fanout url target", () => {
       assert.equal(results[0].attempts[0].status, 200);
 
       assert.ok(received, "expected the server to receive the request");
-      assert.equal(received!.body, JSON.stringify(event));
-      assert.equal(received!.authorization, "Bearer tok_123");
+      assert.equal(received?.body, JSON.stringify(event));
+      assert.equal(received?.authorization, "Bearer tok_123");
       const expected = createHmac("sha256", "shhh").update(JSON.stringify(event)).digest("hex");
-      assert.equal(received!.signature, expected);
+      assert.equal(received?.signature, expected);
     } finally {
       await close(server);
     }

@@ -1,9 +1,27 @@
-import { readAuth, readPendingSignup, writePendingSignup, clearPendingSignup, writeAuth, authFilePath } from "../state.ts";
+import {
+  readAuth,
+  readPendingSignup,
+  writePendingSignup,
+  clearPendingSignup,
+  writeAuth,
+  authFilePath,
+} from "../state.ts";
 import { apiGet, apiPost, baseUrl, pingBackend } from "../api.ts";
-import { supervisorStatus, lastEventAtFromLog, supervisorAvailability, type SupervisorAvailability } from "../supervisor/index.ts";
+import {
+  supervisorStatus,
+  lastEventAtFromLog,
+  supervisorAvailability,
+  type SupervisorAvailability,
+} from "../supervisor/index.ts";
 import { paths } from "../paths.ts";
 import { VERSION } from "../version.ts";
-import { installSkill, isSupportedAgent, SUPPORTED_AGENTS, type AgentName, type InstallResult } from "../skill-install.ts";
+import {
+  installSkill,
+  isSupportedAgent,
+  SUPPORTED_AGENTS,
+  type AgentName,
+  type InstallResult,
+} from "../skill-install.ts";
 import { isSandbox } from "../sandbox.ts";
 import { DialError } from "./errors.ts";
 
@@ -26,7 +44,14 @@ export type DoctorReport = {
   pendingOtp: { verificationId: string | null; ageSeconds: number | null; expired: boolean | null };
   listen: { installed: boolean; running: boolean; lastEventAt: string | null };
   sandbox: boolean;
-  nextStep: "install" | "signup" | "onboard" | "resend_otp" | "install_listen" | "ready" | "connect_credential";
+  nextStep:
+    | "install"
+    | "signup"
+    | "onboard"
+    | "resend_otp"
+    | "install_listen"
+    | "ready"
+    | "connect_credential";
 };
 
 export async function accountStatus(): Promise<DoctorReport> {
@@ -72,7 +97,11 @@ export async function accountStatus(): Promise<DoctorReport> {
   let listenState: DoctorReport["listen"] = { installed: false, running: false, lastEventAt: null };
   try {
     const s = supervisorStatus();
-    listenState = { installed: s.installed, running: s.running, lastEventAt: lastEventAtFromLog(paths().listenLog) };
+    listenState = {
+      installed: s.installed,
+      running: s.running,
+      lastEventAt: lastEventAtFromLog(paths().listenLog),
+    };
   } catch {
     // unsupported platform — leave defaults
   }
@@ -114,7 +143,10 @@ export async function accountStatus(): Promise<DoctorReport> {
 
 // ---- signup ----------------------------------------------------------------
 
-export async function signup(opts: { email: string; force?: boolean }): Promise<{ verificationId: string; email: string }> {
+export async function signup(opts: {
+  email: string;
+  force?: boolean;
+}): Promise<{ verificationId: string; email: string }> {
   const existing = readPendingSignup();
   if (existing && !opts.force) {
     const age = Date.now() - Date.parse(existing.createdAt);
@@ -129,10 +161,16 @@ export async function signup(opts: { email: string; force?: boolean }): Promise<
     }
   }
 
-  const res = await apiPost<{ verificationId: string }>("/api/v1/auth/signup", { email: opts.email });
+  const res = await apiPost<{ verificationId: string }>("/api/v1/auth/signup", {
+    email: opts.email,
+  });
   if (!res.ok) throw new DialError("signup_failed", res.error, res.status);
 
-  writePendingSignup({ verificationId: res.data.verificationId, email: opts.email, createdAt: new Date().toISOString() });
+  writePendingSignup({
+    verificationId: res.data.verificationId,
+    email: opts.email,
+    createdAt: new Date().toISOString(),
+  });
   return { verificationId: res.data.verificationId, email: opts.email };
 }
 
@@ -171,7 +209,10 @@ export async function onboard(opts: OnboardInput): Promise<OnboardResult> {
   if (!verificationId) {
     const pending = readPendingSignup();
     if (!pending) {
-      throw new DialError("no_pending_signup", "No pending signup. Run `dial signup <email>` first, or pass --verification-id.");
+      throw new DialError(
+        "no_pending_signup",
+        "No pending signup. Run `dial signup <email>` first, or pass --verification-id.",
+      );
     }
     verificationId = pending.verificationId;
     email = pending.email;
@@ -201,7 +242,10 @@ export async function onboard(opts: OnboardInput): Promise<OnboardResult> {
   const skills: Array<InstallResult | { agent: string; error: string }> = [];
   for (const requested of opts.agents ?? []) {
     if (!isSupportedAgent(requested)) {
-      skills.push({ agent: requested, error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.` });
+      skills.push({
+        agent: requested,
+        error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.`,
+      });
       continue;
     }
     try {

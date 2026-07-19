@@ -26,11 +26,29 @@ describe("ops/messages", () => {
   it("sendMessage posts and returns the message", async () => {
     api = await startMockApi((m, u) =>
       m === "POST" && u === "/api/v1/messages"
-        ? { status: 200, json: { message: { id: "m1", from: "+15550000", to: "+15551111", body: "hi", channel: "sms", status: "queued" } } }
+        ? {
+            status: 200,
+            json: {
+              message: {
+                id: "m1",
+                from: "+15550000",
+                to: "+15551111",
+                body: "hi",
+                channel: "sms",
+                status: "queued",
+              },
+            },
+          }
         : undefined,
     );
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     const msg = await sendMessage({ to: "+15551111", body: "hi" });
     assert.equal(msg.id, "m1");
     assert.equal(msg.status, "queued");
@@ -41,12 +59,30 @@ describe("ops/messages", () => {
     api = await startMockApi((m, u, body) => {
       if (m === "POST" && u === "/api/v1/messages") {
         seenBody = body;
-        return { status: 201, json: { message: { id: "m9", from: "+1", to: "+2", body: "hi", channel: "sms", status: "queued" } } };
+        return {
+          status: 201,
+          json: {
+            message: {
+              id: "m9",
+              from: "+1",
+              to: "+2",
+              body: "hi",
+              channel: "sms",
+              status: "queued",
+            },
+          },
+        };
       }
       return undefined;
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     await sendMessage({ to: "+15551111", body: "hi", fromNumber: "Support line" });
     const body = JSON.parse(seenBody);
     assert.equal(body.fromNumber, "Support line");
@@ -60,13 +96,36 @@ describe("ops/messages", () => {
     api = await startMockApi((m, u, body) => {
       if (m === "POST" && u === "/api/v1/messages") {
         seenBody = body;
-        return { status: 201, json: { message: { id: "m10", from: "+1", to: "+2", body: "hi", channel: "sms", status: "queued" } } };
+        return {
+          status: 201,
+          json: {
+            message: {
+              id: "m10",
+              from: "+1",
+              to: "+2",
+              body: "hi",
+              channel: "sms",
+              status: "queued",
+            },
+          },
+        };
       }
       return undefined;
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
-    await sendMessage({ to: "+15551111", body: "hi", fromNumber: "Support line", media: [filePath] });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
+    await sendMessage({
+      to: "+15551111",
+      body: "hi",
+      fromNumber: "Support line",
+      media: [filePath],
+    });
     assert.match(seenBody, /name="fromNumber"/);
     assert.ok(!/name="fromNumberId"/.test(seenBody));
   });
@@ -78,9 +137,20 @@ describe("ops/messages", () => {
       return { status: 200, json: {} };
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     await assert.rejects(
-      sendMessage({ to: "+15551111", body: "hi", fromNumber: "Support line", fromNumberId: "pn_1" }),
+      sendMessage({
+        to: "+15551111",
+        body: "hi",
+        fromNumber: "Support line",
+        fromNumberId: "pn_1",
+      }),
       (err: unknown) => {
         assert.ok(isDialError(err));
         assert.equal(err.code, "from_number_conflict");
@@ -95,12 +165,31 @@ describe("ops/messages", () => {
     api = await startMockApi((m, u, body, headers) => {
       if (m === "POST" && u === "/api/v1/messages") {
         seen = { contentType: String(headers?.["content-type"] ?? ""), body };
-        return { status: 201, json: { message: { id: "m1", from: "+1", to: "+2", body: "hi", channel: "sms", status: "queued", media: [] } } };
+        return {
+          status: 201,
+          json: {
+            message: {
+              id: "m1",
+              from: "+1",
+              to: "+2",
+              body: "hi",
+              channel: "sms",
+              status: "queued",
+              media: [],
+            },
+          },
+        };
       }
       return undefined;
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     await sendMessage({ to: "+15551111", body: "hi", media: ["https://cdn.example.com/a.png"] });
     assert.match(seen.contentType ?? "", /application\/json/);
     assert.deepEqual(JSON.parse(seen.body ?? "{}").mediaUrls, ["https://cdn.example.com/a.png"]);
@@ -113,13 +202,35 @@ describe("ops/messages", () => {
     api = await startMockApi((m, u, body, headers) => {
       if (m === "POST" && u === "/api/v1/messages") {
         seen = { contentType: String(headers?.["content-type"] ?? ""), body };
-        return { status: 201, json: { message: { id: "m1", from: "+1", to: "+2", body: "hi", channel: "sms", status: "queued" } } };
+        return {
+          status: 201,
+          json: {
+            message: {
+              id: "m1",
+              from: "+1",
+              to: "+2",
+              body: "hi",
+              channel: "sms",
+              status: "queued",
+            },
+          },
+        };
       }
       return undefined;
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
-    await sendMessage({ to: "+15551111", body: "hi", media: [filePath, "https://cdn.example.com/b.jpg"] });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
+    await sendMessage({
+      to: "+15551111",
+      body: "hi",
+      media: [filePath, "https://cdn.example.com/b.jpg"],
+    });
     assert.match(seen.contentType ?? "", /multipart\/form-data/);
     const raw = seen.body ?? "";
     assert.match(raw, /name="media"; filename="pic\.png"/);
@@ -135,13 +246,36 @@ describe("ops/messages", () => {
     api = await startMockApi((m, u, body) => {
       if (m === "POST" && u === "/api/v1/messages") {
         seen = { body };
-        return { status: 201, json: { message: { id: "m1", from: "+1", to: "+2", body: "", channel: "unknown", status: "unknown", media: [] } } };
+        return {
+          status: 201,
+          json: {
+            message: {
+              id: "m1",
+              from: "+1",
+              to: "+2",
+              body: "",
+              channel: "unknown",
+              status: "unknown",
+              media: [],
+            },
+          },
+        };
       }
       return undefined;
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
-    await sendMessage({ to: "+15551111", media: ["https://cdn.example.com/note.m4a"], forceAudioFile: true });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
+    await sendMessage({
+      to: "+15551111",
+      media: ["https://cdn.example.com/note.m4a"],
+      forceAudioFile: true,
+    });
     const parsed = JSON.parse(seen.body ?? "{}");
     assert.equal("body" in parsed, false);
     assert.equal(parsed.forceAudioFile, true);
@@ -155,12 +289,31 @@ describe("ops/messages", () => {
     api = await startMockApi((m, u, body) => {
       if (m === "POST" && u === "/api/v1/messages") {
         seen = { body };
-        return { status: 201, json: { message: { id: "m1", from: "+1", to: "+2", body: "", channel: "unknown", status: "unknown", media: [] } } };
+        return {
+          status: 201,
+          json: {
+            message: {
+              id: "m1",
+              from: "+1",
+              to: "+2",
+              body: "",
+              channel: "unknown",
+              status: "unknown",
+              media: [],
+            },
+          },
+        };
       }
       return undefined;
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     await sendMessage({ to: "+15551111", media: [filePath], forceAudioFile: true });
     const raw = seen.body ?? "";
     assert.match(raw, /name="forceAudioFile"/);
@@ -171,7 +324,13 @@ describe("ops/messages", () => {
   it("sendMessage rejects unsupported media file extensions locally", async () => {
     const filePath = join(tmp, "tool.exe");
     writeFileSync(filePath, "MZ");
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     try {
       await sendMessage({ to: "+15551111", body: "hi", media: [filePath] });
       assert.fail("expected throw");
@@ -181,9 +340,19 @@ describe("ops/messages", () => {
   });
 
   it("sendMessage rejects more than 10 media items locally", async () => {
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     try {
-      await sendMessage({ to: "+15551111", body: "hi", media: Array.from({ length: 11 }, (_, i) => `https://x.test/${i}.png`) });
+      await sendMessage({
+        to: "+15551111",
+        body: "hi",
+        media: Array.from({ length: 11 }, (_, i) => `https://x.test/${i}.png`),
+      });
       assert.fail("expected throw");
     } catch (e) {
       assert.ok(isDialError(e) && e.code === "too_much_media");
@@ -203,11 +372,32 @@ describe("ops/messages", () => {
   it("listMessages returns the messages array", async () => {
     api = await startMockApi((m, u) =>
       m === "GET" && u.startsWith("/api/v1/messages")
-        ? { status: 200, json: { messages: [{ id: "m1", from: "+1", to: "+2", body: "b", channel: "sms", status: "delivered", direction: "inbound" }] } }
+        ? {
+            status: 200,
+            json: {
+              messages: [
+                {
+                  id: "m1",
+                  from: "+1",
+                  to: "+2",
+                  body: "b",
+                  channel: "sms",
+                  status: "delivered",
+                  direction: "inbound",
+                },
+              ],
+            },
+          }
         : undefined,
     );
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: null, phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: null,
+      phoneNumberId: "pn_1",
+    });
     const msgs = await listMessages({ direction: "inbound" });
     assert.equal(msgs.length, 1);
   });

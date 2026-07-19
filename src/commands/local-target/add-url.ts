@@ -22,7 +22,9 @@ export async function runLocalTargetAddUrl(opts: AddUrlOptions): Promise<number>
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, added, url: opts.url }));
     } else {
-      console.log(added ? `added url target: ${opts.url}` : `url target already registered: ${opts.url}`);
+      console.log(
+        added ? `added url target: ${opts.url}` : `url target already registered: ${opts.url}`,
+      );
     }
     return 0;
   } catch (err) {

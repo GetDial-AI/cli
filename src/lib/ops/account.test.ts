@@ -27,7 +27,11 @@ describe("ops/account", () => {
   });
 
   it("signup throws pending_exists (with data) when a fresh pending exists and no force", async () => {
-    writePendingSignup({ verificationId: "v1", email: "x@y.com", createdAt: new Date().toISOString() });
+    writePendingSignup({
+      verificationId: "v1",
+      email: "x@y.com",
+      createdAt: new Date().toISOString(),
+    });
     try {
       await signup({ email: "x@y.com" });
       assert.fail("expected throw");

@@ -12,7 +12,13 @@ let tmp: string;
 let api: { url: string; close: () => Promise<void> };
 
 function signIn() {
-  writeAuth({ apiKey: "sk_live_x", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+  writeAuth({
+    apiKey: "sk_live_x",
+    accountId: "a",
+    email: "e",
+    phoneNumber: "+15550000",
+    phoneNumberId: "pn_1",
+  });
 }
 
 describe("ops/numbers", () => {
@@ -58,10 +64,18 @@ describe("ops/numbers", () => {
     let patchBody = "";
     api = await startMockApi((m, u, body) => {
       if (m === "GET" && u === "/api/v1/numbers")
-        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
       if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
         patchBody = body;
-        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US", nickname: "Support line" } } };
+        return {
+          status: 200,
+          json: {
+            number: { id: "pn_1", number: "+15550000", country: "US", nickname: "Support line" },
+          },
+        };
       }
       return undefined;
     });
@@ -76,10 +90,16 @@ describe("ops/numbers", () => {
     let patchBody = "";
     api = await startMockApi((m, u, body) => {
       if (m === "GET" && u === "/api/v1/numbers")
-        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
       if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
         patchBody = body;
-        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US", nickname: null } } };
+        return {
+          status: 200,
+          json: { number: { id: "pn_1", number: "+15550000", country: "US", nickname: null } },
+        };
       }
       return undefined;
     });
@@ -94,10 +114,18 @@ describe("ops/numbers", () => {
     let patchBody = "";
     api = await startMockApi((m, u, body) => {
       if (m === "GET" && u === "/api/v1/numbers")
-        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
       if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
         patchBody = body;
-        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US", inboundLanguage: "es-ES" } } };
+        return {
+          status: 200,
+          json: {
+            number: { id: "pn_1", number: "+15550000", country: "US", inboundLanguage: "es-ES" },
+          },
+        };
       }
       return undefined;
     });
@@ -124,10 +152,16 @@ describe("ops/numbers", () => {
     let patchBody = "";
     api = await startMockApi((m, u, body) => {
       if (m === "GET" && u === "/api/v1/numbers")
-        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
       if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
         patchBody = body;
-        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US" } } };
+        return {
+          status: 200,
+          json: { number: { id: "pn_1", number: "+15550000", country: "US" } },
+        };
       }
       return undefined;
     });
@@ -141,10 +175,16 @@ describe("ops/numbers", () => {
     let patchBody = "";
     api = await startMockApi((m, u, body) => {
       if (m === "GET" && u === "/api/v1/numbers")
-        return { status: 200, json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] } };
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
       if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
         patchBody = body;
-        return { status: 200, json: { number: { id: "pn_1", number: "+15550000", country: "US" } } };
+        return {
+          status: 200,
+          json: { number: { id: "pn_1", number: "+15550000", country: "US" } },
+        };
       }
       return undefined;
     });
@@ -156,7 +196,9 @@ describe("ops/numbers", () => {
 
   it("purchaseNumber throws purchase_failed on non-2xx", async () => {
     api = await startMockApi((m, u) =>
-      m === "POST" && u === "/api/v1/numbers" ? { status: 402, json: { error: "payment required" } } : undefined,
+      m === "POST" && u === "/api/v1/numbers"
+        ? { status: 402, json: { error: "payment required" } }
+        : undefined,
     );
     process.env.DIAL_API_URL = api.url;
     signIn();

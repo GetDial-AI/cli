@@ -7,8 +7,13 @@ import { messageSchema } from "../schemas.ts";
 const inputSchema = {
   messageId: z
     .string()
-    .describe("Id of the message to reply or react to (from list_messages or a message.received event)"),
-  body: z.string().optional().describe("Reply text; on an iMessage number it threads under the target message"),
+    .describe(
+      "Id of the message to reply or react to (from list_messages or a message.received event)",
+    ),
+  body: z
+    .string()
+    .optional()
+    .describe("Reply text; on an iMessage number it threads under the target message"),
   reaction: z
     .string()
     .optional()

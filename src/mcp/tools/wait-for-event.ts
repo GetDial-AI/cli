@@ -5,9 +5,18 @@ import { waitForEvent } from "../../lib/ops/events.ts";
 import { eventSchema } from "../schemas.ts";
 
 const inputSchema = {
-  eventType: z.string().min(1).describe('Event type to wait for (e.g. "call.ended", "message.received")'),
-  field: z.array(z.string()).optional().describe('Exact-match filters, each "name=value" (e.g. "callId=abc")'),
-  regex: z.array(z.string()).optional().describe('Regex filters, each "name=pattern" (/re/flags or a bare regex)'),
+  eventType: z
+    .string()
+    .min(1)
+    .describe('Event type to wait for (e.g. "call.ended", "message.received")'),
+  field: z
+    .array(z.string())
+    .optional()
+    .describe('Exact-match filters, each "name=value" (e.g. "callId=abc")'),
+  regex: z
+    .array(z.string())
+    .optional()
+    .describe('Regex filters, each "name=pattern" (/re/flags or a bare regex)'),
   timeoutSeconds: z.number().default(30).describe("How long to wait before giving up"),
 };
 

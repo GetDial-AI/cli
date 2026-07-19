@@ -60,5 +60,12 @@ export function listenStatus(): {
     // no log yet — leave empty
   }
 
-  return { installed: s.installed, running: s.running, pid: s.pid, unitPath: s.unitPath, lastEventAt, lastEvents };
+  return {
+    installed: s.installed,
+    running: s.running,
+    pid: s.pid,
+    unitPath: s.unitPath,
+    lastEventAt,
+    lastEvents,
+  };
 }

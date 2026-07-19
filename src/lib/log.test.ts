@@ -13,7 +13,9 @@ describe("log", () => {
     tmp = mkdtempSync(join(tmpdir(), "dial-log-"));
     file = join(tmp, "x.log");
   });
-  afterEach(() => { rmSync(tmp, { recursive: true, force: true }); });
+  afterEach(() => {
+    rmSync(tmp, { recursive: true, force: true });
+  });
 
   it("appendJsonl writes a single JSON line per call", () => {
     appendJsonl(file, { a: 1 });
@@ -36,7 +38,10 @@ describe("log", () => {
     assert.ok(before > 5000);
     rotateIfLarge(file, 5000);
     const after = statSync(file).size;
-    assert.ok(after <= before / 2 + 200, `expected rotation to halve file, before=${before} after=${after}`);
+    assert.ok(
+      after <= before / 2 + 200,
+      `expected rotation to halve file, before=${before} after=${after}`,
+    );
     const lines = readFileSync(file, "utf8").trim().split("\n");
     assert.ok(lines.length < 200);
     const last = JSON.parse(lines[lines.length - 1]);

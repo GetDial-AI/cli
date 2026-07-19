@@ -21,21 +21,27 @@ describe("supervisorAvailability", () => {
     assert.deepEqual(supervisorAvailability(), { available: true });
   });
 
-  it("returns unavailable on linux without XDG_RUNTIME_DIR", { skip: process.platform !== "linux" }, () => {
+  it("returns unavailable on linux without XDG_RUNTIME_DIR", {
+    skip: process.platform !== "linux",
+  }, () => {
     delete process.env.XDG_RUNTIME_DIR;
     const r = supervisorAvailability();
     assert.equal(r.available, false);
     if (!r.available) assert.match(r.reason, /XDG_RUNTIME_DIR/);
   });
 
-  it("returns unavailable on linux without systemd user bus socket", { skip: process.platform !== "linux" }, () => {
+  it("returns unavailable on linux without systemd user bus socket", {
+    skip: process.platform !== "linux",
+  }, () => {
     process.env.XDG_RUNTIME_DIR = tmp;
     const r = supervisorAvailability();
     assert.equal(r.available, false);
     if (!r.available) assert.match(r.reason, /systemd user bus/);
   });
 
-  it("returns available on linux when systemd user bus socket exists", { skip: process.platform !== "linux" }, () => {
+  it("returns available on linux when systemd user bus socket exists", {
+    skip: process.platform !== "linux",
+  }, () => {
     process.env.XDG_RUNTIME_DIR = tmp;
     mkdirSync(join(tmp, "systemd"));
     writeFileSync(join(tmp, "systemd", "private"), "");

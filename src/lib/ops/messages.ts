@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { basename, extname } from "node:path";
-import { apiGet, apiPost, apiPostMultipart, ApiFormData } from "../api.ts";
+import { apiGet, apiPost, apiPostMultipart, ApiFormData, type ApiResult } from "../api.ts";
 import { maybeAuth, resolveFromSelector } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
@@ -63,13 +63,19 @@ function readMediaFile(path: string): { data: Buffer; contentType: string; name:
   const contentType = EXT_CONTENT_TYPE[ext];
   if (!contentType) {
     const supported = Object.keys(EXT_CONTENT_TYPE).join(", ");
-    throw new DialError("unsupported_media", `unsupported media file extension ".${ext}" (${path}). Supported: ${supported}`);
+    throw new DialError(
+      "unsupported_media",
+      `unsupported media file extension ".${ext}" (${path}). Supported: ${supported}`,
+    );
   }
   let data: Buffer;
   try {
     data = readFileSync(path);
   } catch (err) {
-    throw new DialError("media_read_failed", `could not read media file ${path}: ${err instanceof Error ? err.message : String(err)}`);
+    throw new DialError(
+      "media_read_failed",
+      `could not read media file ${path}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
   return { data, contentType, name: basename(path) };
 }
@@ -90,7 +96,10 @@ export async function sendMessage(opts: {
   const from = resolveFromSelector(auth, opts);
   const media = opts.media ?? [];
   if (media.length > MAX_MEDIA_ITEMS) {
-    throw new DialError("too_much_media", `at most ${MAX_MEDIA_ITEMS} media items are allowed per message (got ${media.length})`);
+    throw new DialError(
+      "too_much_media",
+      `at most ${MAX_MEDIA_ITEMS} media items are allowed per message (got ${media.length})`,
+    );
   }
 
   // No `channel`: the server determines it from the from-number (a standard number
@@ -98,7 +107,7 @@ export async function sendMessage(opts: {
   // schema is strict — sending a stale `channel` field is rejected as a 400.
   // URLs-only goes as plain JSON; any local file switches to multipart.
   const hasFiles = media.some((m) => !isHttpUrl(m));
-  let res;
+  let res: ApiResult<{ message: MessageRow }>;
   if (!hasFiles) {
     res = await apiPost<{ message: MessageRow }>(
       "/api/v1/messages",
@@ -122,7 +131,11 @@ export async function sendMessage(opts: {
         form.append("mediaUrls", item);
       } else {
         const file = readMediaFile(item);
-        form.append("media", new Blob([new Uint8Array(file.data)], { type: file.contentType }), file.name);
+        form.append(
+          "media",
+          new Blob([new Uint8Array(file.data)], { type: file.contentType }),
+          file.name,
+        );
       }
     }
     res = await apiPostMultipart<{ message: MessageRow }>("/api/v1/messages", form, auth?.apiKey);
@@ -142,7 +155,10 @@ export async function listMessages(opts: {
   if (opts.direction) params.set("direction", opts.direction);
   if (opts.since) params.set("since", opts.since);
   const qs = params.toString();
-  const res = await apiGet<{ messages: MessageRow[] }>(qs ? `/api/v1/messages?${qs}` : "/api/v1/messages", auth?.apiKey);
+  const res = await apiGet<{ messages: MessageRow[] }>(
+    qs ? `/api/v1/messages?${qs}` : "/api/v1/messages",
+    auth?.apiKey,
+  );
   if (!res.ok) throw new DialError("list_failed", res.error, res.status);
   return res.data.messages ?? [];
 }

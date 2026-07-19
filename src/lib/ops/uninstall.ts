@@ -1,7 +1,11 @@
 import { existsSync, rmSync } from "node:fs";
 import { paths } from "../paths.ts";
 import { SUPPORTED_AGENTS, uninstallSkill, type UninstallSkillResult } from "../skill-install.ts";
-import { supervisorAvailability, uninstallSupervised, type SupervisorAvailability } from "../supervisor/index.ts";
+import {
+  supervisorAvailability,
+  uninstallSupervised,
+  type SupervisorAvailability,
+} from "../supervisor/index.ts";
 
 export const UNINSTALL_HINT = "npm uninstall -g @getdial/cli";
 
@@ -50,7 +54,10 @@ export function uninstallEverything(deps: Partial<UninstallDeps> = {}): Uninstal
     try {
       skills.push(uninstallSkill(agent, { home: deps.home, cwd: deps.cwd }));
     } catch (err) {
-      errors.push({ step: `skill:${agent}`, message: err instanceof Error ? err.message : String(err) });
+      errors.push({
+        step: `skill:${agent}`,
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -63,7 +70,10 @@ export function uninstallEverything(deps: Partial<UninstallDeps> = {}): Uninstal
       dirs.push({ path: dir, removed: existed });
     } catch (err) {
       dirs.push({ path: dir, removed: false });
-      errors.push({ step: `dir:${dir}`, message: err instanceof Error ? err.message : String(err) });
+      errors.push({
+        step: `dir:${dir}`,
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 

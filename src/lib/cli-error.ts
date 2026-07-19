@@ -19,7 +19,14 @@ const EXIT_1_CODES = new Set([
  */
 export function printDialError(json: boolean, e: DialError): number {
   if (json) {
-    console.log(JSON.stringify({ ok: false, code: e.code, message: e.message, ...(e.status ? { status: e.status } : {}) }));
+    console.log(
+      JSON.stringify({
+        ok: false,
+        code: e.code,
+        message: e.message,
+        ...(e.status ? { status: e.status } : {}),
+      }),
+    );
   } else {
     console.error(e.message);
   }

@@ -38,19 +38,21 @@ export async function runCallSend(opts: CallSendOptions): Promise<number> {
       "Want me to wait for the call to finish and report back (duration, final status, transcript)?";
 
     if (opts.json) {
-      console.log(JSON.stringify({
-        ok: true,
-        call: c,
-        agentHint: {
-          action: "ask_user_about_waiting",
-          kind: "post_call_followup",
-          question: followUpQuestion,
-          waitCommand: waitCmd,
-          onYes: waitCmd,
-          onNo: null,
-          useStructuredToolIfAvailable: true,
-        },
-      }));
+      console.log(
+        JSON.stringify({
+          ok: true,
+          call: c,
+          agentHint: {
+            action: "ask_user_about_waiting",
+            kind: "post_call_followup",
+            question: followUpQuestion,
+            waitCommand: waitCmd,
+            onYes: waitCmd,
+            onNo: null,
+            useStructuredToolIfAvailable: true,
+          },
+        }),
+      );
     } else {
       console.log(`call initiated.`);
       console.log(`  from:      ${c.from}`);

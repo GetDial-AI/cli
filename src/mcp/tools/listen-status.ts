@@ -7,7 +7,8 @@ export const listenStatusTool: ToolModule = {
   name: "listen_status",
   config: {
     title: "Listen Daemon Status",
-    description: "Report the background event daemon's state (installed/running/pid) and the last few events.",
+    description:
+      "Report the background event daemon's state (installed/running/pid) and the last few events.",
     inputSchema: {},
     outputSchema: {
       installed: z.boolean(),

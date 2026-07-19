@@ -1,6 +1,14 @@
-import { chmodSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
-import { z } from "zod";
+import type { z } from "zod";
 import { logger } from "./log.ts";
 
 /**
@@ -93,7 +101,10 @@ export function defineVersionedFile<T>(opts: VersionedFileOptions<T>): Versioned
   function validate(value: unknown, path: string): T | null {
     const result = opts.schema.safeParse(value);
     if (!result.success) {
-      logger.warn({ path, issues: result.error.issues }, "state file did not match expected schema");
+      logger.warn(
+        { path, issues: result.error.issues },
+        "state file did not match expected schema",
+      );
       return null;
     }
     return result.data;
@@ -119,13 +130,19 @@ export function defineVersionedFile<T>(opts: VersionedFileOptions<T>): Versioned
     for (let step = found; step < opts.version; step++) {
       const migration = opts.migrations[step];
       if (!migration) {
-        logger.warn({ path: foundPath, from: step, to: step + 1 }, "no migration registered for state file version");
+        logger.warn(
+          { path: foundPath, from: step, to: step + 1 },
+          "no migration registered for state file version",
+        );
         return null;
       }
       try {
         value = migration(value);
       } catch (err) {
-        logger.warn({ err, path: foundPath, from: step, to: step + 1 }, "state file migration failed");
+        logger.warn(
+          { err, path: foundPath, from: step, to: step + 1 },
+          "state file migration failed",
+        );
         return null;
       }
     }

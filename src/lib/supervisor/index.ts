@@ -3,8 +3,25 @@ import { userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { paths } from "../paths.ts";
 import { logger } from "../log.ts";
-import { LAUNCHD_LABEL, launchctlBootoutSilent, launchctlLoad, launchctlStatus, launchctlUnload, launchdPlistPath, renderLaunchdPlist, writeLaunchdPlist } from "./launchd.ts";
-import { SYSTEMD_UNIT_NAME, lingerEnabled, renderSystemdUnit, systemctlDisable, systemctlEnableAndStart, systemctlStatus, systemdUnitPath, writeSystemdUnit } from "./systemd.ts";
+import {
+  LAUNCHD_LABEL,
+  launchctlBootoutSilent,
+  launchctlLoad,
+  launchctlStatus,
+  launchctlUnload,
+  launchdPlistPath,
+  renderLaunchdPlist,
+  writeLaunchdPlist,
+} from "./launchd.ts";
+import {
+  lingerEnabled,
+  renderSystemdUnit,
+  systemctlDisable,
+  systemctlEnableAndStart,
+  systemctlStatus,
+  systemdUnitPath,
+  writeSystemdUnit,
+} from "./systemd.ts";
 
 export type Platform = "darwin" | "linux";
 
@@ -14,9 +31,7 @@ export function currentPlatform(): Platform {
   throw new Error(`Unsupported platform: ${process.platform} (macOS and Linux only)`);
 }
 
-export type SupervisorAvailability =
-  | { available: true }
-  | { available: false; reason: string };
+export type SupervisorAvailability = { available: true } | { available: false; reason: string };
 
 /**
  * Detects whether a user-level service supervisor (launchd on macOS,
@@ -35,7 +50,10 @@ export function supervisorAvailability(): SupervisorAvailability {
     return { available: false, reason: "XDG_RUNTIME_DIR is not set (no systemd user session)" };
   }
   if (!existsSync(`${runtimeDir}/systemd/private`)) {
-    return { available: false, reason: "systemd user bus socket not found (sandbox or container without systemd --user)" };
+    return {
+      available: false,
+      reason: "systemd user bus socket not found (sandbox or container without systemd --user)",
+    };
   }
   return { available: true };
 }
@@ -118,7 +136,12 @@ export function uninstallSupervised(): void {
   }
 }
 
-export function supervisorStatus(): { installed: boolean; running: boolean; pid: number | null; unitPath: string } {
+export function supervisorStatus(): {
+  installed: boolean;
+  running: boolean;
+  pid: number | null;
+  unitPath: string;
+} {
   const platform = currentPlatform();
   if (platform === "darwin") {
     const path = launchdPlistPath();

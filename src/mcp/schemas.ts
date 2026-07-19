@@ -11,7 +11,10 @@ import { z } from "zod";
 const callStatusObjectSchema = z
   .object({
     state: z.string().nullish().describe('Lifecycle state, e.g. "Terminated", "Registered"'),
-    terminationType: z.string().nullish().describe('How it ended, e.g. "completed", "no-answer" (null until the call ends)'),
+    terminationType: z
+      .string()
+      .nullish()
+      .describe('How it ended, e.g. "completed", "no-answer" (null until the call ends)'),
     label: z.string().nullish().describe('Human-readable status, e.g. "Completed"'),
     cancelRequested: z.boolean().nullish(),
     cancelPending: z.boolean().nullish(),
@@ -29,8 +32,18 @@ export const phoneNumberSchema = z
     nickname: z.string().nullable().optional().describe("Human-readable label for the number"),
     country: z.string().optional(),
     inboundInstruction: z.string().nullable().optional(),
-    inboundVoiceGender: z.string().nullable().optional().describe('Voice gender for inbound calls ("male"/"female"); null → female (the default)'),
-    inboundLanguage: z.string().nullable().optional().describe("BCP-47 language tag inbound calls are pinned to; null → detected from the caller's country prefix per call"),
+    inboundVoiceGender: z
+      .string()
+      .nullable()
+      .optional()
+      .describe('Voice gender for inbound calls ("male"/"female"); null → female (the default)'),
+    inboundLanguage: z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        "BCP-47 language tag inbound calls are pinned to; null → detected from the caller's country prefix per call",
+      ),
   })
   .passthrough();
 
@@ -44,8 +57,14 @@ export const messageSchema = z
     direction: z.string().optional(),
     status: statusSchema,
     statusError: z.string().nullish().describe("Failure reason when status is undelivered/failed"),
-    replyToId: z.string().nullish().describe("Id of the message this one replies or reacts to; null for ordinary messages"),
-    reaction: z.string().nullish().describe("The reaction this message carries (a reaction name or an emoji); null otherwise"),
+    replyToId: z
+      .string()
+      .nullish()
+      .describe("Id of the message this one replies or reacts to; null for ordinary messages"),
+    reaction: z
+      .string()
+      .nullish()
+      .describe("The reaction this message carries (a reaction name or an emoji); null otherwise"),
     createdAt: z.string().optional(),
   })
   .passthrough();

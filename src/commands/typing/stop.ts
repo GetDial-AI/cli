@@ -5,7 +5,11 @@ import type { TypingOptions } from "./start.ts";
 
 export async function runTypingStop(opts: TypingOptions): Promise<number> {
   try {
-    const result = await setTyping({ toNumber: opts.toNumber, value: false, fromNumber: opts.fromNumber });
+    const result = await setTyping({
+      toNumber: opts.toNumber,
+      value: false,
+      fromNumber: opts.fromNumber,
+    });
     if (opts.json) {
       console.log(JSON.stringify(result));
     } else {

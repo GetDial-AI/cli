@@ -22,5 +22,8 @@ export const signUpTool: ToolModule = {
     },
     annotations: { openWorldHint: true },
   },
-  run: async (args) => jsonResult(await signup({ email: args.email as string, force: args.force as boolean | undefined })),
+  run: async (args) =>
+    jsonResult(
+      await signup({ email: args.email as string, force: args.force as boolean | undefined }),
+    ),
 };

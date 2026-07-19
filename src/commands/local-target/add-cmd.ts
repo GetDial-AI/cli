@@ -18,7 +18,9 @@ export async function runLocalTargetAddCmd(opts: AddCmdOptions): Promise<number>
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, added, path: opts.path, args: opts.args }));
     } else {
-      console.log(added ? `added cmd target: ${opts.path}` : `cmd target already registered: ${opts.path}`);
+      console.log(
+        added ? `added cmd target: ${opts.path}` : `cmd target already registered: ${opts.path}`,
+      );
     }
     return 0;
   } catch (err) {

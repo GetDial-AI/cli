@@ -10,9 +10,7 @@ const SERVER_INFO = {
   title: "Dial",
   version: VERSION,
   websiteUrl: "https://getdial.ai",
-  icons: [
-    { src: "https://getdial.ai/favicon.svg", mimeType: "image/svg+xml", sizes: ["any"] },
-  ],
+  icons: [{ src: "https://getdial.ai/favicon.svg", mimeType: "image/svg+xml", sizes: ["any"] }],
 };
 
 export function buildServer(): McpServer {

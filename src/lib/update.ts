@@ -13,7 +13,10 @@ export const AUTO_UPDATE_EXEMPT_COMMANDS: ReadonlySet<string> = new Set(["update
 /** How this process's CLI got onto the machine — only global-npm is updatable. */
 export type InstallKind = "global-npm" | "npx" | "other";
 
-export function detectInstallKind(scriptPath: string, binOverride = process.env.DIAL_BIN_OVERRIDE): InstallKind {
+export function detectInstallKind(
+  scriptPath: string,
+  binOverride = process.env.DIAL_BIN_OVERRIDE,
+): InstallKind {
   if (binOverride) return "other";
   let real = scriptPath;
   try {
@@ -55,7 +58,8 @@ export function shouldAutoUpdate(input: {
 }): boolean {
   if (input.env.DIAL_NO_AUTO_UPDATE === "1") return false;
   if (AUTO_UPDATE_EXEMPT_COMMANDS.has(input.command)) return false;
-  if (detectInstallKind(input.scriptPath, input.env.DIAL_BIN_OVERRIDE) !== "global-npm") return false;
+  if (detectInstallKind(input.scriptPath, input.env.DIAL_BIN_OVERRIDE) !== "global-npm")
+    return false;
   return updateCheckDue(input.now);
 }
 
@@ -123,7 +127,8 @@ export function spawnDetachedUpdate(): void {
 export function maybeAutoUpdate(command: string): void {
   try {
     const now = new Date();
-    if (!shouldAutoUpdate({ command, scriptPath: process.argv[1] ?? "", env: process.env, now })) return;
+    if (!shouldAutoUpdate({ command, scriptPath: process.argv[1] ?? "", env: process.env, now }))
+      return;
     recordUpdateAttempt(now);
     spawnDetachedUpdate();
   } catch (err) {

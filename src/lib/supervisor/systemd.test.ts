@@ -11,7 +11,9 @@ describe("systemd unit", () => {
   });
 
   it("joins a multi-arg npx invocation into one ExecStart line", () => {
-    const unit = renderSystemdUnit({ programArgs: ["/home/x/.local/bin/npx", "-y", "@getdial/cli", "listen"] });
+    const unit = renderSystemdUnit({
+      programArgs: ["/home/x/.local/bin/npx", "-y", "@getdial/cli", "listen"],
+    });
     assert.match(unit, /ExecStart=\/home\/x\/\.local\/bin\/npx -y @getdial\/cli listen/);
   });
 });

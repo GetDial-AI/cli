@@ -17,7 +17,9 @@ export const getAccountStatusTool: ToolModule = {
       auth: z.object({}).passthrough().describe("Sign-in and API-key state"),
       pendingOtp: z.object({}).passthrough().describe("Any pending sign-up OTP"),
       listen: z.object({}).passthrough().describe("Listen daemon state"),
-      nextStep: z.string().describe("Recommended next step (signup, onboard, install_listen, ready, …)"),
+      nextStep: z
+        .string()
+        .describe("Recommended next step (signup, onboard, install_listen, ready, …)"),
     },
     annotations: { readOnlyHint: true, openWorldHint: true },
   },

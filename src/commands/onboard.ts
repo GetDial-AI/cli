@@ -1,7 +1,13 @@
-import { onboard } from "../lib/ops/account.ts";
+import { onboard, type OnboardResult } from "../lib/ops/account.ts";
 import { isDialError } from "../lib/ops/errors.ts";
 import { readAuth, authFilePath } from "../lib/state.ts";
-import { installSkill, isSupportedAgent, SUPPORTED_AGENTS, type AgentName, type InstallResult } from "../lib/skill-install.ts";
+import {
+  installSkill,
+  isSupportedAgent,
+  SUPPORTED_AGENTS,
+  type AgentName,
+  type InstallResult,
+} from "../lib/skill-install.ts";
 import { supervisorAvailability } from "../lib/supervisor/index.ts";
 
 function maskApiKey(key: string): string {
@@ -19,11 +25,16 @@ export type OnboardOptions = {
 // Install skills for each requested agent — mirrors the loop inside
 // `onboard()` in ops/account.ts. Used by the signed-in-only branch below,
 // which skips OTP verification entirely.
-function installAgentSkills(agents: string[]): Array<InstallResult | { agent: string; error: string }> {
+function installAgentSkills(
+  agents: string[],
+): Array<InstallResult | { agent: string; error: string }> {
   const skills: Array<InstallResult | { agent: string; error: string }> = [];
   for (const requested of agents) {
     if (!isSupportedAgent(requested)) {
-      skills.push({ agent: requested, error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.` });
+      skills.push({
+        agent: requested,
+        error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.`,
+      });
       continue;
     }
     try {
@@ -43,7 +54,7 @@ const LISTEN_RATIONALE =
 const PRESENTATION_HINT =
   "When you ask the user, describe it as \"the background notification listening service.\" Don't expose technical details (launchd, plists, daemons, systemd units) — that's not how to talk about it to a non-technical user.";
 const FINALIZATION_HINT =
-  "To finalize onboarding, ask the user this question before continuing with any other task. If the user's original request was something else (e.g. \"call X\", \"send Y\"), briefly pause that task, ask the question, get an answer, then resume.";
+  'To finalize onboarding, ask the user this question before continuing with any other task. If the user\'s original request was something else (e.g. "call X", "send Y"), briefly pause that task, ask the question, get an answer, then resume.';
 
 export async function runOnboard(opts: OnboardOptions): Promise<number> {
   // Skill-install-only branch: when --code isn't supplied, we can't (and shouldn't)
@@ -54,29 +65,44 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
   if (!opts.code) {
     const auth = readAuth();
     if (!auth) {
-      const message = "Not signed in. Run `dial signup <email>` first, then re-run with --code from your inbox.";
-      if (opts.json) console.log(JSON.stringify({ ok: false, code: "not_signed_in", error: message }));
+      const message =
+        "Not signed in. Run `dial signup <email>` first, then re-run with --code from your inbox.";
+      if (opts.json)
+        console.log(JSON.stringify({ ok: false, code: "not_signed_in", error: message }));
       else console.error(message);
       return 1;
     }
     const skills = installAgentSkills(opts.agents ?? []);
     const supervisor = supervisorAvailability();
     if (opts.json) {
-      console.log(JSON.stringify({
-        ok: true,
-        alreadySignedIn: true,
-        apiKeyFingerprint: auth.apiKey.slice(-4),
-        apiKeyMasked: maskApiKey(auth.apiKey),
-        apiKeyPath: authFilePath(),
-        accountId: auth.accountId,
-        phoneNumber: auth.phoneNumber ?? null,
-        phoneNumberId: auth.phoneNumberId ?? null,
-        listen: { installed: false, autoInstalled: false, canInstall: supervisor.available, unavailableReason: supervisor.available ? null : supervisor.reason },
-        skills,
-        agentHint: { action: "skip", kind: "already_signed_in", note: "Account is already signed in; verification was skipped and only the requested --agent skills were installed." },
-      }));
+      console.log(
+        JSON.stringify({
+          ok: true,
+          alreadySignedIn: true,
+          apiKeyFingerprint: auth.apiKey.slice(-4),
+          apiKeyMasked: maskApiKey(auth.apiKey),
+          apiKeyPath: authFilePath(),
+          accountId: auth.accountId,
+          phoneNumber: auth.phoneNumber ?? null,
+          phoneNumberId: auth.phoneNumberId ?? null,
+          listen: {
+            installed: false,
+            autoInstalled: false,
+            canInstall: supervisor.available,
+            unavailableReason: supervisor.available ? null : supervisor.reason,
+          },
+          skills,
+          agentHint: {
+            action: "skip",
+            kind: "already_signed_in",
+            note: "Account is already signed in; verification was skipped and only the requested --agent skills were installed.",
+          },
+        }),
+      );
     } else {
-      console.log(`already signed in as ${auth.email || "(unknown email)"} — skipped verification.`);
+      console.log(
+        `already signed in as ${auth.email || "(unknown email)"} — skipped verification.`,
+      );
       console.log(`  api key: ${maskApiKey(auth.apiKey)}   (saved at ${authFilePath()})`);
       for (const r of skills) {
         if ("error" in r) console.log(`  skill (${r.agent}):  failed — ${r.error}`);
@@ -86,7 +112,7 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
     }
     return 0;
   }
-  let result;
+  let result: OnboardResult;
   try {
     result = await onboard({
       verificationId: opts.verificationId,
@@ -102,12 +128,16 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
       return 1;
     }
     if (e.code === "verify_failed") {
-      if (opts.json) console.log(JSON.stringify({ ok: false, code: "verify_failed", status: e.status, error: e.message }));
+      if (opts.json)
+        console.log(
+          JSON.stringify({ ok: false, code: "verify_failed", status: e.status, error: e.message }),
+        );
       else console.error(`onboard failed: ${e.message}`);
       return e.status === 401 ? 1 : 2;
     }
     // missing_api_key
-    if (opts.json) console.log(JSON.stringify({ ok: false, code: "missing_api_key", error: e.message }));
+    if (opts.json)
+      console.log(JSON.stringify({ ok: false, code: "missing_api_key", error: e.message }));
     else console.error(`onboard failed: ${e.message}`);
     return 2;
   }
@@ -116,40 +146,42 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
   const masked = maskApiKey(apiKey);
 
   if (opts.json) {
-    console.log(JSON.stringify({
-      ok: true,
-      apiKeyFingerprint: apiKey.slice(-4),
-      apiKeyMasked: masked,
-      apiKeyPath,
-      accountId,
-      phoneNumber,
-      phoneNumberId,
-      listen: {
-        installed: false,
-        autoInstalled: false,
-        canInstall: supervisor.available,
-        unavailableReason: supervisor.available ? null : supervisor.reason,
-      },
-      skills,
-      agentHint: supervisor.available
-        ? {
-            action: "ask_user",
-            kind: "onboarding_finalization",
-            question: LISTEN_QUESTION,
-            rationale: LISTEN_RATIONALE,
-            presentation: PRESENTATION_HINT,
-            finalizationNote: FINALIZATION_HINT,
-            useStructuredToolIfAvailable: true,
-            onYes: "dial listen install",
-            onNo: null,
-          }
-        : {
-            action: "skip",
-            kind: "listen_install_unavailable",
-            reason: supervisor.reason,
-            note: "No user-level service supervisor on this machine (sandbox/container/CI). Skip the install offer and continue with the original task. Inbound events are still reachable via `dial wait-for` (long-poll); only the always-on background listener and `dial local-target` fan-out are unavailable here.",
-          },
-    }));
+    console.log(
+      JSON.stringify({
+        ok: true,
+        apiKeyFingerprint: apiKey.slice(-4),
+        apiKeyMasked: masked,
+        apiKeyPath,
+        accountId,
+        phoneNumber,
+        phoneNumberId,
+        listen: {
+          installed: false,
+          autoInstalled: false,
+          canInstall: supervisor.available,
+          unavailableReason: supervisor.available ? null : supervisor.reason,
+        },
+        skills,
+        agentHint: supervisor.available
+          ? {
+              action: "ask_user",
+              kind: "onboarding_finalization",
+              question: LISTEN_QUESTION,
+              rationale: LISTEN_RATIONALE,
+              presentation: PRESENTATION_HINT,
+              finalizationNote: FINALIZATION_HINT,
+              useStructuredToolIfAvailable: true,
+              onYes: "dial listen install",
+              onNo: null,
+            }
+          : {
+              action: "skip",
+              kind: "listen_install_unavailable",
+              reason: supervisor.reason,
+              note: "No user-level service supervisor on this machine (sandbox/container/CI). Skip the install offer and continue with the original task. Inbound events are still reachable via `dial wait-for` (long-poll); only the always-on background listener and `dial local-target` fan-out are unavailable here.",
+            },
+      }),
+    );
   } else {
     console.log("onboarded.");
     console.log(`  api key:      ${masked}   (saved to ${apiKeyPath})`);
@@ -166,8 +198,12 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
     console.log(``);
     if (!supervisor.available) {
       console.log(`listen service: not available on this machine (${supervisor.reason}).`);
-      console.log(`Skipping the install offer. Inbound events still work via \`dial wait-for\` (long-poll);`);
-      console.log(`only the always-on background listener and \`dial local-target\` fan-out are unavailable here.`);
+      console.log(
+        `Skipping the install offer. Inbound events still work via \`dial wait-for\` (long-poll);`,
+      );
+      console.log(
+        `only the always-on background listener and \`dial local-target\` fan-out are unavailable here.`,
+      );
       return 0;
     }
     console.log(`Onboarding finalization (required):`);
@@ -187,7 +223,9 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
     console.log(``);
     console.log(`After the user answers:`);
     console.log(`  yes → run \`dial listen install\`, then resume the original task.`);
-    console.log(`  no  → resume the original task. They can install later with \`dial listen install\`.`);
+    console.log(
+      `  no  → resume the original task. They can install later with \`dial listen install\`.`,
+    );
   }
   return 0;
 }

@@ -6,7 +6,10 @@ import { messageSchema } from "../schemas.ts";
 
 const inputSchema = {
   to: z.string().min(7).describe("Destination phone number, E.164 (e.g. +14155550123)"),
-  body: z.string().optional().describe("Message body; optional when mediaUrls is given (media-only send)"),
+  body: z
+    .string()
+    .optional()
+    .describe("Message body; optional when mediaUrls is given (media-only send)"),
   fromNumber: z
     .string()
     .min(1)
@@ -14,12 +17,17 @@ const inputSchema = {
     .describe(
       "Number to send from: a phone number id, one of your numbers in E.164, or a nickname. Exclusive with fromNumberId; omit both to use your primary number",
     ),
-  fromNumberId: z.string().optional().describe("Number id to send from; defaults to your primary number"),
+  fromNumberId: z
+    .string()
+    .optional()
+    .describe("Number id to send from; defaults to your primary number"),
   mediaUrls: z
     .array(z.string().url())
     .max(MAX_MEDIA_ITEMS)
     .optional()
-    .describe("Publicly reachable http(s) URLs of media to attach (MMS); Dial mirrors and re-hosts them"),
+    .describe(
+      "Publicly reachable http(s) URLs of media to attach (MMS); Dial mirrors and re-hosts them",
+    ),
   forceAudioFile: z
     .boolean()
     .optional()

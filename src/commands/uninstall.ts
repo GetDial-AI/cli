@@ -24,7 +24,11 @@ export async function runUninstall(opts: { json?: boolean }): Promise<number> {
   );
 
   const removedDirs = report.dirs.filter((d) => d.removed);
-  console.log(removedDirs.length ? `state dirs: removed ${removedDirs.map((d) => d.path).join(", ")}` : "state dirs: none present");
+  console.log(
+    removedDirs.length
+      ? `state dirs: removed ${removedDirs.map((d) => d.path).join(", ")}`
+      : "state dirs: none present",
+  );
 
   for (const e of report.errors) {
     console.error(`error in ${e.step}: ${e.message}`);

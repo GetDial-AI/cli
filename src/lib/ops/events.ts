@@ -58,7 +58,8 @@ async function waitFromApi(spec: MatchSpec, opts: WaitForInput): Promise<WaitFor
   const filters: Record<string, string> = {};
   for (const f of spec.fields) filters[f.name] = f.value;
   const regexFilters: Record<string, { pattern: string; flags: string }> = {};
-  for (const r of spec.regexes) regexFilters[r.name] = { pattern: r.regex.source, flags: r.regex.flags };
+  for (const r of spec.regexes)
+    regexFilters[r.name] = { pattern: r.regex.source, flags: r.regex.flags };
 
   const deadline = Date.now() + opts.timeoutSeconds * 1000;
   while (Date.now() < deadline) {
@@ -77,7 +78,12 @@ async function waitFromApi(spec: MatchSpec, opts: WaitForInput): Promise<WaitFor
     );
 
     if (res.ok && res.data?.event) {
-      return { source: "api", timedOut: false, event: res.data.event as Record<string, unknown>, line: JSON.stringify(res.data.event) };
+      return {
+        source: "api",
+        timedOut: false,
+        event: res.data.event as Record<string, unknown>,
+        line: JSON.stringify(res.data.event),
+      };
     }
     if (res.ok === false && res.status === 408) continue;
     if (res.ok === false) throw new DialError("api_fallback_failed", res.error, res.status);

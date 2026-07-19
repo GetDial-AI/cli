@@ -1,5 +1,9 @@
 import { readAuth } from "../../lib/state.ts";
-import { installSupervised, resolveListenCommand, supervisorAvailability } from "../../lib/supervisor/index.ts";
+import {
+  installSupervised,
+  resolveListenCommand,
+  supervisorAvailability,
+} from "../../lib/supervisor/index.ts";
 
 export async function runListenInstall(opts: { json?: boolean }): Promise<number> {
   const auth = readAuth();
@@ -10,13 +14,27 @@ export async function runListenInstall(opts: { json?: boolean }): Promise<number
   }
   const supervisor = supervisorAvailability();
   if (!supervisor.available) {
-    if (opts.json) console.log(JSON.stringify({ ok: false, code: "supervisor_unavailable", error: supervisor.reason }));
-    else console.error(`listen install unavailable: ${supervisor.reason}. This machine has no user-level service supervisor (sandbox/container/CI). Inbound events still work via \`dial wait-for\`; only the always-on background listener and \`dial local-target\` fan-out are unavailable here.`);
+    if (opts.json)
+      console.log(
+        JSON.stringify({ ok: false, code: "supervisor_unavailable", error: supervisor.reason }),
+      );
+    else
+      console.error(
+        `listen install unavailable: ${supervisor.reason}. This machine has no user-level service supervisor (sandbox/container/CI). Inbound events still work via \`dial wait-for\`; only the always-on background listener and \`dial local-target\` fan-out are unavailable here.`,
+      );
     return 2;
   }
   try {
     const result = installSupervised(resolveListenCommand());
-    if (opts.json) console.log(JSON.stringify({ ok: true, changed: result.changed, unit_path: result.unitPath, warnings: result.warnings }));
+    if (opts.json)
+      console.log(
+        JSON.stringify({
+          ok: true,
+          changed: result.changed,
+          unit_path: result.unitPath,
+          warnings: result.warnings,
+        }),
+      );
     else {
       console.log(`listen service installed${result.changed ? "" : " (no change)"}.`);
       console.log(`  unit: ${result.unitPath}`);

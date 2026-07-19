@@ -13,26 +13,42 @@ import {
 import { VERSION } from "../../lib/version.ts";
 
 function isSupervised(): boolean {
-  return Boolean(process.env.LAUNCHD_SOCKET || process.env.LAUNCH_DAEMON || process.env.INVOCATION_ID);
+  return Boolean(
+    process.env.LAUNCHD_SOCKET || process.env.LAUNCH_DAEMON || process.env.INVOCATION_ID,
+  );
 }
 
 export async function runListen(): Promise<number> {
   const auth = readAuth();
   if (!auth) {
-    appendJsonl(paths().listenLog, { ts: new Date().toISOString(), lifecycle: "startup", ok: false, error: "no saved auth" });
+    appendJsonl(paths().listenLog, {
+      ts: new Date().toISOString(),
+      lifecycle: "startup",
+      ok: false,
+      error: "no saved auth",
+    });
     if (isSupervised()) {
       await delay(30_000);
     }
     return 1;
   }
 
-  appendJsonl(paths().listenLog, { ts: new Date().toISOString(), lifecycle: "startup", ok: true, accountId: auth.accountId });
+  appendJsonl(paths().listenLog, {
+    ts: new Date().toISOString(),
+    lifecycle: "startup",
+    ok: true,
+    accountId: auth.accountId,
+  });
   recordListenVersion();
 
   const ctrl = startWorker(auth.apiKey, auth.accountId);
 
   const onSignal = async (sig: NodeJS.Signals) => {
-    appendJsonl(paths().listenLog, { ts: new Date().toISOString(), lifecycle: "shutdown", signal: sig });
+    appendJsonl(paths().listenLog, {
+      ts: new Date().toISOString(),
+      lifecycle: "shutdown",
+      signal: sig,
+    });
     await ctrl.stop();
   };
   process.on("SIGTERM", onSignal);

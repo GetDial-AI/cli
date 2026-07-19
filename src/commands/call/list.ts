@@ -11,7 +11,11 @@ export type CallListOptions = {
 
 export async function runCallList(opts: CallListOptions): Promise<number> {
   try {
-    const calls = await listCalls({ numberId: opts.numberId, direction: opts.direction, since: opts.since });
+    const calls = await listCalls({
+      numberId: opts.numberId,
+      direction: opts.direction,
+      since: opts.since,
+    });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, calls }));
       return 0;
@@ -21,7 +25,9 @@ export async function runCallList(opts: CallListOptions): Promise<number> {
       return 0;
     }
     for (const c of calls) {
-      console.log(`${c.createdAt}  ${c.direction.padEnd(8)}  ${c.from} -> ${c.to}  ${c.status}  ${c.duration}s  id=${c.id}`);
+      console.log(
+        `${c.createdAt}  ${c.direction.padEnd(8)}  ${c.from} -> ${c.to}  ${c.status}  ${c.duration}s  id=${c.id}`,
+      );
     }
     return 0;
   } catch (e) {

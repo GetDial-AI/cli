@@ -55,6 +55,10 @@ export function removeLocalTarget(id: string): { removed: boolean; id: string } 
   return { removed, id };
 }
 
-export function listLocalTargets(): Array<{ kind: LocalTarget["kind"]; id: string; target: LocalTarget }> {
+export function listLocalTargets(): Array<{
+  kind: LocalTarget["kind"];
+  id: string;
+  target: LocalTarget;
+}> {
   return listTargets().map((t) => ({ kind: t.kind, id: targetId(t), target: t }));
 }

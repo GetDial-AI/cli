@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { nextSkewState, recordListenVersion, SKEW_CONFIRM_TICKS, type SkewState } from "./listen-version.ts";
+import {
+  nextSkewState,
+  recordListenVersion,
+  SKEW_CONFIRM_TICKS,
+  type SkewState,
+} from "./listen-version.ts";
 import { VERSION } from "./version.ts";
 
 let tmp: string;
@@ -20,7 +25,9 @@ describe("listen-version", () => {
 
   it("records the running version, pid, and start time", () => {
     recordListenVersion(new Date("2026-06-10T12:00:00Z"));
-    const raw = JSON.parse(readFileSync(join(tmp, ".local/state/dial/listen-version.v1.json"), "utf8"));
+    const raw = JSON.parse(
+      readFileSync(join(tmp, ".local/state/dial/listen-version.v1.json"), "utf8"),
+    );
     assert.equal(raw.version, VERSION);
     assert.equal(raw.pid, process.pid);
     assert.equal(raw.startedAt, "2026-06-10T12:00:00.000Z");

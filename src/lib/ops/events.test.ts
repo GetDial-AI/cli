@@ -16,7 +16,13 @@ describe("ops/events", () => {
     tmp = mkdtempSync(join(tmpdir(), "dial-events-"));
     process.env.HOME = tmp;
     delete process.env.XDG_DATA_HOME;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: null, phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: null,
+      phoneNumberId: "pn_1",
+    });
   });
   afterEach(async () => {
     rmSync(tmp, { recursive: true, force: true });
@@ -31,18 +37,30 @@ describe("ops/events", () => {
         : undefined,
     );
     process.env.DIAL_API_URL = api.url;
-    const r = await waitForEvent({ eventType: "message.received", fields: ["to=+1"], regexes: [], timeoutSeconds: 5 });
+    const r = await waitForEvent({
+      eventType: "message.received",
+      fields: ["to=+1"],
+      regexes: [],
+      timeoutSeconds: 5,
+    });
     assert.equal(r.source, "api");
     assert.equal(r.timedOut, false);
-    assert.ok(r.line && r.line.includes("message.received"));
+    assert.ok(r.line?.includes("message.received"));
   });
 
   it("times out (source api) when the poll keeps returning 408", async () => {
     api = await startMockApi((m, u) =>
-      m === "POST" && u === "/api/v1/events/wait" ? { status: 408, json: { error: "timeout" } } : undefined,
+      m === "POST" && u === "/api/v1/events/wait"
+        ? { status: 408, json: { error: "timeout" } }
+        : undefined,
     );
     process.env.DIAL_API_URL = api.url;
-    const r = await waitForEvent({ eventType: "call.ended", fields: [], regexes: [], timeoutSeconds: 1 });
+    const r = await waitForEvent({
+      eventType: "call.ended",
+      fields: [],
+      regexes: [],
+      timeoutSeconds: 1,
+    });
     assert.equal(r.timedOut, true);
     assert.equal(r.source, "api");
     assert.equal(r.event, null);
