@@ -48,7 +48,9 @@ export function findLatestMatch(file: string, spec: MatchSpec): TailHit | null {
     try {
       const obj = JSON.parse(lines[i]) as Record<string, unknown>;
       if (matches(obj, spec)) return { line: lines[i], obj };
-    } catch {}
+    } catch {
+      // skip unparsable lines
+    }
   }
   return null;
 }

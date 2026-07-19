@@ -80,10 +80,13 @@ jobs:
           node-version: '22'
 
       - name: Require version bump when src/ or lockfile changes
+        # Pass the PR SHAs through env rather than interpolating ${{ ... }}
+        # directly into the shell — avoids GitHub Actions script injection if a
+        # future edit swaps in an attacker-controllable field (title, head_ref).
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-
           CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E '^(src/|package\.json$|package-lock\.json$)' || true)
           if [ -z "$CHANGED" ]; then
             echo "No src/, package.json, or package-lock.json changes — version bump not required."
