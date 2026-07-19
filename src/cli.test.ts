@@ -85,5 +85,16 @@ describe("cli sandbox gating", () => {
       const { stderr } = runCli(["onboard"], { DIAL_SANDBOX: "0" });
       assert.doesNotMatch(stderr, /disabled in sandbox mode/);
     });
+
+    it("rejects invalid local-target timeouts", () => {
+      for (const args of [
+        ["local-target", "add", "url", "http://127.0.0.1:8787/x", "--timeout", "nope"],
+        ["local-target", "add", "cmd", "--timeout", "0", "/bin/true"],
+      ]) {
+        const { status, stderr } = runCli(args, { DIAL_SANDBOX: "0" });
+        assert.equal(status, 1);
+        assert.match(stderr, /must be a positive integer/);
+      }
+    });
   });
 });

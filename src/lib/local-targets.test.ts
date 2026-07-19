@@ -73,6 +73,25 @@ describe("local-targets", () => {
     assert.equal(removeTarget("http://nope").removed, false);
   });
 
+  it("rejects invalid timeouts without corrupting existing targets", () => {
+    const existing = { kind: "url" as const, url: "http://127.0.0.1:8787/good" };
+    addTarget(existing);
+
+    for (const timeoutSeconds of [Number.NaN, 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      assert.throws(
+        () =>
+          addTarget({
+            kind: "url",
+            url: `http://127.0.0.1:8787/bad-${String(timeoutSeconds)}`,
+            timeoutSeconds,
+          }),
+        (error: unknown) => error instanceof LocalTargetError && error.code === "invalid_timeout",
+      );
+    }
+
+    assert.deepEqual(listTargets(), [existing]);
+  });
+
   it("persists secrets to a 0600 file", () => {
     addTarget({
       kind: "url",
