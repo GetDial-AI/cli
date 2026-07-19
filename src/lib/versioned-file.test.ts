@@ -1,6 +1,14 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { chmodSync, existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -23,7 +31,10 @@ describe("versioned-file", () => {
     rmSync(tmp, { recursive: true, force: true });
   });
 
-  function thingFile(version: number, migrations: Record<number, (older: unknown) => unknown> = {}) {
+  function thingFile(
+    version: number,
+    migrations: Record<number, (older: unknown) => unknown> = {},
+  ) {
     return defineVersionedFile<Thing>({
       dir: () => tmp,
       base: "thing",

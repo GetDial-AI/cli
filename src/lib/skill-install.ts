@@ -1,5 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -56,7 +64,6 @@ function targetPath(agent: AgentName, home: string, cwd: string): string {
   }
 }
 
-
 function packageRoot(): string {
   // This file resolves to dist/lib/skill-install.js at runtime. The package
   // root is two levels up. During `tsx` (tests / dev), src/lib/... → also two
@@ -81,7 +88,9 @@ export function readSkillMarkdown(tarball = tarballPath()): string {
     execFileSync("tar", ["-xzf", tarball, "-C", tmp], { stdio: "pipe" });
     const skillFile = join(tmp, "skills", SKILL_NAME, "SKILL.md");
     if (!existsSync(skillFile)) {
-      throw new Error(`skills.tar.gz does not contain skills/${SKILL_NAME}/SKILL.md (looked in ${tmp})`);
+      throw new Error(
+        `skills.tar.gz does not contain skills/${SKILL_NAME}/SKILL.md (looked in ${tmp})`,
+      );
     }
     return readFileSync(skillFile, "utf8");
   } finally {
@@ -104,7 +113,10 @@ export type UninstallSkillResult = {
 };
 
 /** Removes the agent's installed `dial-cli` skill directory, if present. */
-export function uninstallSkill(agent: AgentName, opts: { home?: string; cwd?: string } = {}): UninstallSkillResult {
+export function uninstallSkill(
+  agent: AgentName,
+  opts: { home?: string; cwd?: string } = {},
+): UninstallSkillResult {
   const home = opts.home ?? process.env.HOME ?? homedir();
   const cwd = opts.cwd ?? process.cwd();
   const skillDir = dirname(targetPath(agent, home, cwd));
@@ -115,7 +127,10 @@ export function uninstallSkill(agent: AgentName, opts: { home?: string; cwd?: st
   return { agent, path: skillDir, removed: true };
 }
 
-export function installSkill(agent: AgentName, opts: { home?: string; cwd?: string } = {}): InstallResult {
+export function installSkill(
+  agent: AgentName,
+  opts: { home?: string; cwd?: string } = {},
+): InstallResult {
   const home = opts.home ?? process.env.HOME ?? homedir();
   const cwd = opts.cwd ?? process.cwd();
   const body = readSkillMarkdown();

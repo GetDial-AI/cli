@@ -11,7 +11,11 @@ export type MessageListOptions = {
 
 export async function runMessageList(opts: MessageListOptions): Promise<number> {
   try {
-    const messages = await listMessages({ numberId: opts.numberId, direction: opts.direction, since: opts.since });
+    const messages = await listMessages({
+      numberId: opts.numberId,
+      direction: opts.direction,
+      since: opts.since,
+    });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, messages }));
       return 0;
@@ -22,7 +26,9 @@ export async function runMessageList(opts: MessageListOptions): Promise<number> 
     }
     for (const m of messages) {
       const mediaTag = m.media && m.media.length > 0 ? `  [${m.media.length} media]` : "";
-      console.log(`${m.createdAt}  ${(m.direction ?? "").padEnd(8)}  ${m.from} -> ${m.to}  ${m.body}${mediaTag}`);
+      console.log(
+        `${m.createdAt}  ${(m.direction ?? "").padEnd(8)}  ${m.from} -> ${m.to}  ${m.body}${mediaTag}`,
+      );
     }
     return 0;
   } catch (e) {

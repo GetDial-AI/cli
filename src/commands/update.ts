@@ -9,7 +9,8 @@ export async function runUpdate(opts: { json?: boolean }): Promise<number> {
       kind === "npx"
         ? "npx already runs the latest version on each invocation — nothing to update."
         : "this dial is not a global npm install (source checkout or custom binary) — update it the way it was installed.";
-    if (opts.json) console.log(JSON.stringify({ ok: false, error: "not_updatable", kind, message: guidance }));
+    if (opts.json)
+      console.log(JSON.stringify({ ok: false, error: "not_updatable", kind, message: guidance }));
     else console.error(`update unavailable: ${guidance}`);
     return 2;
   }
@@ -24,7 +25,8 @@ export async function runUpdate(opts: { json?: boolean }): Promise<number> {
     const hint = detail.includes("EACCES")
       ? " (permission denied — fix your npm prefix or re-run with elevated permissions)"
       : "";
-    if (opts.json) console.log(JSON.stringify({ ok: false, error: "npm_failed", message: `${detail}${hint}` }));
+    if (opts.json)
+      console.log(JSON.stringify({ ok: false, error: "npm_failed", message: `${detail}${hint}` }));
     else console.error(`update failed: ${detail}${hint}`);
     return 2;
   }
@@ -32,7 +34,10 @@ export async function runUpdate(opts: { json?: boolean }): Promise<number> {
   const installed = installedVersion();
   const updated = installed !== previous;
   if (opts.json) console.log(JSON.stringify({ ok: true, previous, installed, updated }));
-  else if (updated) console.log(`updated ${previous} → ${installed}. The new version applies from your next dial command.`);
+  else if (updated)
+    console.log(
+      `updated ${previous} → ${installed}. The new version applies from your next dial command.`,
+    );
   else console.log(`already up to date (${previous}).`);
   return 0;
 }

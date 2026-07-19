@@ -1,6 +1,6 @@
 {
   "name": "@getdial/cli",
-  "version": "0.33.1",
+  "version": "0.33.2",
   "description": "Dial CLI — install, sign up, and run the local listen service.",
   "license": "MIT",
   "repository": {
@@ -27,6 +27,9 @@
   "scripts": {
     "build": "tsc -p .",
     "test": "node --import tsx --test",
+    "lint": "biome lint src",
+    "format": "biome format --write src",
+    "format:check": "biome format src",
     "clean": "rm -rf dist skills.tar.gz",
     "build:skill": "tar -czf skills.tar.gz skills",
     "prepack": "npm run build && npm run build:skill"
@@ -41,6 +44,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.4",
     "@types/node": "^22.10.0",
     "tsx": "^4.22.3",
     "typescript": "^5.6.0"

@@ -30,7 +30,9 @@ export function startWorker(apiKey: string, accountId: string): WorkerControls {
   let stopped = false;
   let consecutiveFailures = 0;
   let resolveStopped!: () => void;
-  const whenStopped = new Promise<void>((r) => { resolveStopped = r; });
+  const whenStopped = new Promise<void>((r) => {
+    resolveStopped = r;
+  });
 
   function logLine(obj: unknown) {
     rotateIfLarge(logFile, MAX_LOG_BYTES);
@@ -46,14 +48,24 @@ export function startWorker(apiKey: string, accountId: string): WorkerControls {
       scheduleRefresh(next);
     } catch (err) {
       consecutiveFailures += 1;
-      logLine({ ts: new Date().toISOString(), lifecycle: "token_refresh", ok: false, error: err instanceof Error ? err.message : String(err), consecutive_failures: consecutiveFailures });
+      logLine({
+        ts: new Date().toISOString(),
+        lifecycle: "token_refresh",
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+        consecutive_failures: consecutiveFailures,
+      });
       if (consecutiveFailures >= REFRESH_FAILURES_BEFORE_EXIT) {
-        logLine({ ts: new Date().toISOString(), lifecycle: "shutdown", reason: "refresh_failures_exceeded" });
+        logLine({
+          ts: new Date().toISOString(),
+          lifecycle: "shutdown",
+          reason: "refresh_failures_exceeded",
+        });
         await stop();
         process.exitCode = 1;
         return;
       }
-      const backoff = Math.min(60, Math.pow(2, consecutiveFailures)) * 1000;
+      const backoff = Math.min(60, 2 ** consecutiveFailures) * 1000;
       refreshTimer = setTimeout(() => refresh(creds), backoff);
     }
   }
@@ -70,12 +82,24 @@ export function startWorker(apiKey: string, accountId: string): WorkerControls {
     try {
       pn?.unsubscribeAll();
     } catch (err) {
-      logLine({ ts: new Date().toISOString(), lifecycle: "shutdown_error", phase: "unsubscribeAll", error: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? err.stack : null });
+      logLine({
+        ts: new Date().toISOString(),
+        lifecycle: "shutdown_error",
+        phase: "unsubscribeAll",
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : null,
+      });
     }
     try {
       pn?.destroy?.();
     } catch (err) {
-      logLine({ ts: new Date().toISOString(), lifecycle: "shutdown_error", phase: "destroy", error: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? err.stack : null });
+      logLine({
+        ts: new Date().toISOString(),
+        lifecycle: "shutdown_error",
+        phase: "destroy",
+        error: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : null,
+      });
     }
     resolveStopped();
     return whenStopped;
@@ -86,7 +110,12 @@ export function startWorker(apiKey: string, accountId: string): WorkerControls {
     try {
       creds = await fetchSubscribeCreds(apiKey);
     } catch (err) {
-      logLine({ ts: new Date().toISOString(), lifecycle: "startup", ok: false, error: err instanceof Error ? err.message : String(err) });
+      logLine({
+        ts: new Date().toISOString(),
+        lifecycle: "startup",
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
       process.exitCode = 1;
       resolveStopped();
       return;
@@ -106,11 +135,20 @@ export function startWorker(apiKey: string, accountId: string): WorkerControls {
       message: (ev: { message: unknown }) => {
         logLine({ ts: new Date().toISOString(), ...(ev.message as Record<string, unknown>) });
         void fanout(ev.message, logLine).catch((err) => {
-          logLine({ ts: new Date().toISOString(), lifecycle: "fanout_error", error: err instanceof Error ? err.message : String(err) });
+          logLine({
+            ts: new Date().toISOString(),
+            lifecycle: "fanout_error",
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
       },
       status: (s: { category: string; operation?: string }) => {
-        logLine({ ts: new Date().toISOString(), lifecycle: "status", category: s.category, operation: s.operation ?? null });
+        logLine({
+          ts: new Date().toISOString(),
+          lifecycle: "status",
+          category: s.category,
+          operation: s.operation ?? null,
+        });
       },
     });
 

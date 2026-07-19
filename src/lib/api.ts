@@ -1,4 +1,10 @@
-import { request, fetch as undiciFetch, FormData as UndiciFormData, setGlobalDispatcher, EnvHttpProxyAgent } from "undici";
+import {
+  request,
+  fetch as undiciFetch,
+  FormData as UndiciFormData,
+  setGlobalDispatcher,
+  EnvHttpProxyAgent,
+} from "undici";
 import { logger } from "./log.ts";
 import { VERSION } from "./version.ts";
 
@@ -9,7 +15,12 @@ import { VERSION } from "./version.ts";
 // OneCLI gateway sits on HTTPS_PROXY and injects the Authorization header for
 // api.getdial.ai) our `request()`/`fetch()` calls would otherwise bypass the
 // gateway entirely and go out UNAUTHENTICATED → 401. Opt in explicitly.
-if (process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy) {
+if (
+  process.env.HTTPS_PROXY ||
+  process.env.https_proxy ||
+  process.env.HTTP_PROXY ||
+  process.env.http_proxy
+) {
   setGlobalDispatcher(new EnvHttpProxyAgent());
 }
 
@@ -27,9 +38,16 @@ export function baseUrl(): string {
   return process.env.DIAL_API_URL ?? DEFAULT_BASE;
 }
 
-export type ApiResult<T> = { ok: true; status: number; data: T } | { ok: false; status: number; error: string };
+export type ApiResult<T> =
+  | { ok: true; status: number; data: T }
+  | { ok: false; status: number; error: string };
 
-export async function apiPost<T>(path: string, body: unknown, apiKey?: string, extraHeaders?: Record<string, string>): Promise<ApiResult<T>> {
+export async function apiPost<T>(
+  path: string,
+  body: unknown,
+  apiKey?: string,
+  extraHeaders?: Record<string, string>,
+): Promise<ApiResult<T>> {
   return apiRequest<T>("POST", path, body, apiKey, extraHeaders);
 }
 
@@ -37,13 +55,21 @@ export async function apiGet<T>(path: string, apiKey?: string): Promise<ApiResul
   return apiRequest<T>("GET", path, undefined, apiKey);
 }
 
-export async function apiPatch<T>(path: string, body: unknown, apiKey?: string): Promise<ApiResult<T>> {
+export async function apiPatch<T>(
+  path: string,
+  body: unknown,
+  apiKey?: string,
+): Promise<ApiResult<T>> {
   return apiRequest<T>("PATCH", path, body, apiKey);
 }
 
 function toResult<T>(statusCode: number, text: string): ApiResult<T> {
   let parsed: unknown = null;
-  try { parsed = text ? JSON.parse(text) : null; } catch { /* keep raw */ }
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    /* keep raw */
+  }
   if (statusCode >= 200 && statusCode < 300) {
     return { ok: true, status: statusCode, data: parsed as T };
   }
@@ -60,9 +86,19 @@ function toResult<T>(statusCode: number, text: string): ApiResult<T> {
   return { ok: false, status: statusCode, error: errMsg };
 }
 
-async function apiRequest<T>(method: "GET" | "POST" | "PATCH", path: string, body: unknown, apiKey?: string, extraHeaders?: Record<string, string>): Promise<ApiResult<T>> {
+async function apiRequest<T>(
+  method: "GET" | "POST" | "PATCH",
+  path: string,
+  body: unknown,
+  apiKey?: string,
+  extraHeaders?: Record<string, string>,
+): Promise<ApiResult<T>> {
   const url = `${baseUrl()}${path}`;
-  const headers: Record<string, string> = { "content-type": "application/json", "user-agent": USER_AGENT, ...(extraHeaders ?? {}) };
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "user-agent": USER_AGENT,
+    ...(extraHeaders ?? {}),
+  };
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
 
   try {
@@ -78,7 +114,11 @@ async function apiRequest<T>(method: "GET" | "POST" | "PATCH", path: string, bod
 }
 
 /** POST a multipart/form-data body (file uploads). fetch sets the boundary header itself. */
-export async function apiPostMultipart<T>(path: string, form: UndiciFormData, apiKey?: string): Promise<ApiResult<T>> {
+export async function apiPostMultipart<T>(
+  path: string,
+  form: UndiciFormData,
+  apiKey?: string,
+): Promise<ApiResult<T>> {
   const url = `${baseUrl()}${path}`;
   const headers: Record<string, string> = {};
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;

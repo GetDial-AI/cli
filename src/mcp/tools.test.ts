@@ -71,26 +71,57 @@ describe("mcp tools", () => {
 
   it("send_message accepts media-only sends, mediaUrls, and a forceAudioFile boolean", () => {
     const schema = z.object(sendMessageTool.config.inputSchema as z.ZodRawShape);
-    assert.equal(schema.safeParse({ to: "+14155550123", mediaUrls: ["https://cdn.example.com/a.m4a"] }).success, true);
-    assert.equal(schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: true }).success, true);
-    assert.equal(schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: "true" }).success, false);
+    assert.equal(
+      schema.safeParse({ to: "+14155550123", mediaUrls: ["https://cdn.example.com/a.m4a"] })
+        .success,
+      true,
+    );
+    assert.equal(
+      schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: true }).success,
+      true,
+    );
+    assert.equal(
+      schema.safeParse({ to: "+14155550123", body: "hi", forceAudioFile: "true" }).success,
+      false,
+    );
   });
 
   it("typing tools require toNumber and fromNumber, and reject a value field", () => {
     for (const tool of [startTypingTool, stopTypingTool]) {
       const schema = z.object(tool.config.inputSchema as z.ZodRawShape).strict();
-      assert.equal(schema.safeParse({ toNumber: "+14155550123", fromNumber: "Support line" }).success, true);
-      assert.equal(schema.safeParse({ toNumber: "+14155550123" }).success, false, `${tool.name}: fromNumber required`);
-      assert.equal(schema.safeParse({ fromNumber: "pn_1" }).success, false, `${tool.name}: toNumber required`);
-      assert.equal(schema.safeParse({ toNumber: "+14155550123", fromNumber: "pn_1", value: true }).success, false);
+      assert.equal(
+        schema.safeParse({ toNumber: "+14155550123", fromNumber: "Support line" }).success,
+        true,
+      );
+      assert.equal(
+        schema.safeParse({ toNumber: "+14155550123" }).success,
+        false,
+        `${tool.name}: fromNumber required`,
+      );
+      assert.equal(
+        schema.safeParse({ fromNumber: "pn_1" }).success,
+        false,
+        `${tool.name}: toNumber required`,
+      );
+      assert.equal(
+        schema.safeParse({ toNumber: "+14155550123", fromNumber: "pn_1", value: true }).success,
+        false,
+      );
     }
   });
 
   it("send_message and place_call accept the flexible fromNumber selector", () => {
     const send = z.object(sendMessageTool.config.inputSchema as z.ZodRawShape);
-    assert.equal(send.safeParse({ to: "+14155550123", body: "hi", fromNumber: "Support line" }).success, true);
+    assert.equal(
+      send.safeParse({ to: "+14155550123", body: "hi", fromNumber: "Support line" }).success,
+      true,
+    );
     const call = z.object(placeCallTool.config.inputSchema as z.ZodRawShape);
-    assert.equal(call.safeParse({ to: "+14155550123", outboundInstruction: "x", fromNumber: "Support line" }).success, true);
+    assert.equal(
+      call.safeParse({ to: "+14155550123", outboundInstruction: "x", fromNumber: "Support line" })
+        .success,
+      true,
+    );
   });
 
   it("reply_to_message takes a messageId plus optional body/reaction strings", () => {
@@ -110,7 +141,9 @@ describe("mcp tools", () => {
     });
     let out = "";
     child.stdout.on("data", (d) => (out += d.toString()));
-    child.stdin.write('{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}\n');
+    child.stdin.write(
+      '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}\n',
+    );
     child.stdin.write('{"jsonrpc":"2.0","id":2,"method":"tools/list"}\n');
     child.stdin.end();
     await new Promise<void>((resolve) => child.on("close", () => resolve()));

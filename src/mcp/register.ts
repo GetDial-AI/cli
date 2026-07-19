@@ -12,15 +12,19 @@ import { logger } from "../lib/log.ts";
  */
 export function registerTools(server: McpServer): void {
   for (const tool of tools) {
-    server.registerTool(tool.name, tool.config, async (args: Record<string, unknown>): Promise<ToolResult> => {
-      try {
-        return await tool.run(args ?? {});
-      } catch (err) {
-        if (isDialError(err)) return errorResult(err.message);
-        if (err instanceof ZodError) return errorResult(`Invalid input: ${err.message}`);
-        logger.error({ err, tool: tool.name }, "mcp tool error");
-        return errorResult("Internal error running tool.");
-      }
-    });
+    server.registerTool(
+      tool.name,
+      tool.config,
+      async (args: Record<string, unknown>): Promise<ToolResult> => {
+        try {
+          return await tool.run(args ?? {});
+        } catch (err) {
+          if (isDialError(err)) return errorResult(err.message);
+          if (err instanceof ZodError) return errorResult(`Invalid input: ${err.message}`);
+          logger.error({ err, tool: tool.name }, "mcp tool error");
+          return errorResult("Internal error running tool.");
+        }
+      },
+    );
   }
 }

@@ -48,13 +48,19 @@ export function findLatestMatch(file: string, spec: MatchSpec): TailHit | null {
     try {
       const obj = JSON.parse(lines[i]) as Record<string, unknown>;
       if (matches(obj, spec)) return { line: lines[i], obj };
-    } catch { continue; }
+    } catch {
+      // skip unparsable lines
+    }
   }
   return null;
 }
 
 export function currentSize(file: string): number {
-  try { return statSync(file).size; } catch { return 0; }
+  try {
+    return statSync(file).size;
+  } catch {
+    return 0;
+  }
 }
 
 function readRange(file: string, offset: number, length: number): string {
@@ -69,10 +75,16 @@ function readRange(file: string, offset: number, length: number): string {
 }
 
 function parseLines(chunk: string): Array<TailHit | null> {
-  return chunk.split("\n").filter(Boolean).map((line) => {
-    try { return { line, obj: JSON.parse(line) as Record<string, unknown> }; }
-    catch { return null; }
-  });
+  return chunk
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return { line, obj: JSON.parse(line) as Record<string, unknown> };
+      } catch {
+        return null;
+      }
+    });
 }
 
 function sleep(ms: number): Promise<void> {

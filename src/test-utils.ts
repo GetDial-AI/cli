@@ -13,7 +13,9 @@ export type MockRoute = (
  * Set `process.env.DIAL_API_URL` to it so `lib/api.ts` calls hit the mock. Excluded from
  * the build (see tsconfig); used only by *.test.ts at runtime under tsx.
  */
-export async function startMockApi(route: MockRoute): Promise<{ url: string; close: () => Promise<void> }> {
+export async function startMockApi(
+  route: MockRoute,
+): Promise<{ url: string; close: () => Promise<void> }> {
   const server = createServer((req, res) => {
     let body = "";
     req.on("data", (c) => (body += c));

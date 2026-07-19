@@ -13,7 +13,11 @@ export type MessageReplyOptions = {
 
 export async function runMessageReply(opts: MessageReplyOptions): Promise<number> {
   try {
-    const m = await replyToMessage({ messageId: opts.messageId, body: opts.body, reaction: opts.react });
+    const m = await replyToMessage({
+      messageId: opts.messageId,
+      body: opts.body,
+      reaction: opts.react,
+    });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, message: m }));
     } else {

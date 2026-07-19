@@ -33,7 +33,11 @@ describe("event-filter", () => {
   });
 
   it("matches checks exact fields (in data)", () => {
-    const spec = { eventType: "call.ended", fields: [{ name: "to", value: "+14155551234" }], regexes: [] };
+    const spec = {
+      eventType: "call.ended",
+      fields: [{ name: "to", value: "+14155551234" }],
+      regexes: [],
+    };
     assert.ok(matches({ type: "call.ended", data: { to: "+14155551234" } }, spec));
     assert.ok(!matches({ type: "call.ended", data: { to: "+19999999999" } }, spec));
     assert.ok(!matches({ type: "call.ended", data: {} }, spec));

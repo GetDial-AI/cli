@@ -11,7 +11,8 @@ export const removeLocalTargetTool: ToolModule = {
   name: "remove_local_target",
   config: {
     title: "Remove Fan-out Target",
-    description: "Unregister a local fan-out target by id. Returns removed:false if no such target.",
+    description:
+      "Unregister a local fan-out target by id. Returns removed:false if no such target.",
     inputSchema,
     outputSchema: {
       removed: z.boolean().describe("False if no target matched the id"),

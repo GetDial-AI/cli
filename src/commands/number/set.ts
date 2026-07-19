@@ -25,10 +25,14 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
     const n = await setNumberProperties({
       number: opts.number,
       inboundInstruction: opts.inboundInstruction,
-      ...(opts.inboundVoiceGender !== undefined ? { inboundVoiceGender: opts.inboundVoiceGender } : {}),
+      ...(opts.inboundVoiceGender !== undefined
+        ? { inboundVoiceGender: opts.inboundVoiceGender }
+        : {}),
       ...(opts.inboundLanguage !== undefined ? { inboundLanguage: opts.inboundLanguage } : {}),
       ...(opts.nickname !== undefined ? { nickname: opts.nickname } : {}),
-      ...(opts.maxCallDurationSeconds !== undefined ? { maxCallDurationSeconds: opts.maxCallDurationSeconds } : {}),
+      ...(opts.maxCallDurationSeconds !== undefined
+        ? { maxCallDurationSeconds: opts.maxCallDurationSeconds }
+        : {}),
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, number: n }));

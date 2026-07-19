@@ -92,7 +92,13 @@ describe("update", () => {
     });
 
     it("skips npx and checkout installs", () => {
-      assert.equal(shouldAutoUpdate({ ...base, scriptPath: "/u/.npm/_npx/h/node_modules/@getdial/cli/dist/cli.js" }), false);
+      assert.equal(
+        shouldAutoUpdate({
+          ...base,
+          scriptPath: "/u/.npm/_npx/h/node_modules/@getdial/cli/dist/cli.js",
+        }),
+        false,
+      );
       assert.equal(shouldAutoUpdate({ ...base, scriptPath: "/u/repos/cli/src/cli.ts" }), false);
     });
 

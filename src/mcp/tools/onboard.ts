@@ -3,14 +3,35 @@ import type { ToolModule } from "../tool.ts";
 import { jsonResult } from "../result.ts";
 import { onboard } from "../../lib/ops/account.ts";
 import { readAuth, authFilePath } from "../../lib/state.ts";
-import { installSkill, isSupportedAgent, SUPPORTED_AGENTS, type AgentName, type InstallResult } from "../../lib/skill-install.ts";
+import {
+  installSkill,
+  isSupportedAgent,
+  SUPPORTED_AGENTS,
+  type AgentName,
+  type InstallResult,
+} from "../../lib/skill-install.ts";
 import { supervisorAvailability } from "../../lib/supervisor/index.ts";
 
 const inputSchema = {
-  code: z.string().min(1).optional().describe("6-digit OTP from the sign-up email. Omit if the account is already signed in — the tool will just install the requested --agent skills and skip verification."),
-  verificationId: z.string().optional().describe("Explicit verification id (defaults to the local pending signup)"),
-  inboundInstruction: z.string().optional().describe("System prompt for inbound calls to a newly provisioned number (new accounts)"),
-  agents: z.array(z.string()).optional().describe("Agent names to install the Dial skill into (e.g. claude-code, cursor)"),
+  code: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "6-digit OTP from the sign-up email. Omit if the account is already signed in — the tool will just install the requested --agent skills and skip verification.",
+    ),
+  verificationId: z
+    .string()
+    .optional()
+    .describe("Explicit verification id (defaults to the local pending signup)"),
+  inboundInstruction: z
+    .string()
+    .optional()
+    .describe("System prompt for inbound calls to a newly provisioned number (new accounts)"),
+  agents: z
+    .array(z.string())
+    .optional()
+    .describe("Agent names to install the Dial skill into (e.g. claude-code, cursor)"),
 };
 
 export const onboardTool: ToolModule = {
@@ -39,18 +60,26 @@ export const onboardTool: ToolModule = {
     if (!args.code) {
       const auth = readAuth();
       if (!auth) {
-        throw new Error("Not signed in. Run `dial signup <email>` first, then invoke this tool with the OTP as `code`.");
+        throw new Error(
+          "Not signed in. Run `dial signup <email>` first, then invoke this tool with the OTP as `code`.",
+        );
       }
       const skills: Array<InstallResult | { agent: string; error: string }> = [];
       for (const requested of (args.agents as string[] | undefined) ?? []) {
         if (!isSupportedAgent(requested)) {
-          skills.push({ agent: requested, error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.` });
+          skills.push({
+            agent: requested,
+            error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.`,
+          });
           continue;
         }
         try {
           skills.push(installSkill(requested as AgentName));
         } catch (err) {
-          skills.push({ agent: requested, error: err instanceof Error ? err.message : String(err) });
+          skills.push({
+            agent: requested,
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       }
       const supervisor = supervisorAvailability();

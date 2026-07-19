@@ -5,7 +5,14 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { installSkill, isSupportedAgent, readSkillMarkdown, SKILL_NAME, SUPPORTED_AGENTS, uninstallSkill } from "./skill-install.ts";
+import {
+  installSkill,
+  isSupportedAgent,
+  readSkillMarkdown,
+  SKILL_NAME,
+  SUPPORTED_AGENTS,
+  uninstallSkill,
+} from "./skill-install.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(here, "..", "..");
@@ -126,5 +133,4 @@ describe("skill-install", () => {
     assert.equal(result.removed, true);
     assert.equal(result.path, join(tmp, `.claude/skills/${SKILL_NAME}`));
   });
-
 });

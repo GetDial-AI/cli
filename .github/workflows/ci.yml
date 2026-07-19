@@ -1,0 +1,121 @@
+name: CI
+
+# PR and main gate — a single job whose steps run in order:
+#   version bump check → install → format check → lint → tests
+#
+# The version-bump step runs only on pull requests and requires a strictly
+# greater package.json version whenever src/, package.json, or
+# package-lock.json changes (the inputs that change the published artifact).
+# Install uses `npm ci`, which refuses to run when package.json and
+# package-lock.json disagree — that is our stale-lockfile guard.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the version-bump step can read the base version
+          # and compute the merge-base.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Version bump check
+        # PR-only: on push to main there is no base/head PR to compare.
+        if: github.event_name == 'pull_request'
+        # Pass the PR SHAs through env rather than interpolating ${{ ... }}
+        # directly into the shell — avoids GitHub Actions script injection if a
+        # future edit swaps in an attacker-controllable field (title, head_ref).
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          read_version() {
+            # $1 = "<sha>:package.json"; print its version field.
+            git show "$1" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); console.log(j.version)'
+          }
+
+          # Scope the file-changed check to what THIS PR actually changed:
+          # diff from the merge-base, not the base tip. A two-dot diff against
+          # base.sha would also include unrelated commits landed on main while
+          # the PR was open, which both falsely blocks and falsely passes.
+          MERGE_BASE=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          CHANGED=$(git diff --name-only "$MERGE_BASE" "$HEAD_SHA" | grep -E '^(src/|package\.json$|package-lock\.json$)' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No src/, package.json, or package-lock.json changes — version bump not required."
+            {
+              echo "## Version bump not required"
+              echo ""
+              echo "This PR doesn't touch \`src/**\`, \`package.json\`, or \`package-lock.json\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Compare the PR head (read from HEAD_SHA, not the ambient working
+          # tree / merge commit, so the result is deterministic) against the
+          # current base-branch tip: merging must yield a publishable version,
+          # i.e. one strictly greater than what main already carries.
+          BASE_VERSION=$(read_version "$BASE_SHA:package.json")
+          HEAD_VERSION=$(read_version "$HEAD_SHA:package.json")
+
+          echo "base (main) version: $BASE_VERSION"
+          echo "head (PR) version:   $HEAD_VERSION"
+          echo "changed files:"
+          echo "$CHANGED" | sed 's/^/  - /'
+
+          # Strict semver increase: sort -V puts the greater version last, so
+          # HEAD must be the last line AND differ from BASE.
+          GREATER=$(printf '%s\n%s\n' "$BASE_VERSION" "$HEAD_VERSION" | sort -V | tail -n1)
+          if [ "$HEAD_VERSION" = "$BASE_VERSION" ] || [ "$GREATER" != "$HEAD_VERSION" ]; then
+            {
+              echo "## Version bump required"
+              echo ""
+              echo "This PR changes \`src/**\`, \`package.json\`, or \`package-lock.json\`, so \`package.json\` version must be **strictly greater** than main's (\`$BASE_VERSION\`). Current PR version: \`$HEAD_VERSION\`."
+              echo ""
+              echo "Bump \`package.json\` version above \`$BASE_VERSION\` before merging."
+              echo ""
+              echo "**Changed files:**"
+              echo ""
+              echo '```'
+              echo "$CHANGED"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::package.json version ($HEAD_VERSION) must be strictly greater than main's ($BASE_VERSION) when src/ or the lockfile changes. Bump the version."
+            exit 1
+          fi
+
+          {
+            echo "## Version bump OK"
+            echo ""
+            echo "\`$BASE_VERSION\` → \`$HEAD_VERSION\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Version bumped: $BASE_VERSION → $HEAD_VERSION."
+
+      - name: Install dependencies (frozen lockfile)
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test

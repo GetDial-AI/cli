@@ -11,11 +11,17 @@ export type TypingOptions = {
 
 export async function runTypingStart(opts: TypingOptions): Promise<number> {
   try {
-    const result = await setTyping({ toNumber: opts.toNumber, value: true, fromNumber: opts.fromNumber });
+    const result = await setTyping({
+      toNumber: opts.toNumber,
+      value: true,
+      fromNumber: opts.fromNumber,
+    });
     if (opts.json) {
       console.log(JSON.stringify(result));
     } else {
-      console.log(`typing indicator shown to ${opts.toNumber} (iMessage numbers only — SMS numbers ignore it).`);
+      console.log(
+        `typing indicator shown to ${opts.toNumber} (iMessage numbers only — SMS numbers ignore it).`,
+      );
     }
     return 0;
   } catch (e) {

@@ -33,10 +33,24 @@ describe("ops/typing", () => {
       return undefined;
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
-    const result = await setTyping({ toNumber: "+15551111", value: true, fromNumber: "Support line" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
+    const result = await setTyping({
+      toNumber: "+15551111",
+      value: true,
+      fromNumber: "Support line",
+    });
     assert.deepEqual(result, { ok: true });
-    assert.deepEqual(JSON.parse(seen.body ?? "{}"), { toNumber: "+15551111", value: true, fromNumber: "Support line" });
+    assert.deepEqual(JSON.parse(seen.body ?? "{}"), {
+      toNumber: "+15551111",
+      value: true,
+      fromNumber: "Support line",
+    });
   });
 
   it("setTyping falls back to the saved default phoneNumberId", async () => {
@@ -49,13 +63,29 @@ describe("ops/typing", () => {
       return undefined;
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     await setTyping({ toNumber: "+15551111", value: false });
-    assert.deepEqual(JSON.parse(seen.body ?? "{}"), { toNumber: "+15551111", value: false, fromNumber: "pn_1" });
+    assert.deepEqual(JSON.parse(seen.body ?? "{}"), {
+      toNumber: "+15551111",
+      value: false,
+      fromNumber: "pn_1",
+    });
   });
 
   it("setTyping throws no_from_number when neither an override nor a default exists", async () => {
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: null });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: null,
+    });
     await assert.rejects(setTyping({ toNumber: "+15551111", value: true }), (err: unknown) => {
       assert.ok(isDialError(err));
       assert.equal(err.code, "no_from_number");
@@ -65,10 +95,18 @@ describe("ops/typing", () => {
 
   it("setTyping maps an API error to a DialError with the response status", async () => {
     api = await startMockApi((m, u) =>
-      m === "POST" && u === "/api/v1/typing" ? { status: 404, json: { error: "No number matches" } } : undefined,
+      m === "POST" && u === "/api/v1/typing"
+        ? { status: 404, json: { error: "No number matches" } }
+        : undefined,
     );
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     await assert.rejects(setTyping({ toNumber: "+15551111", value: true }), (err: unknown) => {
       assert.ok(isDialError(err));
       assert.equal(err.status, 404);

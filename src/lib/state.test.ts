@@ -1,9 +1,23 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync, chmodSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+  chmodSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readAuth, writeAuth, readPendingSignup, writePendingSignup, clearPendingSignup } from "./state.ts";
+import {
+  readAuth,
+  writeAuth,
+  readPendingSignup,
+  writePendingSignup,
+  clearPendingSignup,
+} from "./state.ts";
 
 let tmp: string;
 
@@ -42,7 +56,13 @@ describe("state", () => {
     mkdirSync(dir, { recursive: true, mode: 0o700 });
     writeFileSync(
       join(dir, "auth.json"),
-      JSON.stringify({ apiKey: "sk_live_old", accountId: "acc_1", email: "x@y.com", phoneNumber: null, phoneNumberId: null }),
+      JSON.stringify({
+        apiKey: "sk_live_old",
+        accountId: "acc_1",
+        email: "x@y.com",
+        phoneNumber: null,
+        phoneNumberId: null,
+      }),
       { mode: 0o600 },
     );
     assert.equal(readAuth()?.apiKey, "sk_live_old");
@@ -51,14 +71,24 @@ describe("state", () => {
   });
 
   it("refuses to read auth.v1.json with insecure perms", () => {
-    writeAuth({ apiKey: "sk_live_abc", accountId: "a", email: "x@y", phoneNumber: null, phoneNumberId: null });
+    writeAuth({
+      apiKey: "sk_live_abc",
+      accountId: "a",
+      email: "x@y",
+      phoneNumber: null,
+      phoneNumberId: null,
+    });
     const file = join(tmp, ".local/share/dial/auth.v1.json");
     chmodSync(file, 0o644);
     assert.throws(() => readAuth(), /insecure permissions/);
   });
 
   it("writes and reads pending signup", () => {
-    writePendingSignup({ verificationId: "v1", email: "x@y.com", createdAt: new Date().toISOString() });
+    writePendingSignup({
+      verificationId: "v1",
+      email: "x@y.com",
+      createdAt: new Date().toISOString(),
+    });
     const p = readPendingSignup();
     assert.equal(p?.verificationId, "v1");
     clearPendingSignup();

@@ -14,7 +14,12 @@ export type BillingSubscription = {
   interval: BillingInterval;
   cancelAtPeriodEnd: boolean;
 };
-export type BillingNumber = { id: string; number: string; nickname: string | null; mode: "PAYG" | "FIXED" };
+export type BillingNumber = {
+  id: string;
+  number: string;
+  nickname: string | null;
+  mode: "PAYG" | "FIXED";
+};
 export type BillingDeposit = {
   createdAt: string;
   amountCents: number;

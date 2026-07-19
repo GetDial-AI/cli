@@ -36,7 +36,13 @@ describe("ops/auth", () => {
   });
 
   it("requireFromNumberId falls back to auth.phoneNumberId, honors override, else throws", () => {
-    writeAuth({ apiKey: "sk_live_x", accountId: "a", email: "e", phoneNumber: null, phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk_live_x",
+      accountId: "a",
+      email: "e",
+      phoneNumber: null,
+      phoneNumberId: "pn_1",
+    });
     const auth = maybeAuth();
     assert.ok(auth); // signed in → present
     assert.equal(requireFromNumberId(auth), "pn_1");

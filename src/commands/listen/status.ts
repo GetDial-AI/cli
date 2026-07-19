@@ -10,8 +10,16 @@ export async function runListenStatus(opts: { json?: boolean }): Promise<number>
   try {
     const raw = readFileSync(paths().listenLog, "utf8");
     const lines = raw.trim().split("\n").filter(Boolean);
-    lastEvents = lines.slice(-5).map((l) => { try { return JSON.parse(l); } catch { return l; } });
-  } catch { /* ignore */ }
+    lastEvents = lines.slice(-5).map((l) => {
+      try {
+        return JSON.parse(l);
+      } catch {
+        return l;
+      }
+    });
+  } catch {
+    /* ignore */
+  }
 
   const out = {
     installed: s.installed,

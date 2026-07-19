@@ -71,7 +71,11 @@ export function systemctlDisable(): void {
 
 export function systemctlStatus(): { running: boolean; pid: number | null } {
   try {
-    const out = execFileSync("systemctl", ["--user", "show", SYSTEMD_UNIT_NAME, "--property=ActiveState,MainPID"], { stdio: ["ignore", "pipe", "ignore"] }).toString();
+    const out = execFileSync(
+      "systemctl",
+      ["--user", "show", SYSTEMD_UNIT_NAME, "--property=ActiveState,MainPID"],
+      { stdio: ["ignore", "pipe", "ignore"] },
+    ).toString();
     const active = /ActiveState=active/.test(out);
     const m = out.match(/MainPID=(\d+)/);
     const pid = m ? parseInt(m[1], 10) : 0;
@@ -88,7 +92,9 @@ export function systemctlStatus(): { running: boolean; pid: number | null } {
 
 export function lingerEnabled(user: string): boolean {
   try {
-    const out = execFileSync("loginctl", ["show-user", user, "--property=Linger"], { stdio: ["ignore", "pipe", "ignore"] }).toString();
+    const out = execFileSync("loginctl", ["show-user", user, "--property=Linger"], {
+      stdio: ["ignore", "pipe", "ignore"],
+    }).toString();
     return /Linger=yes/.test(out);
   } catch (err) {
     // Best-effort; debug only (see systemctlStatus). Assume linger disabled.

@@ -18,14 +18,20 @@ export function maybeAuth(): Auth | undefined {
   const auth = readAuth();
   if (auth) return auth;
   if (isSandbox()) return undefined;
-  throw new DialError("not_signed_in", "Not signed in. Run `dial signup` and `dial onboard` first.");
+  throw new DialError(
+    "not_signed_in",
+    "Not signed in. Run `dial signup` and `dial onboard` first.",
+  );
 }
 
 /** Resolve the from-number id: explicit override, else the account default, else throw. */
 export function requireFromNumberId(auth: Auth | undefined, override?: string): string {
   const id = override ?? auth?.phoneNumberId;
   if (!id) {
-    throw new DialError("no_from_number", "No default phoneNumberId in auth. Pass --from-number-id <id>.");
+    throw new DialError(
+      "no_from_number",
+      "No default phoneNumberId in auth. Pass --from-number-id <id>.",
+    );
   }
   return id;
 }
@@ -37,7 +43,10 @@ export function requireFromNumberId(auth: Auth | undefined, override?: string): 
 export function requireFromNumber(auth: Auth | undefined, override?: string): string {
   const ref = override ?? auth?.phoneNumberId;
   if (!ref) {
-    throw new DialError("no_from_number", "No default phoneNumberId in auth. Pass --from-number <id|E.164|nickname>.");
+    throw new DialError(
+      "no_from_number",
+      "No default phoneNumberId in auth. Pass --from-number <id|E.164|nickname>.",
+    );
   }
   return ref;
 }
@@ -53,7 +62,10 @@ export function resolveFromSelector(
   opts: { fromNumber?: string; fromNumberId?: string },
 ): { fromNumber: string } | { fromNumberId: string } {
   if (opts.fromNumber && opts.fromNumberId) {
-    throw new DialError("from_number_conflict", "Provide only one of --from-number and --from-number-id.");
+    throw new DialError(
+      "from_number_conflict",
+      "Provide only one of --from-number and --from-number-id.",
+    );
   }
   if (opts.fromNumber) return { fromNumber: opts.fromNumber };
   return { fromNumberId: requireFromNumberId(auth, opts.fromNumberId) };

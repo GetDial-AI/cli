@@ -44,7 +44,9 @@ export async function placeCall(opts: {
       // Omitted → the server uses the default voice gender (female).
       ...(opts.voiceGender ? { voiceGender: opts.voiceGender } : {}),
       ...(opts.transferTo ? { transferTo: opts.transferTo } : {}),
-      ...(opts.maxCallDurationSeconds !== undefined ? { maxCallDurationSeconds: opts.maxCallDurationSeconds } : {}),
+      ...(opts.maxCallDurationSeconds !== undefined
+        ? { maxCallDurationSeconds: opts.maxCallDurationSeconds }
+        : {}),
     },
     auth?.apiKey,
     opts.idempotencyKey ? { "idempotency-key": opts.idempotencyKey } : undefined,
@@ -64,14 +66,21 @@ export async function listCalls(opts: {
   if (opts.direction) params.set("direction", opts.direction);
   if (opts.since) params.set("since", opts.since);
   const qs = params.toString();
-  const res = await apiGet<{ calls: CallRow[] }>(qs ? `/api/v1/calls?${qs}` : "/api/v1/calls", auth?.apiKey);
+  const res = await apiGet<{ calls: CallRow[] }>(
+    qs ? `/api/v1/calls?${qs}` : "/api/v1/calls",
+    auth?.apiKey,
+  );
   if (!res.ok) throw new DialError("list_failed", res.error, res.status);
   return res.data.calls ?? [];
 }
 
 export async function getCall(callId: string): Promise<CallRow> {
   const auth = maybeAuth();
-  const res = await apiGet<{ call: CallRow }>(`/api/v1/calls/${encodeURIComponent(callId)}`, auth?.apiKey);
-  if (!res.ok) throw new DialError(res.status === 404 ? "not_found" : "get_failed", res.error, res.status);
+  const res = await apiGet<{ call: CallRow }>(
+    `/api/v1/calls/${encodeURIComponent(callId)}`,
+    auth?.apiKey,
+  );
+  if (!res.ok)
+    throw new DialError(res.status === 404 ? "not_found" : "get_failed", res.error, res.status);
   return res.data.call;
 }

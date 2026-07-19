@@ -85,7 +85,13 @@ describe("keyless auth (sandbox mode)", () => {
     process.env.DIAL_API_URL = api.url;
     process.env.DIAL_SANDBOX = "0";
     resetSandboxCacheForTests();
-    writeAuth({ apiKey: "sk_live_x", accountId: "a", email: "e", phoneNumber: null, phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk_live_x",
+      accountId: "a",
+      email: "e",
+      phoneNumber: null,
+      phoneNumberId: "pn_1",
+    });
 
     await getBilling();
     assert.equal(seenAuth, "Bearer sk_live_x");

@@ -16,7 +16,10 @@ export type PhoneNumberRow = {
   inboundLanguage?: string | null;
 };
 
-export async function listNumbers(): Promise<{ numbers: PhoneNumberRow[]; defaultNumberId: string | null }> {
+export async function listNumbers(): Promise<{
+  numbers: PhoneNumberRow[];
+  defaultNumberId: string | null;
+}> {
   const auth = maybeAuth();
   const res = await apiGet<{ numbers: PhoneNumberRow[] }>("/api/v1/numbers", auth?.apiKey);
   if (!res.ok) throw new DialError("list_failed", res.error, res.status);
@@ -68,12 +71,17 @@ export async function setNumberProperties(opts: {
   const body: Record<string, unknown> = {};
   if (opts.inboundInstruction !== undefined) body.inboundInstruction = opts.inboundInstruction;
   // Empty string clears the override → send null (the enum API rejects "").
-  if (opts.inboundVoiceGender !== undefined) body.inboundVoiceGender = opts.inboundVoiceGender || null;
+  if (opts.inboundVoiceGender !== undefined)
+    body.inboundVoiceGender = opts.inboundVoiceGender || null;
   if (opts.inboundLanguage !== undefined) body.inboundLanguage = opts.inboundLanguage || null;
   if (opts.nickname !== undefined) body.nickname = opts.nickname;
-  if (opts.maxCallDurationSeconds !== undefined) body.maxCallDurationSeconds = opts.maxCallDurationSeconds;
+  if (opts.maxCallDurationSeconds !== undefined)
+    body.maxCallDurationSeconds = opts.maxCallDurationSeconds;
   if (Object.keys(body).length === 0) {
-    throw new DialError("bad_request", "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, or maxCallDurationSeconds).");
+    throw new DialError(
+      "bad_request",
+      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, or maxCallDurationSeconds).",
+    );
   }
   const auth = maybeAuth();
   // The REST API keys numbers by id; the CLI/tool takes the E.164 number for ergonomics,
@@ -83,7 +91,10 @@ export async function setNumberProperties(opts: {
   const match = list.data.numbers.find((n) => n.number === opts.number);
   if (!match) {
     const known = list.data.numbers.map((n) => n.number).join(", ") || "(none)";
-    throw new DialError("number_not_found", `No phone number ${opts.number} on your account. Yours: ${known}.`);
+    throw new DialError(
+      "number_not_found",
+      `No phone number ${opts.number} on your account. Yours: ${known}.`,
+    );
   }
   const res = await apiPatch<{ number: PhoneNumberRow }>(
     `/api/v1/numbers/${match.id}`,

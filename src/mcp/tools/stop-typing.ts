@@ -8,7 +8,9 @@ const inputSchema = {
   fromNumber: z
     .string()
     .min(1)
-    .describe("Number the indicator appears from: a phone number id, one of your numbers in E.164, or a nickname"),
+    .describe(
+      "Number the indicator appears from: a phone number id, one of your numbers in E.164, or a nickname",
+    ),
 };
 
 export const stopTypingTool: ToolModule = {

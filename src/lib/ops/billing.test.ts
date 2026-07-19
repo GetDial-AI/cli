@@ -12,7 +12,13 @@ let tmp: string;
 let api: { url: string; close: () => Promise<void> };
 
 function signIn() {
-  writeAuth({ apiKey: "sk_live_x", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+  writeAuth({
+    apiKey: "sk_live_x",
+    accountId: "a",
+    email: "e",
+    phoneNumber: "+15550000",
+    phoneNumberId: "pn_1",
+  });
 }
 
 describe("ops/billing", () => {
@@ -37,7 +43,18 @@ describe("ops/billing", () => {
               numbersReleaseAt: null,
               subscription: null,
               numbers: [{ id: "pn_1", number: "+15550000", mode: "PAYG" }],
-              paymentMethods: [{ id: "pm_1", type: "card", brand: "visa", last4: "4242", expMonth: 4, expYear: 2027, email: null, isDefault: true }],
+              paymentMethods: [
+                {
+                  id: "pm_1",
+                  type: "card",
+                  brand: "visa",
+                  last4: "4242",
+                  expMonth: 4,
+                  expYear: 2027,
+                  email: null,
+                  isDefault: true,
+                },
+              ],
             },
           }
         : undefined,
@@ -56,7 +73,9 @@ describe("ops/billing", () => {
 
   it("getBilling throws billing_failed on a non-2xx response", async () => {
     api = await startMockApi((m, u) =>
-      m === "GET" && u === "/api/v1/billing" ? { status: 401, json: { error: "unauthorized" } } : undefined,
+      m === "GET" && u === "/api/v1/billing"
+        ? { status: 401, json: { error: "unauthorized" } }
+        : undefined,
     );
     process.env.DIAL_API_URL = api.url;
     signIn();

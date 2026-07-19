@@ -34,12 +34,12 @@ const MAX_CAPTURE_BYTES = 4 * 1024;
 function clipCapture(buf: Buffer | string): string {
   const s = typeof buf === "string" ? buf : buf.toString("utf8");
   if (s.length <= MAX_CAPTURE_BYTES) return s;
-  return s.slice(0, MAX_CAPTURE_BYTES) + `…[truncated, total ${s.length} chars]`;
+  return `${s.slice(0, MAX_CAPTURE_BYTES)}…[truncated, total ${s.length} chars]`;
 }
 
 async function attemptUrl(target: UrlTarget, body: string): Promise<DispatchAttempt> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (target.bearer) headers["Authorization"] = `Bearer ${target.bearer}`;
+  if (target.bearer) headers.Authorization = `Bearer ${target.bearer}`;
   if (target.secret) {
     const sig = createHmac("sha256", target.secret).update(body).digest("hex");
     headers[target.signatureHeader ?? DEFAULT_SIGNATURE_HEADER] = sig;
@@ -91,7 +91,11 @@ async function attemptCmd(target: CmdTarget, eventJson: string): Promise<Dispatc
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
-      try { child.kill("SIGKILL"); } catch { /* already exited */ }
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        /* already exited */
+      }
       resolve({
         ok: false,
         timedOut: true,
@@ -127,10 +131,15 @@ async function attemptCmd(target: CmdTarget, eventJson: string): Promise<Dispatc
   });
 }
 
-async function dispatchOne(target: LocalTarget, body: string, eventJson: string): Promise<DispatchResult> {
+async function dispatchOne(
+  target: LocalTarget,
+  body: string,
+  eventJson: string,
+): Promise<DispatchResult> {
   const attempts: DispatchAttempt[] = [];
   for (let i = 0; i < 2; i += 1) {
-    const attempt = target.kind === "url" ? await attemptUrl(target, body) : await attemptCmd(target, eventJson);
+    const attempt =
+      target.kind === "url" ? await attemptUrl(target, body) : await attemptCmd(target, eventJson);
     attempts.push(attempt);
     if (attempt.ok) return { target, attempts, delivered: true };
   }
