@@ -7,6 +7,7 @@ import {
 } from "undici";
 import { logger } from "./log.ts";
 import { VERSION } from "./version.ts";
+import { refParamsHeader } from "./ref-params.ts";
 
 // Route this package's undici requests through HTTP(S)_PROXY when one is set.
 // The `undici` npm package keeps its OWN global dispatcher, which — unlike
@@ -36,6 +37,15 @@ const USER_AGENT = `@getdial/cli/${VERSION}`;
 
 export function baseUrl(): string {
   return process.env.DIAL_API_URL ?? DEFAULT_BASE;
+}
+
+// Attach the attribution ref params (base64 of the install-time ref-params.txt)
+// so the server can tie this machine's requests to how the user originally
+// arrived. No-op when the user never went through an attributed install.
+export function applyRefParamsHeader(headers: Record<string, string>): Record<string, string> {
+  const ref = refParamsHeader();
+  if (ref) headers["x-dial-ref-params"] = ref;
+  return headers;
 }
 
 export type ApiResult<T> =
@@ -94,11 +104,11 @@ async function apiRequest<T>(
   extraHeaders?: Record<string, string>,
 ): Promise<ApiResult<T>> {
   const url = `${baseUrl()}${path}`;
-  const headers: Record<string, string> = {
+  const headers: Record<string, string> = applyRefParamsHeader({
     "content-type": "application/json",
     "user-agent": USER_AGENT,
     ...(extraHeaders ?? {}),
-  };
+  });
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
 
   try {
@@ -120,7 +130,7 @@ export async function apiPostMultipart<T>(
   apiKey?: string,
 ): Promise<ApiResult<T>> {
   const url = `${baseUrl()}${path}`;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = applyRefParamsHeader({});
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
   try {
     const res = await undiciFetch(url, { method: "POST", headers, body: form });
