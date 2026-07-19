@@ -87,7 +87,17 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -E '^(src/|package\.json$|package-lock\.json$)' || true)
+          read_version() {
+            # $1 = "<sha>:package.json"; print its version field.
+            git show "$1" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); console.log(j.version)'
+          }
+
+          # Scope the file-changed check to what THIS PR actually changed:
+          # diff from the merge-base, not the base tip. A two-dot diff against
+          # base.sha would also include unrelated commits landed on main while
+          # the PR was open, which both falsely blocks and falsely passes.
+          MERGE_BASE=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          CHANGED=$(git diff --name-only "$MERGE_BASE" "$HEAD_SHA" | grep -E '^(src/|package\.json$|package-lock\.json$)' || true)
           if [ -z "$CHANGED" ]; then
             echo "No src/, package.json, or package-lock.json changes — version bump not required."
             {
@@ -98,21 +108,28 @@ jobs:
             exit 0
           fi
 
-          BASE_VERSION=$(git show "$BASE_SHA:package.json" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); console.log(j.version)')
-          HEAD_VERSION=$(node -p "require('./package.json').version")
+          # Compare the PR head (read from HEAD_SHA, not the ambient working
+          # tree / merge commit, so the result is deterministic) against the
+          # current base-branch tip: merging must yield a publishable version,
+          # i.e. one strictly greater than what main already carries.
+          BASE_VERSION=$(read_version "$BASE_SHA:package.json")
+          HEAD_VERSION=$(read_version "$HEAD_SHA:package.json")
 
-          echo "base version: $BASE_VERSION"
-          echo "head version: $HEAD_VERSION"
+          echo "base (main) version: $BASE_VERSION"
+          echo "head (PR) version:   $HEAD_VERSION"
           echo "changed files:"
           echo "$CHANGED" | sed 's/^/  - /'
 
-          if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+          # Strict semver increase: sort -V puts the greater version last, so
+          # HEAD must be the last line AND differ from BASE.
+          GREATER=$(printf '%s\n%s\n' "$BASE_VERSION" "$HEAD_VERSION" | sort -V | tail -n1)
+          if [ "$HEAD_VERSION" = "$BASE_VERSION" ] || [ "$GREATER" != "$HEAD_VERSION" ]; then
             {
               echo "## Version bump required"
               echo ""
-              echo "This PR changes files under \`src/\`, \`package.json\`, or \`package-lock.json\` but doesn't bump \`package.json\` version (still \`$HEAD_VERSION\`)."
+              echo "This PR changes \`src/**\`, \`package.json\`, or \`package-lock.json\`, so \`package.json\` version must be **strictly greater** than main's (\`$BASE_VERSION\`). Current PR version: \`$HEAD_VERSION\`."
               echo ""
-              echo "Bump \`package.json\` version before merging."
+              echo "Bump \`package.json\` version above \`$BASE_VERSION\` before merging."
               echo ""
               echo "**Changed files:**"
               echo ""
@@ -120,7 +137,7 @@ jobs:
               echo "$CHANGED"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
-            echo "::error::package.json version unchanged ($HEAD_VERSION) despite src/ or lockfile changes. Bump the version."
+            echo "::error::package.json version ($HEAD_VERSION) must be strictly greater than main's ($BASE_VERSION) when src/ or the lockfile changes. Bump the version."
             exit 1
           fi
 
