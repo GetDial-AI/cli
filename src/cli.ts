@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 import { VERSION } from "./lib/version.ts";
 import { runDoctor } from "./commands/doctor.ts";
 import { runBilling } from "./commands/billing.ts";
@@ -37,6 +37,14 @@ import { isSandbox, SANDBOX_DISABLED_COMMANDS, sandboxDisabledMessage } from "./
 const sandbox = isSandbox();
 
 const program = new Command();
+
+function parsePositiveInteger(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || String(parsed) !== value.trim()) {
+    throw new InvalidArgumentError(`must be a positive integer, got: ${value}`);
+  }
+  return parsed;
+}
 
 program
   .name("dial")
@@ -493,9 +501,7 @@ if (!sandbox) {
       "HTTP header for the HMAC signature (defaults to X-Dial-Signature; only used with --secret)",
     )
     .option("--bearer <token>", "static bearer token, sent as `Authorization: Bearer <token>`")
-    .option("--timeout <seconds>", "per-attempt timeout (default 5)", (v: string) =>
-      parseInt(v, 10),
-    )
+    .option("--timeout <seconds>", "per-attempt timeout (default 5)", parsePositiveInteger)
     .option("--json", "machine-readable output")
     .action(async (url: string, opts) =>
       process.exit(
@@ -515,9 +521,7 @@ if (!sandbox) {
     .description(
       "Register an executable. The daemon spawns it per event with the event JSON as the final positional argument.",
     )
-    .option("--timeout <seconds>", "per-attempt timeout (default 5)", (v: string) =>
-      parseInt(v, 10),
-    )
+    .option("--timeout <seconds>", "per-attempt timeout (default 5)", parsePositiveInteger)
     .option("--json", "machine-readable output")
     .passThroughOptions(true)
     .action(async (path: string, args: string[], opts) =>

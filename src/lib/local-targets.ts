@@ -14,7 +14,12 @@ export const UrlTargetSchema = z.object({
   secret: z.string().optional(),
   signatureHeader: z.string().optional(),
   bearer: z.string().optional(),
-  timeoutSeconds: z.number().int().positive().optional(),
+  timeoutSeconds: z
+    .number()
+    .int()
+    .positive()
+    .refine(Number.isSafeInteger, "timeout must be a safe integer")
+    .optional(),
 });
 export type UrlTarget = z.infer<typeof UrlTargetSchema>;
 
@@ -22,7 +27,12 @@ export const CmdTargetSchema = z.object({
   kind: z.literal("cmd"),
   path: z.string(),
   args: z.array(z.string()).default([]),
-  timeoutSeconds: z.number().int().positive().optional(),
+  timeoutSeconds: z
+    .number()
+    .int()
+    .positive()
+    .refine(Number.isSafeInteger, "timeout must be a safe integer")
+    .optional(),
 });
 export type CmdTarget = z.infer<typeof CmdTargetSchema>;
 
@@ -86,17 +96,29 @@ export function listTargets(): LocalTarget[] {
 }
 
 export function addTarget(t: LocalTarget): { added: boolean } {
-  if (t.kind === "url") {
-    assertLoopbackUrl(t.url);
+  const parsed = LocalTargetSchema.safeParse(t);
+  if (!parsed.success) {
+    const timeoutIssue = parsed.error.issues.find((issue) => issue.path[0] === "timeoutSeconds");
+    if (timeoutIssue) {
+      throw new LocalTargetError("invalid_timeout", "timeout must be a positive integer");
+    }
+    throw new LocalTargetError(
+      "invalid_target",
+      parsed.error.issues[0]?.message ?? "invalid target",
+    );
+  }
+  const target = parsed.data;
+  if (target.kind === "url") {
+    assertLoopbackUrl(target.url);
   } else {
-    if (!t.path) throw new LocalTargetError("invalid_path", "executable path is required");
+    if (!target.path) throw new LocalTargetError("invalid_path", "executable path is required");
   }
   const reg = readRegistry();
-  const id = targetId(t);
-  if (reg.targets.some((existing) => targetId(existing) === id && existing.kind === t.kind)) {
+  const id = targetId(target);
+  if (reg.targets.some((existing) => targetId(existing) === id && existing.kind === target.kind)) {
     return { added: false };
   }
-  reg.targets.push(t);
+  reg.targets.push(target);
   writeRegistry(reg);
   return { added: true };
 }
