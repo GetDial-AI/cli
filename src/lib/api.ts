@@ -130,7 +130,7 @@ export async function apiPostMultipart<T>(
   apiKey?: string,
 ): Promise<ApiResult<T>> {
   const url = `${baseUrl()}${path}`;
-  const headers: Record<string, string> = applyRefParamsHeader({});
+  const headers: Record<string, string> = applyRefParamsHeader({ "user-agent": USER_AGENT });
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
   try {
     const res = await undiciFetch(url, { method: "POST", headers, body: form });
