@@ -198,10 +198,14 @@ describe("ops/messages", () => {
   it("sendMessage with a local file sends multipart with file bytes and mediaUrls parts", async () => {
     const filePath = join(tmp, "pic.png");
     writeFileSync(filePath, Buffer.from("png-bytes"));
-    let seen: { contentType?: string; body?: string } = {};
+    let seen: { contentType?: string; userAgent?: string; body?: string } = {};
     api = await startMockApi((m, u, body, headers) => {
       if (m === "POST" && u === "/api/v1/messages") {
-        seen = { contentType: String(headers?.["content-type"] ?? ""), body };
+        seen = {
+          contentType: String(headers?.["content-type"] ?? ""),
+          userAgent: String(headers?.["user-agent"] ?? ""),
+          body,
+        };
         return {
           status: 201,
           json: {
@@ -232,6 +236,7 @@ describe("ops/messages", () => {
       media: [filePath, "https://cdn.example.com/b.jpg"],
     });
     assert.match(seen.contentType ?? "", /multipart\/form-data/);
+    assert.match(seen.userAgent ?? "", /^@getdial\/cli\//);
     const raw = seen.body ?? "";
     assert.match(raw, /name="media"; filename="pic\.png"/);
     assert.match(raw, /Content-Type: image\/png/);
