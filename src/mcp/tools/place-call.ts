@@ -59,7 +59,9 @@ export const placeCallTool: ToolModule = {
     title: "Place AI Voice Call",
     description:
       "Place an outbound voice call handled by an AI agent. The call runs asynchronously — " +
-      "use wait_for_event to block until it ends, then get_call for the transcript.",
+      "use wait_for_event to block until it ends, then get_call for the transcript. " +
+      "Free accounts (no top-up or subscription yet) are capped at 5 minutes per call and " +
+      "2 concurrent calls (429 call_limit_reached); both limits lift on the first top-up or subscription.",
     inputSchema,
     outputSchema: {
       call: callSchema,
