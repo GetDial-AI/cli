@@ -44,6 +44,23 @@ export const phoneNumberSchema = z
       .describe(
         "BCP-47 language tag inbound calls are pinned to; null → detected from the caller's country prefix per call",
       ),
+    firstName: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("iMessage display first name; null on numbers without iMessage"),
+    lastName: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("iMessage display last name; null on numbers without iMessage"),
+    avatarUrl: z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        "URL of the number's iMessage avatar photo; null when unset or not an iMessage number",
+      ),
   })
   .passthrough();
 

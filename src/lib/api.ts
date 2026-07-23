@@ -129,11 +129,32 @@ export async function apiPostMultipart<T>(
   form: UndiciFormData,
   apiKey?: string,
 ): Promise<ApiResult<T>> {
+  return sendMultipart<T>("POST", path, form, apiKey);
+}
+
+/** PATCH a multipart/form-data body (e.g. a number's avatar upload). fetch sets the boundary header itself. */
+export async function apiPatchMultipart<T>(
+  path: string,
+  form: UndiciFormData,
+  apiKey?: string,
+): Promise<ApiResult<T>> {
+  return sendMultipart<T>("PATCH", path, form, apiKey);
+}
+
+async function sendMultipart<T>(
+  method: "POST" | "PATCH",
+  path: string,
+  form: UndiciFormData,
+  apiKey?: string,
+): Promise<ApiResult<T>> {
   const url = `${baseUrl()}${path}`;
+  // No content-type here on purpose: undici's fetch sets the multipart boundary.
+  // The user-agent must still be set (server request logs key off it — the
+  // POST path once regressed by dropping it, see the git history).
   const headers: Record<string, string> = applyRefParamsHeader({ "user-agent": USER_AGENT });
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
   try {
-    const res = await undiciFetch(url, { method: "POST", headers, body: form });
+    const res = await undiciFetch(url, { method, headers, body: form });
     return toResult<T>(res.status, await res.text());
   } catch (err) {
     return { ok: false, status: 0, error: err instanceof Error ? err.message : String(err) };
