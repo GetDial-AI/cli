@@ -37,6 +37,25 @@ const inputSchema = {
     .describe(
       "Call duration cap for this number, in seconds, applied as a hard ceiling to both inbound and outbound calls (the smallest of the per-number, account, and per-call caps wins). Pass null to clear the cap; omit to leave it unchanged.",
     ),
+  firstName: z
+    .string()
+    .max(30)
+    .optional()
+    .describe(
+      "iMessage display first name shown beside this number's messages in recipients' Messages apps. iMessage numbers only. Pass an empty string to clear it.",
+    ),
+  lastName: z
+    .string()
+    .max(30)
+    .optional()
+    .describe("iMessage display last name. iMessage numbers only. Pass an empty string to clear it."),
+  avatarUrl: z
+    .string()
+    .url()
+    .optional()
+    .describe(
+      "Public image URL to set as the number's iMessage avatar photo (the server downloads it). jpeg/png/gif/webp, max 5 MB. iMessage numbers only. The photo can be replaced but not removed.",
+    ),
 };
 
 export const setNumberPropertiesTool: ToolModule = {
@@ -44,7 +63,7 @@ export const setNumberPropertiesTool: ToolModule = {
   config: {
     title: "Set Number Properties",
     description:
-      "Update a phone number's properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, and/or its nickname. Provide at least one.",
+      "Update a phone number's properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, and — for iMessage numbers — its display identity (firstName, lastName, avatarUrl shown beside its messages). Provide at least one.",
     inputSchema,
     outputSchema: { number: phoneNumberSchema },
     annotations: { openWorldHint: true },
@@ -64,6 +83,9 @@ export const setNumberPropertiesTool: ToolModule = {
         ...(args.maxCallDurationSeconds !== undefined
           ? { maxCallDurationSeconds: args.maxCallDurationSeconds as number | null }
           : {}),
+        ...(args.firstName !== undefined ? { firstName: args.firstName as string } : {}),
+        ...(args.lastName !== undefined ? { lastName: args.lastName as string } : {}),
+        ...(args.avatarUrl !== undefined ? { avatar: args.avatarUrl as string } : {}),
       }),
     }),
 };

@@ -218,6 +218,18 @@ number
     },
   )
   .option("--clear-max-call-duration", "remove the per-number call duration cap")
+  .option(
+    "--first-name <text>",
+    'iMessage display first name shown beside this number\'s messages (iMessage numbers only); pass "" to clear',
+  )
+  .option(
+    "--last-name <text>",
+    'iMessage display last name (iMessage numbers only); pass "" to clear',
+  )
+  .option(
+    "--avatar <path-or-url>",
+    "iMessage avatar photo (iMessage numbers only): a local image file (jpeg/png/gif/webp, max 5 MB) to upload, or a public image URL to fetch. Replaces the current photo; photos can't be removed",
+  )
   .option("--json", "machine-readable output")
   .action(async (numberArg: string, opts) => {
     let maxCallDurationSeconds: number | null | undefined;
@@ -234,6 +246,9 @@ number
         inboundLanguage: opts.inboundLanguage,
         nickname: opts.nickname,
         maxCallDurationSeconds,
+        firstName: opts.firstName,
+        lastName: opts.lastName,
+        avatar: opts.avatar,
         json: !!opts.json,
       }),
     );

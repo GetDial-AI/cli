@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeAuth } from "../state.ts";
@@ -192,6 +192,97 @@ describe("ops/numbers", () => {
     signIn();
     await setNumberProperties({ number: "+15550000", maxCallDurationSeconds: null });
     assert.deepEqual(JSON.parse(patchBody), { maxCallDurationSeconds: null });
+  });
+
+  it("setNumberProperties sends display-identity names in the JSON body (empty string clears)", async () => {
+    let patchBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        return {
+          status: 200,
+          json: { number: { id: "pn_1", number: "+15550000", country: "US", firstName: "Maya", lastName: null } },
+        };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    const n = await setNumberProperties({ number: "+15550000", firstName: "Maya", lastName: "" });
+    assert.deepEqual(JSON.parse(patchBody), { firstName: "Maya", lastName: "" });
+    assert.equal(n.firstName, "Maya");
+  });
+
+  it("setNumberProperties sends an http(s) avatar as avatarUrl in JSON", async () => {
+    let patchBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        return {
+          status: 200,
+          json: { number: { id: "pn_1", number: "+15550000", country: "US", avatarUrl: "https://getdial.ai/public-media/x.png" } },
+        };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    const n = await setNumberProperties({ number: "+15550000", avatar: "https://cdn.example.com/a.png" });
+    assert.deepEqual(JSON.parse(patchBody), { avatarUrl: "https://cdn.example.com/a.png" });
+    assert.ok(n.avatarUrl);
+  });
+
+  it("setNumberProperties uploads a local avatar file as a multipart PATCH with the other fields as text parts", async () => {
+    const png = Buffer.from("89504e470d0a1a0a", "hex");
+    const avatarPath = join(tmp, "avatar.png");
+    writeFileSync(avatarPath, png);
+    let patchBody = "";
+    let patchContentType = "";
+    api = await startMockApi((m, u, body, headers) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        patchContentType = String(headers?.["content-type"] ?? "");
+        return {
+          status: 200,
+          json: { number: { id: "pn_1", number: "+15550000", country: "US", firstName: "Maya" } },
+        };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    await setNumberProperties({ number: "+15550000", firstName: "Maya", avatar: avatarPath });
+    assert.match(patchContentType, /^multipart\/form-data; boundary=/);
+    assert.match(patchBody, /name="firstName"[\s\S]*Maya/, "firstName travels as a text part");
+    assert.match(patchBody, /name="avatar"; filename="avatar\.png"/, "the file part is named avatar");
+    assert.match(patchBody, /Content-Type: image\/png/i, "the part declares its image type");
+  });
+
+  it("setNumberProperties rejects an unsupported avatar file extension without hitting the API", async () => {
+    signIn();
+    const badPath = join(tmp, "avatar.tiff");
+    writeFileSync(badPath, "x");
+    try {
+      await setNumberProperties({ number: "+15550000", avatar: badPath });
+      assert.fail("expected throw");
+    } catch (e) {
+      assert.ok(isDialError(e) && e.code === "unsupported_avatar");
+    }
   });
 
   it("purchaseNumber throws purchase_failed on non-2xx", async () => {
