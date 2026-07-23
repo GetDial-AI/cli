@@ -18,7 +18,7 @@ Or use the bootstrap script, which installs the CLI and walks you through sign-u
 curl -fsSL https://getdial.ai/install | bash
 ```
 
-Requires **Node.js 22+**.
+Requires **Node.js 22.19+**.
 
 ## Quick start
 
