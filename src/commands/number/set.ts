@@ -55,7 +55,9 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       console.log(`  inbound language:      ${n.inboundLanguage ?? ""}`);
       const hasIdentity = n.firstName != null || n.lastName != null || n.avatarUrl != null;
       if (hasIdentity) {
-        console.log(`  display name:          ${[n.firstName, n.lastName].filter(Boolean).join(" ")}`);
+        console.log(
+          `  display name:          ${[n.firstName, n.lastName].filter(Boolean).join(" ")}`,
+        );
         console.log(`  avatar:                ${n.avatarUrl ?? ""}`);
       }
     }

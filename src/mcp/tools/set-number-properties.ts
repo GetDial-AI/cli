@@ -48,7 +48,9 @@ const inputSchema = {
     .string()
     .max(30)
     .optional()
-    .describe("iMessage display last name. iMessage numbers only. Pass an empty string to clear it."),
+    .describe(
+      "iMessage display last name. iMessage numbers only. Pass an empty string to clear it.",
+    ),
   avatarUrl: z
     .string()
     .url()

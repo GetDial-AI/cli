@@ -206,7 +206,15 @@ describe("ops/numbers", () => {
         patchBody = body;
         return {
           status: 200,
-          json: { number: { id: "pn_1", number: "+15550000", country: "US", firstName: "Maya", lastName: null } },
+          json: {
+            number: {
+              id: "pn_1",
+              number: "+15550000",
+              country: "US",
+              firstName: "Maya",
+              lastName: null,
+            },
+          },
         };
       }
       return undefined;
@@ -230,14 +238,24 @@ describe("ops/numbers", () => {
         patchBody = body;
         return {
           status: 200,
-          json: { number: { id: "pn_1", number: "+15550000", country: "US", avatarUrl: "https://getdial.ai/public-media/x.png" } },
+          json: {
+            number: {
+              id: "pn_1",
+              number: "+15550000",
+              country: "US",
+              avatarUrl: "https://getdial.ai/public-media/x.png",
+            },
+          },
         };
       }
       return undefined;
     });
     process.env.DIAL_API_URL = api.url;
     signIn();
-    const n = await setNumberProperties({ number: "+15550000", avatar: "https://cdn.example.com/a.png" });
+    const n = await setNumberProperties({
+      number: "+15550000",
+      avatar: "https://cdn.example.com/a.png",
+    });
     assert.deepEqual(JSON.parse(patchBody), { avatarUrl: "https://cdn.example.com/a.png" });
     assert.ok(n.avatarUrl);
   });
@@ -269,7 +287,11 @@ describe("ops/numbers", () => {
     await setNumberProperties({ number: "+15550000", firstName: "Maya", avatar: avatarPath });
     assert.match(patchContentType, /^multipart\/form-data; boundary=/);
     assert.match(patchBody, /name="firstName"[\s\S]*Maya/, "firstName travels as a text part");
-    assert.match(patchBody, /name="avatar"; filename="avatar\.png"/, "the file part is named avatar");
+    assert.match(
+      patchBody,
+      /name="avatar"; filename="avatar\.png"/,
+      "the file part is named avatar",
+    );
     assert.match(patchBody, /Content-Type: image\/png/i, "the part declares its image type");
   });
 

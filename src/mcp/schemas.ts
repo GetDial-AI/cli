@@ -58,7 +58,9 @@ export const phoneNumberSchema = z
       .string()
       .nullable()
       .optional()
-      .describe("URL of the number's iMessage avatar photo; null when unset or not an iMessage number"),
+      .describe(
+        "URL of the number's iMessage avatar photo; null when unset or not an iMessage number",
+      ),
   })
   .passthrough();
 

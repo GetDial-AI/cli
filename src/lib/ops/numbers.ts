@@ -1,6 +1,13 @@
 import { readFileSync } from "node:fs";
 import { basename, extname } from "node:path";
-import { apiGet, apiPost, apiPatch, apiPatchMultipart, ApiFormData, type ApiResult } from "../api.ts";
+import {
+  apiGet,
+  apiPost,
+  apiPatch,
+  apiPatchMultipart,
+  ApiFormData,
+  type ApiResult,
+} from "../api.ts";
 import { maybeAuth } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
