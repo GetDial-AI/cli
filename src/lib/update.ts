@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -64,10 +64,20 @@ export function shouldAutoUpdate(input: {
 }
 
 /** Prefers the npm sitting next to the running node, like resolveListenCommand does for npx. */
-export function npmUpdateCommand(): { command: string; args: string[] } {
-  const sibling = join(dirname(process.execPath), "npm");
+export function npmUpdateCommand(
+  options: {
+    platform?: NodeJS.Platform;
+    execPath?: string;
+    pathExists?: (path: string) => boolean;
+  } = {},
+): { command: string; args: string[] } {
+  const platform = options.platform ?? process.platform;
+  const execPath = options.execPath ?? process.execPath;
+  const pathExists = options.pathExists ?? existsSync;
+  const binName = platform === "win32" ? "npm.cmd" : "npm";
+  const sibling = join(dirname(execPath), binName);
   return {
-    command: existsSync(sibling) ? sibling : "npm",
+    command: pathExists(sibling) ? sibling : binName,
     args: ["install", "-g", "@getdial/cli@latest"],
   };
 }
@@ -105,13 +115,31 @@ function logUpdateFailure(context: string, err: unknown): void {
 }
 
 /** Spawns the npm update fully detached, stdio appended to cli.log. Never throws. */
-export function spawnDetachedUpdate(): void {
+export function spawnDetachedUpdate(
+  options: {
+    platform?: NodeJS.Platform;
+    spawn?: typeof spawn;
+    updateCommand?: typeof npmUpdateCommand;
+  } = {},
+): void {
   try {
     const p = paths();
     mkdirSync(p.stateDir, { recursive: true });
     const fd = openSync(p.cliLog, "a");
-    const { command, args } = npmUpdateCommand();
-    const child = spawn(command, args, { detached: true, stdio: ["ignore", fd, fd] });
+    const { command, args } = (options.updateCommand ?? npmUpdateCommand)();
+    const platform = options.platform ?? process.platform;
+    const spawnProcess = options.spawn ?? spawn;
+    const spawnOptions: SpawnOptions = {
+      detached: true,
+      stdio: ["ignore", fd, fd],
+    };
+    // CreateProcess cannot execute .cmd files directly. Passing a complete,
+    // fixed command line avoids Node's deprecated shell + args combination.
+    const child: ChildProcess =
+      platform === "win32"
+        ? spawnProcess(`"${command}" ${args.join(" ")}`, { ...spawnOptions, shell: true })
+        : spawnProcess(command, args, spawnOptions);
+    child.once("error", (err) => logUpdateFailure("spawn", err));
     child.unref();
     closeSync(fd);
   } catch (err) {
