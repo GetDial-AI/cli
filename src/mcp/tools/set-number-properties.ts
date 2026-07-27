@@ -35,7 +35,7 @@ const inputSchema = {
     .nullable()
     .optional()
     .describe(
-      "Call duration cap for this number, in seconds, applied as a hard ceiling to both inbound and outbound calls (the smallest of the per-number, account, and per-call caps wins). Pass null to clear the cap; omit to leave it unchanged.",
+      "Call duration cap for this number, in seconds, applied as a hard ceiling to both inbound and outbound calls (the smallest of the per-number, account, and per-call caps wins). On a free account (no top-up or subscription yet) a value above 300 is rejected with 400. Pass null to clear the cap; omit to leave it unchanged.",
     ),
   firstName: z
     .string()
