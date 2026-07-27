@@ -49,7 +49,7 @@ const inputSchema = {
     .positive()
     .optional()
     .describe(
-      "Maximum call duration cap (seconds); the call is terminated when this limit is reached",
+      "Maximum call duration cap (seconds); the call is terminated when this limit is reached. On a free account (no top-up or subscription yet) a value above 300 is rejected with 400, not shortened",
     ),
 };
 
