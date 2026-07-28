@@ -38,8 +38,16 @@ describe("applyRefParamsHeader", () => {
     );
   });
 
-  it("adds no header when ref-params.txt is absent", () => {
+  it("still adds the header when ref-params.txt is absent, carrying a minted id", () => {
+    // Behavior change: this used to assert NO header. An unattributed install
+    // (`npm install -g`) now mints its own dial_attribution_id on the first API
+    // call, so every request carries the header and no machine is invisible.
     const headers = applyRefParamsHeader({ "user-agent": "@getdial/cli/1.2.3" });
-    assert.equal("x-dial-ref-params" in headers, false);
+    assert.equal(headers["user-agent"], "@getdial/cli/1.2.3");
+    assert.ok(headers["x-dial-ref-params"]);
+    const text = Buffer.from(headers["x-dial-ref-params"], "base64").toString("utf8");
+    assert.match(text, /^dial_attribution_id=.+$/m);
+    // Only the id — there were no ref params to carry.
+    assert.equal(text.trim().split("\n").length, 1);
   });
 });
