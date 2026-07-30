@@ -16,13 +16,19 @@ describe("dashboardUrl", () => {
   });
 
   it("preserves a host with no api. label", () => {
-    assert.equal(dashboardUrl("https://staging.getdial.ai"), "https://staging.getdial.ai/dashboard");
+    assert.equal(
+      dashboardUrl("https://staging.getdial.ai"),
+      "https://staging.getdial.ai/dashboard",
+    );
   });
 
   it("only strips a leading api. LABEL, never a substring", () => {
     // "apiary" starts with "api" but its first label is not "api" — stripping by
     // substring would mangle the host into "ary.example.com".
-    assert.equal(dashboardUrl("https://apiary.example.com"), "https://apiary.example.com/dashboard");
+    assert.equal(
+      dashboardUrl("https://apiary.example.com"),
+      "https://apiary.example.com/dashboard",
+    );
   });
 });
 

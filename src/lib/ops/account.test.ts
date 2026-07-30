@@ -75,7 +75,12 @@ describe("ops/account", () => {
   it("onboard returns the dashboard URL and the pending signup's email", async () => {
     api = await startMockApi(() => ({
       status: 200,
-      json: { accountId: "acct_1", apiKey: "sk_live_abcd", phoneNumber: "+15550000000", phoneNumberId: "pn_1" },
+      json: {
+        accountId: "acct_1",
+        apiKey: "sk_live_abcd",
+        phoneNumber: "+15550000000",
+        phoneNumberId: "pn_1",
+      },
     }));
     process.env.DIAL_API_URL = api.url;
     writePendingSignup({
