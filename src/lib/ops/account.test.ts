@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writePendingSignup } from "../state.ts";
 import { startMockApi } from "../../test-utils.ts";
-import { signup, accountStatus } from "./account.ts";
+import { signup, accountStatus, onboard } from "./account.ts";
+import { dashboardUrl } from "../dashboard.ts";
 import { isDialError } from "./errors.ts";
 import { resetSandboxCacheForTests } from "../sandbox.ts";
 
@@ -69,5 +70,40 @@ describe("ops/account", () => {
     assert.equal(report.sandbox, true);
     assert.equal(report.auth.keyValid, false);
     assert.equal(report.nextStep, "connect_credential");
+  });
+
+  it("onboard returns the dashboard URL and the pending signup's email", async () => {
+    api = await startMockApi(() => ({
+      status: 200,
+      json: { accountId: "acct_1", apiKey: "sk_live_abcd", phoneNumber: "+15550000000", phoneNumberId: "pn_1" },
+    }));
+    process.env.DIAL_API_URL = api.url;
+    writePendingSignup({
+      verificationId: "v1",
+      email: "you@example.com",
+      createdAt: new Date().toISOString(),
+    });
+
+    const result = await onboard({ code: "123456" });
+
+    // Derived from the base rather than hardcoded, so pointing the CLI at another
+    // deployment moves the dashboard with it.
+    assert.equal(result.dashboardUrl, dashboardUrl(api.url));
+    assert.equal(result.email, "you@example.com");
+  });
+
+  it("onboard reports a null email when it never saw the signup address", async () => {
+    api = await startMockApi(() => ({
+      status: 200,
+      json: { accountId: "acct_1", apiKey: "sk_live_abcd", phoneNumber: null, phoneNumberId: null },
+    }));
+    process.env.DIAL_API_URL = api.url;
+
+    // An explicit --verification-id with no pending signup on this machine: the
+    // address lives only in the user's inbox, so the hint must not invent one.
+    const result = await onboard({ code: "123456", verificationId: "v-explicit" });
+
+    assert.equal(result.email, null);
+    assert.equal(result.dashboardUrl, dashboardUrl(api.url));
   });
 });

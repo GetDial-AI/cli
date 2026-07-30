@@ -7,6 +7,7 @@ import {
   authFilePath,
 } from "../state.ts";
 import { apiGet, apiPost, baseUrl, pingBackend } from "../api.ts";
+import { dashboardUrl } from "../dashboard.ts";
 import {
   supervisorStatus,
   lastEventAtFromLog,
@@ -196,8 +197,16 @@ export type OnboardResult = {
   apiKeyFingerprint: string;
   apiKeyPath: string;
   accountId: string;
+  /**
+   * The address that signs in to the dashboard. Null when the caller passed an
+   * explicit --verification-id and this machine never saw the signup, so the
+   * address exists only in the user's inbox.
+   */
+  email: string | null;
   phoneNumber: string | null;
   phoneNumberId: string | null;
+  /** Where to manage the account in a browser, for the closing hint. */
+  dashboardUrl: string;
   skills: Array<InstallResult | { agent: string; error: string }>;
   supervisor: SupervisorAvailability;
 };
@@ -260,8 +269,10 @@ export async function onboard(opts: OnboardInput): Promise<OnboardResult> {
     apiKeyFingerprint: apiKey.slice(-4),
     apiKeyPath: authFilePath(),
     accountId: res.data.accountId,
+    email,
     phoneNumber: res.data.phoneNumber ?? null,
     phoneNumberId: res.data.phoneNumberId ?? null,
+    dashboardUrl: dashboardUrl(baseUrl()),
     skills,
     supervisor: supervisorAvailability(),
   };
