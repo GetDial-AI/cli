@@ -1,8 +1,9 @@
+import { EventEmitter } from "node:events";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   AUTO_UPDATE_EXEMPT_COMMANDS,
   AUTO_UPDATE_INTERVAL_MS,
@@ -11,6 +12,7 @@ import {
   npmUpdateCommand,
   recordUpdateAttempt,
   shouldAutoUpdate,
+  spawnDetachedUpdate,
   updateCheckDue,
 } from "./update.ts";
 import { VERSION } from "./version.ts";
@@ -37,7 +39,7 @@ describe("update", () => {
 
     it("flags a global npm install by its package path", () => {
       assert.equal(
-        detectInstallKind("/usr/local/lib/node_modules/@getdial/cli/dist/cli.js"),
+        detectInstallKind(join("usr", "local", "lib", "node_modules", "@getdial", "cli", "dist")),
         "global-npm",
       );
     });
@@ -74,7 +76,7 @@ describe("update", () => {
   });
 
   describe("shouldAutoUpdate", () => {
-    const globalScript = "/usr/local/lib/node_modules/@getdial/cli/dist/cli.js";
+    const globalScript = join("usr", "local", "lib", "node_modules", "@getdial", "cli", "dist");
     const base = { command: "doctor", scriptPath: globalScript, env: {}, now: new Date() };
 
     it("updates an eligible global install", () => {
@@ -109,10 +111,85 @@ describe("update", () => {
     });
   });
 
-  it("npmUpdateCommand targets @getdial/cli@latest globally", () => {
-    const { command, args } = npmUpdateCommand();
-    assert.match(command, /npm/);
-    assert.deepEqual(args, ["install", "-g", "@getdial/cli@latest"]);
+  describe("npmUpdateCommand", () => {
+    it("uses npm.cmd on Windows when npm is not beside node", () => {
+      const { command, args } = npmUpdateCommand({
+        platform: "win32",
+        execPath: join("node", "bin", "node.exe"),
+        pathExists: () => false,
+      });
+      assert.equal(command, "npm.cmd");
+      assert.deepEqual(args, ["install", "-g", "@getdial/cli@latest"]);
+    });
+
+    it("uses npm on other platforms when npm is not beside node", () => {
+      const { command } = npmUpdateCommand({
+        platform: "linux",
+        execPath: join("node", "bin", "node"),
+        pathExists: () => false,
+      });
+      assert.equal(command, "npm");
+    });
+
+    it("prefers the platform-specific npm executable beside node", () => {
+      const execPath = join("node", "bin", "node.exe");
+      const sibling = join(dirname(execPath), "npm.cmd");
+      const { command } = npmUpdateCommand({
+        platform: "win32",
+        execPath,
+        pathExists: (path) => path === sibling,
+      });
+      assert.equal(command, sibling);
+    });
+  });
+
+  it("launches npm.cmd through the Windows command processor", () => {
+    const child = new EventEmitter() as EventEmitter & { unref: () => void };
+    child.unref = () => {};
+    let invocation: unknown[] = [];
+
+    spawnDetachedUpdate({
+      platform: "win32",
+      spawn: ((...args: unknown[]) => {
+        invocation = args;
+        return child;
+      }) as unknown as typeof import("node:child_process").spawn,
+      updateCommand: () => ({
+        command: String.raw`C:\Program Files\nodejs\npm.cmd`,
+        args: ["install", "-g", "@getdial/cli@latest"],
+      }),
+    });
+
+    assert.equal(
+      invocation[0],
+      String.raw`"C:\Program Files\nodejs\npm.cmd" install -g @getdial/cli@latest`,
+    );
+    const spawnOptions = invocation[1] as {
+      detached: boolean;
+      shell: boolean;
+      stdio: [string, number, number];
+    };
+    assert.equal(spawnOptions.detached, true);
+    assert.equal(spawnOptions.shell, true);
+    assert.equal(spawnOptions.stdio[0], "ignore");
+    assert.equal(typeof spawnOptions.stdio[1], "number");
+    assert.equal(spawnOptions.stdio[1], spawnOptions.stdio[2]);
+  });
+
+  it("logs errors emitted asynchronously by the detached update process", () => {
+    const child = new EventEmitter() as EventEmitter & { unref: () => void };
+    child.unref = () => {};
+
+    spawnDetachedUpdate({
+      spawn: (() => child) as unknown as typeof import("node:child_process").spawn,
+      updateCommand: () => ({ command: "missing-npm", args: [] }),
+    });
+
+    assert.doesNotThrow(() => child.emit("error", new Error("spawn missing-npm ENOENT")));
+    const log = readFileSync(join(tmp, ".local/state/dial/cli.log"), "utf8");
+    assert.match(log, /"source":"auto-update"/);
+    assert.match(log, /"context":"spawn"/);
+    assert.match(log, /spawn missing-npm ENOENT/);
   });
 
   it("installedVersion reads the package.json on disk and matches VERSION here", () => {
