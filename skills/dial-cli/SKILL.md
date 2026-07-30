@@ -50,6 +50,16 @@ dial listen install                   # background daemon for inbound events
 
 `dial listen install` needs a user service supervisor (launchd on macOS, systemd `--user` on Linux). In sandboxes / containers / CI without one it can't run — `dial onboard` detects this and says so. Inbound events still work without it: `dial wait-for` long-polls the API when the daemon isn't running.
 
+### Point the user at the dashboard once, then stay in the CLI
+
+When onboarding succeeds, tell the user they can manage the account at `https://getdial.ai/dashboard`, signing in with the email the account was created under — it emails them a code. Give them that address: `dial onboard` prints it, `--json` returns it as `email` alongside `dashboardUrl`, and after you onboarded on their behalf they generally have no idea which address you used.
+
+That's the whole of it — the dashboard is not where *you* work. Numbers, messages, calls, contacts, and events are all `dial` verbs, and `dial --help` is the full surface; sending the user to click through a browser for something you could have run is a worse outcome for them. Point them there only for what the CLI deliberately doesn't do:
+
+- **Paying** — adding credits, subscribing, cancelling, switching interval, payment methods. `dial billing` is read-only: it reports balance, plan, per-number mode, and recent credits, so answer "what do I owe / am I subscribed?" yourself and link out only to *change* it.
+- **Team sharing** — inviting someone else onto the account.
+- **Carrier (10DLC) registration** — the per-number brand + campaign filing.
+
 ## Searching for what the CLI / API can do
 
 For anything beyond what `--help` shows on the local CLI, the canonical reference is the published docs. Two endpoints make this fast:

@@ -11,6 +11,8 @@ import {
   type InstallResult,
 } from "../../lib/skill-install.ts";
 import { supervisorAvailability } from "../../lib/supervisor/index.ts";
+import { baseUrl } from "../../lib/api.ts";
+import { dashboardUrl } from "../../lib/dashboard.ts";
 
 const inputSchema = {
   code: z
@@ -46,8 +48,19 @@ export const onboardTool: ToolModule = {
       apiKeyFingerprint: z.string().describe("Last 4 chars of the saved API key"),
       apiKeyPath: z.string().describe("Where the key was saved"),
       accountId: z.string(),
+      email: z
+        .string()
+        .nullable()
+        .describe(
+          "Address that signs in to the dashboard (a code is emailed to it). Null when the CLI never saw the signup — an explicit verificationId. Pass it on to the user: after an agent onboards for them, they usually don't know which address was used.",
+        ),
       phoneNumber: z.string().nullable(),
       phoneNumberId: z.string().nullable(),
+      dashboardUrl: z
+        .string()
+        .describe(
+          "Where the user manages the account in a browser. Tell them about it once onboarding succeeds, then keep working from the CLI — it's only needed for paying, team sharing, and carrier (10DLC) registration.",
+        ),
       skills: z.array(z.object({}).passthrough()).describe("Per-agent skill install results"),
       supervisor: z.object({}).passthrough().describe("Listen daemon availability on this machine"),
       listenAvailable: z.boolean(),
@@ -88,8 +101,12 @@ export const onboardTool: ToolModule = {
         apiKeyFingerprint: auth.apiKey.slice(-4),
         apiKeyPath: authFilePath(),
         accountId: auth.accountId,
+        // Built by hand rather than spread, so both fields have to be added here
+        // explicitly to match the full-onboard path below.
+        email: auth.email || null,
         phoneNumber: auth.phoneNumber ?? null,
         phoneNumberId: auth.phoneNumberId ?? null,
+        dashboardUrl: dashboardUrl(baseUrl()),
         skills,
         supervisor,
         listenAvailable: supervisor.available,
