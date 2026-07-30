@@ -9,6 +9,8 @@ import {
   type InstallResult,
 } from "../lib/skill-install.ts";
 import { supervisorAvailability } from "../lib/supervisor/index.ts";
+import { baseUrl } from "../lib/api.ts";
+import { dashboardHint, dashboardUrl } from "../lib/dashboard.ts";
 
 function maskApiKey(key: string): string {
   return key.length >= 4 ? `sk_live_***${key.slice(-4)}` : "sk_live_***";
@@ -83,8 +85,10 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
           apiKeyMasked: maskApiKey(auth.apiKey),
           apiKeyPath: authFilePath(),
           accountId: auth.accountId,
+          email: auth.email || null,
           phoneNumber: auth.phoneNumber ?? null,
           phoneNumberId: auth.phoneNumberId ?? null,
+          dashboardUrl: dashboardUrl(baseUrl()),
           listen: {
             installed: false,
             autoInstalled: false,
@@ -109,6 +113,7 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
         else if (r.written) console.log(`  skill (${r.agent}):  installed → ${r.path}`);
         else if (r.unchanged) console.log(`  skill (${r.agent}):  already up to date → ${r.path}`);
       }
+      console.log(dashboardHint(dashboardUrl(baseUrl()), auth.email || null));
     }
     return 0;
   }
@@ -142,7 +147,8 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
     return 2;
   }
 
-  const { apiKey, accountId, phoneNumber, phoneNumberId, apiKeyPath, skills, supervisor } = result;
+  const { apiKey, accountId, email, phoneNumber, phoneNumberId, apiKeyPath, skills, supervisor } =
+    result;
   const masked = maskApiKey(apiKey);
 
   if (opts.json) {
@@ -153,8 +159,10 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
         apiKeyMasked: masked,
         apiKeyPath,
         accountId,
+        email,
         phoneNumber,
         phoneNumberId,
+        dashboardUrl: result.dashboardUrl,
         listen: {
           installed: false,
           autoInstalled: false,
@@ -195,6 +203,9 @@ export async function runOnboard(opts: OnboardOptions): Promise<number> {
         console.log(`  skill (${r.agent}):  already up to date → ${r.path}`);
       }
     }
+    // Part of the summary, deliberately above the finalization block so that
+    // block stays the last thing an agent reads.
+    console.log(dashboardHint(result.dashboardUrl, email));
     console.log(``);
     if (!supervisor.available) {
       console.log(`listen service: not available on this machine (${supervisor.reason}).`);

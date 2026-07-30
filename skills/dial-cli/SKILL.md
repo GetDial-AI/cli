@@ -50,6 +50,8 @@ dial listen install                   # background daemon for inbound events
 
 `dial listen install` needs a user service supervisor (launchd on macOS, systemd `--user` on Linux). In sandboxes / containers / CI without one it can't run — `dial onboard` detects this and says so. Inbound events still work without it: `dial wait-for` long-polls the API when the daemon isn't running.
 
+The account also has a web dashboard at `https://getdial.ai/dashboard` — `dial onboard` prints the link and which address signs in, so pass that along. Almost everything is a `dial` verb, though: only billing *changes* (`dial billing` reads), team sharing, and carrier (10DLC) registration need the browser.
+
 ## Searching for what the CLI / API can do
 
 For anything beyond what `--help` shows on the local CLI, the canonical reference is the published docs. Two endpoints make this fast:

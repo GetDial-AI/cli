@@ -12,6 +12,7 @@ import { replyToMessageTool } from "./tools/reply-to-message.ts";
 import { placeCallTool } from "./tools/place-call.ts";
 import { startTypingTool } from "./tools/start-typing.ts";
 import { stopTypingTool } from "./tools/stop-typing.ts";
+import { onboardTool } from "./tools/onboard.ts";
 
 // One tool per non-excluded `dial` command (`dial listen` worker + `dial mcp` itself excluded).
 const EXPECTED = [
@@ -67,6 +68,15 @@ describe("mcp tools", () => {
   it("is a superset of the remote MCP tool names", () => {
     const names = new Set(tools.map((t) => t.name));
     for (const r of REMOTE) assert.ok(names.has(r), `missing remote tool: ${r}`);
+  });
+
+  it("onboard declares dashboardUrl and email in its output schema", () => {
+    // The full-onboard path spreads OnboardResult, so both fields already flow
+    // through — but a field absent from the schema is invisible to the model
+    // reading it, which is the whole point of returning them.
+    const schema = onboardTool.config.outputSchema as z.ZodRawShape;
+    assert.ok("dashboardUrl" in schema, "dashboardUrl must be declared");
+    assert.ok("email" in schema, "email must be declared");
   });
 
   it("send_message accepts media-only sends, mediaUrls, and a forceAudioFile boolean", () => {
