@@ -6,8 +6,8 @@ import {
   EnvHttpProxyAgent,
 } from "undici";
 import { logger } from "./log.ts";
-import { VERSION } from "./version.ts";
 import { refParamsHeader } from "./ref-params.ts";
+import { userAgent } from "./user-agent.ts";
 
 // Route this package's undici requests through HTTP(S)_PROXY when one is set.
 // The `undici` npm package keeps its OWN global dispatcher, which — unlike
@@ -30,10 +30,6 @@ if (
 export { UndiciFormData as ApiFormData };
 
 const DEFAULT_BASE = "https://api.getdial.ai";
-
-// Identifies the CLI on every request, so server-side request logs attribute
-// provisioning (and everything else) to the client + version that made the call.
-const USER_AGENT = `@getdial/cli/${VERSION}`;
 
 export function baseUrl(): string {
   return process.env.DIAL_API_URL ?? DEFAULT_BASE;
@@ -106,7 +102,7 @@ async function apiRequest<T>(
   const url = `${baseUrl()}${path}`;
   const headers: Record<string, string> = applyRefParamsHeader({
     "content-type": "application/json",
-    "user-agent": USER_AGENT,
+    "user-agent": userAgent(),
     ...(extraHeaders ?? {}),
   });
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
@@ -151,7 +147,7 @@ async function sendMultipart<T>(
   // No content-type here on purpose: undici's fetch sets the multipart boundary.
   // The user-agent must still be set (server request logs key off it — the
   // POST path once regressed by dropping it, see the git history).
-  const headers: Record<string, string> = applyRefParamsHeader({ "user-agent": USER_AGENT });
+  const headers: Record<string, string> = applyRefParamsHeader({ "user-agent": userAgent() });
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
   try {
     const res = await undiciFetch(url, { method, headers, body: form });
