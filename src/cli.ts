@@ -92,7 +92,10 @@ if (!sandbox) {
   auth
     .command("register-number <phone>")
     .description("Text a verification code to the phone number that will own the account.")
-    .option("--registration-id <id>", "explicit registration id (falls back to local pending signup)")
+    .option(
+      "--registration-id <id>",
+      "explicit registration id (falls back to local pending signup)",
+    )
     .option("--json", "machine-readable output")
     .action(async (phone, opts) =>
       process.exit(
@@ -110,7 +113,10 @@ if (!sandbox) {
       "--code <code>",
       "the 6-digit OTP (omit if already signed in — the command just installs the --agent skill and skips verification)",
     )
-    .option("--number", "verify the SMS code for a registered phone number instead of the email code")
+    .option(
+      "--number",
+      "verify the SMS code for a registered phone number instead of the email code",
+    )
     .option(
       "--verification-id <id>",
       "explicit verification id for the email step (falls back to local pending signup)",

@@ -7,7 +7,7 @@ import {
 } from "../../lib/ops/account.ts";
 import { isDialError } from "../../lib/ops/errors.ts";
 import { readAuth, readPendingSignup, authFilePath } from "../../lib/state.ts";
-import { type InstallResult } from "../../lib/skill-install.ts";
+import type { InstallResult } from "../../lib/skill-install.ts";
 import { supervisorAvailability } from "../../lib/supervisor/index.ts";
 import { baseUrl } from "../../lib/api.ts";
 import { dashboardHint, dashboardUrl } from "../../lib/dashboard.ts";
@@ -267,7 +267,8 @@ export async function runAuthVerifyOtp(opts: AuthVerifyOtpOptions): Promise<numb
   if (opts.number) {
     if (!opts.code) {
       const message = "A --code is required with --number. Check the text message.";
-      if (opts.json) console.log(JSON.stringify({ ok: false, code: "code_required", error: message }));
+      if (opts.json)
+        console.log(JSON.stringify({ ok: false, code: "code_required", error: message }));
       else console.error(message);
       return 1;
     }
