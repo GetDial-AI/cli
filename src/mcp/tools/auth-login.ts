@@ -8,13 +8,14 @@ const inputSchema = {
   force: z.boolean().optional().describe("Overwrite an existing fresh pending signup"),
 };
 
-export const signUpTool: ToolModule = {
-  name: "sign_up",
+/** Mirrors `dial auth login`. */
+export const authLoginTool: ToolModule = {
+  name: "auth_login",
   config: {
-    title: "Sign Up",
+    title: "Auth Login",
     description:
-      "Request an email OTP for a Dial account. The code is emailed; finish with the onboard tool. " +
-      "Stores the pending verification locally.",
+      "Request an email OTP to create a Dial account or sign in. The code is emailed; submit it " +
+      "with the auth_verify_otp tool. Stores the pending verification locally.",
     inputSchema,
     outputSchema: {
       verificationId: z.string().describe("Pending verification id (also stored locally)"),

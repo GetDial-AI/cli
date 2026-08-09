@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ToolModule } from "../tool.ts";
 import { jsonResult } from "../result.ts";
-import { onboard } from "../../lib/ops/account.ts";
+import { onboard, verifyNumber } from "../../lib/ops/account.ts";
 import { readAuth, authFilePath } from "../../lib/state.ts";
 import {
   installSkill,
@@ -20,24 +20,31 @@ const inputSchema = {
     .min(1)
     .optional()
     .describe(
-      "6-digit OTP from the sign-up email. Omit if the account is already signed in — the tool will just install the requested --agent skills and skip verification.",
+      "The 6-digit OTP. Omit if the account is already signed in — the tool will just install the requested agent skills and skip verification.",
+    ),
+  number: z
+    .boolean()
+    .optional()
+    .describe(
+      "Set true to verify the SMS code sent by auth_register_number instead of the emailed code. This is the step that creates the account.",
     ),
   verificationId: z
     .string()
     .optional()
-    .describe("Explicit verification id (defaults to the local pending signup)"),
-  inboundInstruction: z
+    .describe("Explicit verification id for the email step (defaults to the local pending signup)"),
+  registrationId: z
     .string()
     .optional()
-    .describe("System prompt for inbound calls to a newly provisioned number (new accounts)"),
+    .describe("Explicit registration id for number: true (defaults to the local pending signup)"),
   agents: z
     .array(z.string())
     .optional()
     .describe("Agent names to install the Dial skill into (e.g. claude-code, cursor)"),
 };
 
-export const onboardTool: ToolModule = {
-  name: "onboard",
+/** Mirrors `dial auth verify-otp`. */
+export const authVerifyOtpTool: ToolModule = {
+  name: "auth_verify_otp",
   config: {
     title: "Onboard",
     description:
@@ -112,12 +119,31 @@ export const onboardTool: ToolModule = {
         listenAvailable: supervisor.available,
       });
     }
-    const r = await onboard({
-      code: args.code as string,
-      verificationId: args.verificationId as string | undefined,
-      inboundInstruction: args.inboundInstruction as string | undefined,
-      agents: args.agents as string[] | undefined,
-    });
+    // number: true is the SMS step, which creates the account.
+    const r = args.number
+      ? await verifyNumber({
+          code: args.code as string,
+          registrationId: args.registrationId as string | undefined,
+          agents: args.agents as string[] | undefined,
+        })
+      : await onboard({
+          code: args.code as string,
+          verificationId: args.verificationId as string | undefined,
+          agents: args.agents as string[] | undefined,
+        });
+
+    // The email step has two outcomes. A pending phone number means no account and
+    // no API key yet: report what remains rather than pretending onboarding is done.
+    if ("pendingPhone" in r && r.pendingPhone) {
+      return jsonResult({
+        pendingPhone: true,
+        registrationId: r.registrationId,
+        email: r.email,
+        skills: r.skills,
+        nextTool: "auth_register_number",
+        note: "The email is verified, but creating an account also requires a verified phone number. ASK THE USER for a phone number that can receive SMS, then call auth_register_number with it. No API key has been issued yet. The number is bound to the account permanently, and a Dial number cannot be used.",
+      });
+    }
     // Never surface the raw API key to the model; it's saved to disk for the CLI to read.
     const { apiKey: _omit, ...safe } = r;
     void _omit;

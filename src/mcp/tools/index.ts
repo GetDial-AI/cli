@@ -11,8 +11,9 @@ import { placeCallTool } from "./place-call.ts";
 import { listCallsTool } from "./list-calls.ts";
 import { getCallTool } from "./get-call.ts";
 import { getAccountStatusTool } from "./get-account-status.ts";
-import { signUpTool } from "./sign-up.ts";
-import { onboardTool } from "./onboard.ts";
+import { authLoginTool } from "./auth-login.ts";
+import { authVerifyOtpTool } from "./auth-verify-otp.ts";
+import { authRegisterNumberTool } from "./auth-register-number.ts";
 import { waitForEventTool } from "./wait-for-event.ts";
 import { addUrlTargetTool } from "./add-url-target.ts";
 import { addCommandTargetTool } from "./add-command-target.ts";
@@ -36,8 +37,9 @@ export const tools: ToolModule[] = [
   listCallsTool,
   getCallTool,
   getAccountStatusTool,
-  signUpTool,
-  onboardTool,
+  authLoginTool,
+  authRegisterNumberTool,
+  authVerifyOtpTool,
   waitForEventTool,
   addUrlTargetTool,
   addCommandTargetTool,

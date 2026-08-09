@@ -183,16 +183,34 @@ type VerifyResponse = {
   phoneNumber?: string | null;
   phoneNumberId?: string | null;
   message?: string;
+  /** Present INSTEAD of an account when the email is verified but signing up
+   *  still needs a verified phone number. */
+  registrationId?: string;
 };
 
 export type OnboardInput = {
   verificationId?: string;
   code: string;
-  inboundInstruction?: string;
   agents?: string[];
 };
 
+/**
+ * The email code was right, but no account exists yet: creating one also requires
+ * a verified phone number. Returned instead of an OnboardResult.
+ *
+ * Skills are still installed at this point — they are a LOCAL side effect needing
+ * no API key, and the installed skill is what teaches an agent the remaining
+ * steps, so installing it here is what lets the agent finish.
+ */
+export type PendingPhoneResult = {
+  pendingPhone: true;
+  registrationId: string;
+  email: string | null;
+  skills: Array<InstallResult | { agent: string; error: string }>;
+};
+
 export type OnboardResult = {
+  pendingPhone?: false;
   apiKey: string;
   apiKeyFingerprint: string;
   apiKeyPath: string;
@@ -211,7 +229,31 @@ export type OnboardResult = {
   supervisor: SupervisorAvailability;
 };
 
-export async function onboard(opts: OnboardInput): Promise<OnboardResult> {
+/** Install the Dial skill into each requested agent's config directory. A local
+ *  side effect: it writes files and needs no API key, so it runs whether or not
+ *  the signup has produced an account yet. */
+export function installAgentSkills(
+  agents: string[] | undefined,
+): Array<InstallResult | { agent: string; error: string }> {
+  const skills: Array<InstallResult | { agent: string; error: string }> = [];
+  for (const requested of agents ?? []) {
+    if (!isSupportedAgent(requested)) {
+      skills.push({
+        agent: requested,
+        error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.`,
+      });
+      continue;
+    }
+    try {
+      skills.push(installSkill(requested as AgentName));
+    } catch (err) {
+      skills.push({ agent: requested, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return skills;
+}
+
+export async function onboard(opts: OnboardInput): Promise<OnboardResult | PendingPhoneResult> {
   let verificationId = opts.verificationId;
   let email: string | null = null;
 
@@ -230,9 +272,27 @@ export async function onboard(opts: OnboardInput): Promise<OnboardResult> {
   const res = await apiPost<VerifyResponse>("/api/v1/auth/verify", {
     verificationId,
     code: opts.code,
-    ...(opts.inboundInstruction ? { inboundInstruction: opts.inboundInstruction } : {}),
   });
   if (!res.ok) throw new DialError("verify_failed", res.error, res.status);
+
+  // Two outcomes. A registrationId means the email is verified but the account
+  // needs a verified phone number first — no key is issued yet, so the authed side
+  // effects (saving it, offering the listen service) have nothing to do.
+  if (res.data.registrationId) {
+    const pending = readPendingSignup();
+    writePendingSignup({
+      verificationId,
+      email: email ?? pending?.email ?? "",
+      createdAt: pending?.createdAt ?? new Date().toISOString(),
+      registrationId: res.data.registrationId,
+    });
+    return {
+      pendingPhone: true,
+      registrationId: res.data.registrationId,
+      email: email ?? pending?.email ?? null,
+      skills: installAgentSkills(opts.agents),
+    };
+  }
 
   const apiKey = res.data.apiKey ?? null;
   if (!apiKey || !res.data.accountId) {
@@ -248,21 +308,7 @@ export async function onboard(opts: OnboardInput): Promise<OnboardResult> {
   });
   clearPendingSignup();
 
-  const skills: Array<InstallResult | { agent: string; error: string }> = [];
-  for (const requested of opts.agents ?? []) {
-    if (!isSupportedAgent(requested)) {
-      skills.push({
-        agent: requested,
-        error: `unknown agent "${requested}". Supported: ${SUPPORTED_AGENTS.join(", ")}.`,
-      });
-      continue;
-    }
-    try {
-      skills.push(installSkill(requested as AgentName));
-    } catch (err) {
-      skills.push({ agent: requested, error: err instanceof Error ? err.message : String(err) });
-    }
-  }
+  const skills = installAgentSkills(opts.agents);
 
   return {
     apiKey,
@@ -274,6 +320,94 @@ export async function onboard(opts: OnboardInput): Promise<OnboardResult> {
     phoneNumberId: res.data.phoneNumberId ?? null,
     dashboardUrl: dashboardUrl(baseUrl()),
     skills,
+    supervisor: supervisorAvailability(),
+  };
+}
+
+// ── Phone verification ───────────────────────────────────────────────────────
+
+/**
+ * Send a verification code to the phone number that will own the account.
+ *
+ * The number is passed through as typed: the server canonicalizes it and returns
+ * the E.164 form, which is what we store and display. Deliberately no local
+ * validation — libphonenumber throws under the CLI's test loader, and duplicating
+ * the rule would only let the two disagree.
+ */
+export async function registerNumber(opts: {
+  registrationId?: string;
+  phoneNumber: string;
+}): Promise<{ registrationId: string; phoneNumber: string }> {
+  const registrationId = opts.registrationId ?? readPendingSignup()?.registrationId;
+  if (!registrationId) {
+    throw new DialError(
+      "no_pending_registration",
+      "No signup awaiting a phone number. Run `dial auth login <email>` and `dial auth verify-otp --code <code>` first.",
+    );
+  }
+
+  const res = await apiPost<{ registrationId: string; phoneNumber: string; status: string }>(
+    "/api/v1/auth/register-number",
+    { registrationId, phoneNumber: opts.phoneNumber },
+  );
+  if (!res.ok) throw new DialError("register_number_failed", res.error, res.status);
+
+  const pending = readPendingSignup();
+  if (pending) {
+    writePendingSignup({ ...pending, registrationId, ownerPhoneNumber: res.data.phoneNumber });
+  }
+  return { registrationId, phoneNumber: res.data.phoneNumber };
+}
+
+/**
+ * Submit the SMS code, which creates the account. Same result shape as onboard's
+ * account outcome, so both paths finish identically — key saved, skills installed,
+ * listen service offered.
+ */
+export async function verifyNumber(opts: {
+  registrationId?: string;
+  code: string;
+  agents?: string[];
+}): Promise<OnboardResult> {
+  const pending = readPendingSignup();
+  const registrationId = opts.registrationId ?? pending?.registrationId;
+  if (!registrationId) {
+    throw new DialError(
+      "no_pending_registration",
+      "No phone number awaiting verification. Run `dial auth register-number <phone>` first.",
+    );
+  }
+
+  const res = await apiPost<VerifyResponse>("/api/v1/auth/verify-number", {
+    registrationId,
+    code: opts.code,
+  });
+  if (!res.ok) throw new DialError("verify_failed", res.error, res.status);
+
+  const apiKey = res.data.apiKey ?? null;
+  if (!apiKey || !res.data.accountId) {
+    throw new DialError("missing_api_key", "backend returned no apiKey");
+  }
+
+  writeAuth({
+    apiKey,
+    accountId: res.data.accountId,
+    email: pending?.email ?? "",
+    phoneNumber: res.data.phoneNumber ?? null,
+    phoneNumberId: res.data.phoneNumberId ?? null,
+  });
+  clearPendingSignup();
+
+  return {
+    apiKey,
+    apiKeyFingerprint: apiKey.slice(-4),
+    apiKeyPath: authFilePath(),
+    accountId: res.data.accountId,
+    email: pending?.email ?? null,
+    phoneNumber: res.data.phoneNumber ?? null,
+    phoneNumberId: res.data.phoneNumberId ?? null,
+    dashboardUrl: dashboardUrl(baseUrl()),
+    skills: installAgentSkills(opts.agents),
     supervisor: supervisorAvailability(),
   };
 }

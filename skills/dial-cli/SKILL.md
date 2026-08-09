@@ -17,7 +17,7 @@ If `dial` is not on the PATH (e.g. `command -v dial` returns nothing, or any `di
 curl -fsSL https://getdial.ai/skills.md
 ```
 
-That document is the authoritative install + onboarding script. Read it, then execute the steps it specifies (install, `dial doctor`, signup, onboard, listen install).
+That document is the authoritative install + onboarding script. Read it, then execute the steps it specifies (install, `dial doctor`, `dial auth login`, `dial auth verify-otp`, phone verification, `dial listen install`).
 
 ## Orient yourself before each new verb
 
@@ -38,19 +38,24 @@ Every command supports `--json` for machine-readable output — prefer it when p
 If `dial doctor --json` reports `nextStep` other than `ready`, the user is not yet set up. The full first-time flow is:
 
 ```bash
-dial signup you@example.com           # email OTP
-dial onboard --code 123456 \          # verify, writes ~/.local/share/dial/auth.json
-  --inbound-instruction "You are my receptionist. Greet the caller and find out what they need."
-dial listen install                   # background daemon for inbound events
+dial auth login you@example.com               # email OTP
+dial auth verify-otp --code 123456            # verify the email
+dial auth register-number +14155550123        # texts a code to the user's phone
+dial auth verify-otp --number --code 654321   # verify the phone → writes ~/.local/share/dial/auth.json
+dial listen install                           # background daemon for inbound events
 ```
 
-`--inbound-instruction` is **required when onboarding provisions your first number** (a new account) — it's the system prompt the AI voice agent uses on calls *to* your number. It's ignored when signing in to an existing account. Change it later with `dial number set <number> --inbound-instruction "..."`.
+**Read each step's output — `dial auth verify-otp` has two outcomes.** If the user already had an account, the email step signs them in and you're done (skip to `dial listen install`). If it reports that a phone number is still required, creating an account needs one: `--json` sets `pendingPhone: true` and names `auth_register_number`/`dial auth register-number` as the next step, and no API key exists yet.
 
-`dial onboard` also installs a Dial skill into your agent's config (claude-code, cursor, codex, opencode, pi, openclaw, nanoclaw, hermes) when you pass `--agent <name>`.
+**Ask the user for the phone number — never invent one.** It must be able to receive SMS, and a Dial number is refused. Whatever they give becomes **permanently bound to that account**: a number can register only one Dial account, ever. Re-run `dial auth register-number` with the same number to resend the code, or with a different one to fix a typo before verifying.
 
-`dial listen install` needs a user service supervisor (launchd on macOS, systemd `--user` on Linux). In sandboxes / containers / CI without one it can't run — `dial onboard` detects this and says so. Inbound events still work without it: `dial wait-for` long-polls the API when the daemon isn't running.
+A new number starts with a **default** inbound voice-agent prompt — the system prompt the AI uses on calls *to* your number. Change it with `dial number set <number> --inbound-instruction "..."`.
 
-The account also has a web dashboard at `https://getdial.ai/dashboard` — `dial onboard` prints the link and which address signs in, so pass that along. Almost everything is a `dial` verb, though: only billing *changes* (`dial billing` reads), team sharing, and carrier (10DLC) registration need the browser.
+`dial auth verify-otp` also installs a Dial skill into your agent's config (claude-code, cursor, codex, opencode, pi, openclaw, nanoclaw, hermes) when you pass `--agent <name>` — including on the email step when a phone number is still pending, so you keep the instructions needed to finish.
+
+`dial listen install` needs a user service supervisor (launchd on macOS, systemd `--user` on Linux). In sandboxes / containers / CI without one it can't run — `dial auth verify-otp` detects this and says so. Inbound events still work without it: `dial wait-for` long-polls the API when the daemon isn't running.
+
+The account also has a web dashboard at `https://getdial.ai/dashboard` — `dial auth verify-otp` prints the link and which address signs in, so pass that along. Almost everything is a `dial` verb, though: only billing *changes* (`dial billing` reads), team sharing, and carrier (10DLC) registration need the browser.
 
 ## Searching for what the CLI / API can do
 
@@ -92,7 +97,7 @@ These are the verbs you will most often compose. Read the relevant `.md` page fo
 - **Show a typing indicator while composing** — `dial typing start --to-number +14155550123`; sending a message clears it natively, so start again between messages, and `dial typing stop --to-number +14155550123` if you end up not sending. iMessage numbers display it; SMS numbers ignore it, so it's always safe to call ([commands.md](https://docs.getdial.ai/documentation/reference/commands.md))
 - **Place a voice call** — `dial call --to +14155550123 --outbound-instruction "..."` then `dial call get <id>` once it ends. Add `--voice-gender male|female` to choose the agent's voice (default: female). Free accounts (no top-up or subscription yet) are capped at 5 minutes per call and 2 concurrent calls — a call over the concurrency limit is rejected with `429` `call_limit_reached`, and passing `--max-duration` above 300 is rejected with `400` rather than shortened (a cap inherited from the number or account is clamped instead). Both limits lift on the first top-up or subscription ([place-a-voice-call.md](https://docs.getdial.ai/documentation/capabilities/place-a-voice-call.md))
 - **Buy an additional number** — `dial number purchase --inbound-instruction "..." --explicit-programmatic-consent "<attestation>"`. `--explicit-programmatic-consent` is **required**: a short attestation that the account holder consented to provisioning programmatically. Add `--include-imessage` for an [iMessage number](https://docs.getdial.ai/documentation/capabilities/send-an-imessage.md) (pay-as-you-go only; provisioned asynchronously — poll `dial number list` until ready) ([manage-phone-numbers.md](https://docs.getdial.ai/documentation/capabilities/manage-phone-numbers.md))
-- **Set a number's inbound behavior or nickname** — `dial number set +14155550123 --inbound-instruction "..."` and/or `--inbound-language es-ES` and/or `--nickname "Support line"` (at least one flag; `--nickname ""` / `--inbound-language ""` clear). The inbound instruction is the system prompt the AI uses on calls *into* that number; set it at `dial onboard` / `dial number purchase` time and change it here. The inbound language pins inbound calls to one language — unset, the AI detects the caller's language from their country prefix (alongside en-US). The nickname is a human-readable label for telling numbers apart ([manage-phone-numbers.md](https://docs.getdial.ai/documentation/capabilities/manage-phone-numbers.md))
+- **Set a number's inbound behavior or nickname** — `dial number set +14155550123 --inbound-instruction "..."` and/or `--inbound-language es-ES` and/or `--nickname "Support line"` (at least one flag; `--nickname ""` / `--inbound-language ""` clear). The inbound instruction is the system prompt the AI uses on calls *into* that number; set it at `dial number purchase` time and change it here. The inbound language pins inbound calls to one language — unset, the AI detects the caller's language from their country prefix (alongside en-US). The nickname is a human-readable label for telling numbers apart ([manage-phone-numbers.md](https://docs.getdial.ai/documentation/capabilities/manage-phone-numbers.md))
 - **Set an iMessage number's display identity** — `dial number set +14155550123 --first-name Maya --last-name Chen --avatar ./photo.png` sets the name and photo shown beside the number's messages in recipients' Messages apps (iMessage numbers only; other numbers reject these flags with `400`). `--avatar` takes a local image file (jpeg/png/gif/webp, max 5 MB — uploaded) or a public image URL (fetched server-side); the photo can be **replaced but not removed**. `--first-name ""` / `--last-name ""` clear a name ([manage-phone-numbers.md](https://docs.getdial.ai/documentation/capabilities/manage-phone-numbers.md))
 - **Receive a verification code (2FA)** — `dial wait-for message.received -f channel=sms` and parse the body ([receive-inbound-sms.md](https://docs.getdial.ai/documentation/capabilities/receive-inbound-sms.md))
 - **React to a call ending** — `dial wait-for call.ended -f callId=<id>`. Fires however the call ends — completed, failed, **or cancelled** — carrying the terminal `status` and a `canceled` flag, so the wait always resolves ([stream-account-events.md](https://docs.getdial.ai/documentation/capabilities/stream-account-events.md))
@@ -101,7 +106,7 @@ These are the verbs you will most often compose. Read the relevant `.md` page fo
 ## Conventions
 
 - `--json` everywhere for parseable output.
-- `--from-number <id|E.164|nickname>` picks the number to act from flexibly; the legacy `--from-number-id <id>` takes an id only (use one or the other). Both default to the number Dial auto-provisioned during `dial onboard`. List others with `dial number list`.
+- `--from-number <id|E.164|nickname>` picks the number to act from flexibly; the legacy `--from-number-id <id>` takes an id only (use one or the other). Both default to the number Dial auto-provisioned when the account was created. List others with `dial number list`.
 - Phone numbers are E.164 (`+14155550123`). Reject anything else before calling Dial.
 - Writes (`message`, `call`, `number purchase`) are **not idempotent** — on an ambiguous failure, list first to check before retrying.
 - The local API key lives at `~/.local/share/dial/auth.json` (mode 0600). The CLI reads it automatically; never echo it back to the user or paste it into responses.

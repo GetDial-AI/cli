@@ -5,6 +5,9 @@ import { runDoctor } from "./commands/doctor.ts";
 import { runBilling } from "./commands/billing.ts";
 import { runSignup } from "./commands/signup.ts";
 import { runOnboard } from "./commands/onboard.ts";
+import { runAuthLogin } from "./commands/auth/login.ts";
+import { runAuthVerifyOtp } from "./commands/auth/verify-otp.ts";
+import { runAuthRegisterNumber } from "./commands/auth/register-number.ts";
 import { runListen } from "./commands/listen/index.ts";
 import { runListenInstall } from "./commands/listen/install.ts";
 import { runListenUninstall } from "./commands/listen/uninstall.ts";
@@ -72,10 +75,83 @@ program
   .option("--json", "machine-readable output")
   .action(async (opts) => process.exit(await runBilling({ json: !!opts.json })));
 
+if (!sandbox) {
+  const auth = program
+    .command("auth")
+    .description("Create an account or sign in: email OTP, then phone verification.");
+
+  auth
+    .command("login <email>")
+    .description("Request an email OTP for the given address.")
+    .option("--force", "overwrite any pending signup")
+    .option("--json", "machine-readable output")
+    .action(async (email, opts) =>
+      process.exit(await runAuthLogin(email, { force: !!opts.force, json: !!opts.json })),
+    );
+
+  auth
+    .command("register-number <phone>")
+    .description("Text a verification code to the phone number that will own the account.")
+    .option(
+      "--registration-id <id>",
+      "explicit registration id (falls back to local pending signup)",
+    )
+    .option("--json", "machine-readable output")
+    .action(async (phone, opts) =>
+      process.exit(
+        await runAuthRegisterNumber(phone, {
+          registrationId: opts.registrationId,
+          json: !!opts.json,
+        }),
+      ),
+    );
+
+  auth
+    .command("verify-otp")
+    .description("Verify a one-time code — the emailed one, or with --number the texted one.")
+    .option(
+      "--code <code>",
+      "the 6-digit OTP (omit if already signed in — the command just installs the --agent skill and skips verification)",
+    )
+    .option(
+      "--number",
+      "verify the SMS code for a registered phone number instead of the email code",
+    )
+    .option(
+      "--verification-id <id>",
+      "explicit verification id for the email step (falls back to local pending signup)",
+    )
+    .option(
+      "--registration-id <id>",
+      "explicit registration id for --number (falls back to local pending signup)",
+    )
+    .option(
+      "--agent <name>",
+      "install the Dial skill into the named agent's config dir. One of: claude-code, cursor, codex, opencode, pi, openclaw, nanoclaw, hermes. Repeatable.",
+      (v: string, prev: string[] = []) => [...prev, v],
+      [] as string[],
+    )
+    .option("--json", "machine-readable output")
+    .action(async (opts) =>
+      process.exit(
+        await runAuthVerifyOtp({
+          verificationId: opts.verificationId,
+          registrationId: opts.registrationId,
+          code: opts.code,
+          number: !!opts.number,
+          agents: opts.agent as string[],
+          json: !!opts.json,
+        }),
+      ),
+    );
+}
+
+// DEPRECATED, kept registered so a stale skill gets a pointer rather than
+// commander's "unknown command". Both exit non-zero without doing anything.
 if (!sandbox)
   program
     .command("signup <email>")
-    .description("Request an email OTP for the given address.")
+    .description("DEPRECATED — use `dial auth login <email>`.")
     .option("--force", "overwrite any pending signup")
     .option("--json", "machine-readable output")
     .action(async (email, opts) =>
@@ -85,22 +161,13 @@ if (!sandbox)
 if (!sandbox)
   program
     .command("onboard")
-    .description("Verify the OTP and finish onboarding.")
-    .option(
-      "--verification-id <id>",
-      "explicit verification id (falls back to local pending signup)",
-    )
-    .option(
-      "--code <code>",
-      "6-digit OTP from your email (omit if already signed in — the command just installs the --agent skill and skips verification)",
-    )
-    .option(
-      "--inbound-instruction <text>",
-      "system prompt for inbound calls to your auto-provisioned number (required for a new account; ignored when signing in)",
-    )
+    .description("DEPRECATED — use `dial auth verify-otp --code <code>`.")
+    .option("--verification-id <id>", "no longer used")
+    .option("--code <code>", "no longer used")
+    .option("--inbound-instruction <text>", "no longer used")
     .option(
       "--agent <name>",
-      "install the Dial skill into the named agent's config dir. One of: claude-code, cursor, codex, opencode, pi, openclaw, nanoclaw, hermes. Repeatable.",
+      "no longer used",
       (v: string, prev: string[] = []) => [...prev, v],
       [] as string[],
     )
