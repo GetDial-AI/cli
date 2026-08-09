@@ -15,6 +15,12 @@ export const PendingSignupSchema = z.object({
   verificationId: z.string(),
   email: z.string(),
   createdAt: z.string(),
+  // Set once the email OTP is verified but the account still needs a verified
+  // phone number. Optional so a file written by an older CLI still parses.
+  registrationId: z.string().optional(),
+  // The number a code was last sent to, so `auth verify-otp --number` can report
+  // which one it is verifying.
+  ownerPhoneNumber: z.string().optional(),
 });
 export type PendingSignup = z.infer<typeof PendingSignupSchema>;
 

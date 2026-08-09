@@ -12,7 +12,7 @@ import { replyToMessageTool } from "./tools/reply-to-message.ts";
 import { placeCallTool } from "./tools/place-call.ts";
 import { startTypingTool } from "./tools/start-typing.ts";
 import { stopTypingTool } from "./tools/stop-typing.ts";
-import { onboardTool } from "./tools/onboard.ts";
+import { authVerifyOtpTool } from "./tools/auth-verify-otp.ts";
 
 // One tool per non-excluded `dial` command (`dial listen` worker + `dial mcp` itself excluded).
 const EXPECTED = [
@@ -28,8 +28,9 @@ const EXPECTED = [
   "list_calls",
   "get_call",
   "get_account_status",
-  "sign_up",
-  "onboard",
+  "auth_login",
+  "auth_register_number",
+  "auth_verify_otp",
   "wait_for_event",
   "add_url_target",
   "add_command_target",
@@ -59,7 +60,7 @@ const REMOTE = [
 ];
 
 describe("mcp tools", () => {
-  it("registers exactly the expected 22 tools with unique names", () => {
+  it("registers exactly the expected 23 tools with unique names", () => {
     const names = tools.map((t) => t.name);
     assert.equal(new Set(names).size, names.length, "tool names must be unique");
     assert.deepEqual([...names].sort(), [...EXPECTED].sort());
@@ -70,13 +71,31 @@ describe("mcp tools", () => {
     for (const r of REMOTE) assert.ok(names.has(r), `missing remote tool: ${r}`);
   });
 
-  it("onboard declares dashboardUrl and email in its output schema", () => {
-    // The full-onboard path spreads OnboardResult, so both fields already flow
+  it("auth_verify_otp declares dashboardUrl and email in its output schema", () => {
+    // The account path spreads OnboardResult, so both fields already flow
     // through — but a field absent from the schema is invisible to the model
     // reading it, which is the whole point of returning them.
-    const schema = onboardTool.config.outputSchema as z.ZodRawShape;
+    const schema = authVerifyOtpTool.config.outputSchema as z.ZodRawShape;
     assert.ok("dashboardUrl" in schema, "dashboardUrl must be declared");
     assert.ok("email" in schema, "email must be declared");
+  });
+
+  it("the auth tools mirror the CLI verbs one-to-one", () => {
+    // A derived surface must not drift from the verbs it wraps: every `dial auth
+    // <verb>` has exactly one tool, and no stale pre-phone-verification name
+    // survives.
+    const names = new Set(tools.map((t) => t.name));
+    for (const expected of ["auth_login", "auth_register_number", "auth_verify_otp"]) {
+      assert.ok(names.has(expected), `missing auth tool: ${expected}`);
+    }
+    assert.ok(!names.has("sign_up"), "sign_up was replaced by auth_login");
+    assert.ok(!names.has("onboard"), "onboard was replaced by auth_verify_otp");
+  });
+
+  it("auth_verify_otp can verify the SMS code, not just the emailed one", () => {
+    const schema = authVerifyOtpTool.config.inputSchema as z.ZodRawShape;
+    assert.ok("number" in schema, "the SMS step needs a `number` switch");
+    assert.ok("registrationId" in schema, "the SMS step keys off a registration id");
   });
 
   it("send_message accepts media-only sends, mediaUrls, and a forceAudioFile boolean", () => {
@@ -163,6 +182,6 @@ describe("mcp tools", () => {
     const parsed = lines.map((l) => JSON.parse(l));
     const listResp = parsed.find((m) => m.id === 2);
     assert.ok(listResp, "no tools/list response on stdout");
-    assert.equal(listResp.result.tools.length, 22);
+    assert.equal(listResp.result.tools.length, 23);
   });
 });

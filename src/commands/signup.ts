@@ -1,43 +1,32 @@
-import { signup } from "../lib/ops/account.ts";
-import { isDialError } from "../lib/ops/errors.ts";
+/**
+ * DEPRECATED. `dial signup` was replaced by `dial auth login`.
+ *
+ * The command stays registered rather than being deleted so that a stale skill or
+ * cached doc gets an instruction it can act on, instead of commander's bare
+ * "unknown command". Exits non-zero: nothing was done.
+ */
 
 export type SignupOptions = { force?: boolean; json?: boolean };
 
+const REPLACEMENT = "dial auth login <email>";
+
 export async function runSignup(email: string, opts: SignupOptions): Promise<number> {
-  try {
-    const { verificationId } = await signup({ email, force: opts.force });
-    if (opts.json) {
-      console.log(JSON.stringify({ ok: true, verificationId, email }));
-    } else {
-      console.log(`OTP sent to ${email}.`);
-      console.log(
-        `Run \`dial onboard --code <code>\` once you have it (verificationId is stored locally).`,
-      );
-    }
-    return 0;
-  } catch (e) {
-    if (!isDialError(e)) throw e;
-    if (e.code === "pending_exists") {
-      const d = e.data ?? {};
-      if (opts.json) {
-        console.log(
-          JSON.stringify({
-            ok: false,
-            code: "pending_exists",
-            verificationId: d.verificationId,
-            email: d.email,
-            ageSeconds: d.ageSeconds,
-          }),
-        );
-      } else {
-        console.error(e.message);
-      }
-      return 3;
-    }
-    // signup_failed
-    if (opts.json)
-      console.log(JSON.stringify({ ok: false, code: e.code, status: e.status, error: e.message }));
-    else console.error(`signup failed: ${e.message}`);
-    return 2;
+  const message = `\`dial signup\` has been replaced by \`${REPLACEMENT}\`. Nothing was sent.`;
+  if (opts.json) {
+    console.log(
+      JSON.stringify({
+        ok: false,
+        code: "deprecated_command",
+        error: message,
+        replacement: REPLACEMENT,
+        email,
+      }),
+    );
+  } else {
+    console.error(message);
+    console.error(``);
+    console.error(`Run instead:`);
+    console.error(`    dial auth login ${email}`);
   }
+  return 2;
 }
