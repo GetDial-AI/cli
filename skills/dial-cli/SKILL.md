@@ -47,7 +47,7 @@ dial listen install                           # background daemon for inbound ev
 
 **Read each step's output — `dial auth verify-otp` has two outcomes.** If the user already had an account, the email step signs them in and you're done (skip to `dial listen install`). If it reports that a phone number is still required, creating an account needs one: `--json` sets `pendingPhone: true` and names `auth_register_number`/`dial auth register-number` as the next step, and no API key exists yet.
 
-**Ask the user for the phone number — never invent one.** It must be able to receive SMS, and a Dial number is refused. Whatever they give becomes **permanently bound to that account**: a number can register only one Dial account, ever. Re-run `dial auth register-number` with the same number to resend the code, or with a different one to fix a typo before verifying.
+**Ask the user for the phone number — never invent one.** It must be able to receive SMS, it should be one the user keeps, and a Dial number is refused. Re-run `dial auth register-number` with the same number to resend the code, or with a different one to fix a typo before verifying.
 
 A new number starts with a **default** inbound voice-agent prompt — the system prompt the AI uses on calls *to* your number. Change it with `dial number set <number> --inbound-instruction "..."`.
 

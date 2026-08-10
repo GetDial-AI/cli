@@ -141,7 +141,7 @@ export const authVerifyOtpTool: ToolModule = {
         email: r.email,
         skills: r.skills,
         nextTool: "auth_register_number",
-        note: "The email is verified, but creating an account also requires a verified phone number. ASK THE USER for a phone number that can receive SMS, then call auth_register_number with it. No API key has been issued yet. The number is bound to the account permanently, and a Dial number cannot be used.",
+        note: "The email is verified, but creating an account also requires a verified phone number. ASK THE USER for a phone number that can receive SMS, then call auth_register_number with it. No API key has been issued yet. It should be a number the user keeps, and a Dial number cannot be used.",
       });
     }
     // Never surface the raw API key to the model; it's saved to disk for the CLI to read.
