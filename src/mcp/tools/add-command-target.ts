@@ -32,7 +32,7 @@ export const addCommandTargetTool: ToolModule = {
       path: z.string(),
       args: z.array(z.string()),
     },
-    annotations: { openWorldHint: false },
+    annotations: { destructiveHint: true, openWorldHint: false },
   },
   run: async (args) =>
     jsonResult(

@@ -21,7 +21,7 @@ export const authLoginTool: ToolModule = {
       verificationId: z.string().describe("Pending verification id (also stored locally)"),
       email: z.string(),
     },
-    annotations: { openWorldHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   },
   run: async (args) =>
     jsonResult(

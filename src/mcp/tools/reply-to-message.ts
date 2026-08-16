@@ -30,7 +30,7 @@ export const replyToMessageTool: ToolModule = {
       "Reply in-thread or react to an existing message. The reply goes out from the Dial number the target message belongs to, to the other party — no from/to needed. Provide exactly one of body or reaction. On iMessage numbers replies thread and reactions are native; recipients that can only receive SMS get an emoji reaction as a regular text, and named reactions are rejected.",
     inputSchema,
     outputSchema: { message: messageSchema },
-    annotations: { openWorldHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   },
   run: async (args) =>
     jsonResult({

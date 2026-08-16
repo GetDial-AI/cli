@@ -67,7 +67,7 @@ export const placeCallTool: ToolModule = {
       call: callSchema,
       hint: z.string().describe("Next-step guidance for tracking the call"),
     },
-    annotations: { openWorldHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   },
   run: async (args) => {
     const call = await placeCall({

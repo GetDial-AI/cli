@@ -44,7 +44,7 @@ export const sendMessageTool: ToolModule = {
       "Send a message from one of your Dial numbers, optionally with media attachments (MMS). On an iMessage number, a single audio attachment is delivered as a voice message unless forceAudioFile is true.",
     inputSchema,
     outputSchema: { message: messageSchema },
-    annotations: { openWorldHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   },
   run: async (args) =>
     jsonResult({

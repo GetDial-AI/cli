@@ -23,7 +23,7 @@ export const stopTypingTool: ToolModule = {
       "without sending. Standard (SMS) numbers silently ignore it.",
     inputSchema,
     outputSchema: { ok: z.boolean() },
-    annotations: { openWorldHint: true },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   run: async (args) =>
     jsonResult(
