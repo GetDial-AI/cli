@@ -44,6 +44,15 @@ export type VersionedFile<T> = {
 
 const CHMOD_UNSUPPORTED_CODES = new Set(["ENOTSUP", "EOPNOTSUPP", "EPERM"]);
 
+/**
+ * Windows has no POSIX permission bits: Node synthesizes mode 0o666 (or 0o444
+ * for read-only files) regardless of the file's ACL, and chmod can only toggle
+ * the read-only flag. Enforcing `secure` there would reject every file we just
+ * wrote ourselves, so access control falls to the ACL on the per-user state
+ * directory instead.
+ */
+const hasPosixModes = () => process.platform !== "win32";
+
 function ensureDir(dir: string) {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   try {
@@ -84,7 +93,7 @@ export function defineVersionedFile<T>(opts: VersionedFileOptions<T>): Versioned
     join(opts.dir(), version === 0 ? `${opts.base}.json` : `${opts.base}.v${version}.json`);
 
   function parseAt(path: string): unknown | null {
-    if (opts.secure) {
+    if (opts.secure && hasPosixModes()) {
       const fileMode = statSync(path).mode & 0o777;
       if (fileMode & 0o077) {
         throw new Error(`${path} has insecure permissions (mode ${fileMode.toString(8)})`);
