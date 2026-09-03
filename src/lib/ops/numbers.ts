@@ -219,7 +219,8 @@ export async function setNumberProperties(opts: {
     opts.whatsappAvatar !== undefined && !isHttpUrl(opts.whatsappAvatar)
       ? readAvatarFile(opts.whatsappAvatar)
       : null;
-  if (opts.whatsappAvatar !== undefined && !whatsappAvatarFile) body.whatsappAvatarUrl = opts.whatsappAvatar;
+  if (opts.whatsappAvatar !== undefined && !whatsappAvatarFile)
+    body.whatsappAvatarUrl = opts.whatsappAvatar;
 
   if (Object.keys(body).length === 0 && !avatarFile && !whatsappAvatarFile) {
     throw new DialError(
@@ -258,7 +259,9 @@ export async function setNumberProperties(opts: {
     if (whatsappAvatarFile) {
       form.append(
         "whatsappAvatar",
-        new Blob([new Uint8Array(whatsappAvatarFile.data)], { type: whatsappAvatarFile.contentType }),
+        new Blob([new Uint8Array(whatsappAvatarFile.data)], {
+          type: whatsappAvatarFile.contentType,
+        }),
         whatsappAvatarFile.name,
       );
     }

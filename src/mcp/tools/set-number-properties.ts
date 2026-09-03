@@ -100,7 +100,9 @@ export const setNumberPropertiesTool: ToolModule = {
           : {}),
         ...(args.firstName !== undefined ? { firstName: args.firstName as string } : {}),
         ...(args.whatsappName !== undefined ? { whatsappName: args.whatsappName as string } : {}),
-        ...(args.whatsappAvatarUrl !== undefined ? { whatsappAvatar: args.whatsappAvatarUrl as string } : {}),
+        ...(args.whatsappAvatarUrl !== undefined
+          ? { whatsappAvatar: args.whatsappAvatarUrl as string }
+          : {}),
         ...(args.lastName !== undefined ? { lastName: args.lastName as string } : {}),
         ...(args.avatarUrl !== undefined ? { avatar: args.avatarUrl as string } : {}),
       }),
