@@ -19,7 +19,9 @@ export const TYPING_CHANNELS = ["imessage", "whatsapp"] as const;
  * cannot drift into accepting different words for the same thing.
  */
 export function invalidChannel(channel: string | undefined): boolean {
-  return channel !== undefined && !TYPING_CHANNELS.includes(channel as (typeof TYPING_CHANNELS)[number]);
+  return (
+    channel !== undefined && !TYPING_CHANNELS.includes(channel as (typeof TYPING_CHANNELS)[number])
+  );
 }
 
 export async function runTypingStart(opts: TypingOptions): Promise<number> {

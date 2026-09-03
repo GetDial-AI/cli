@@ -74,7 +74,10 @@ describe("group list and the group/channel flags", () => {
   it("--json emits the API shape unchanged", async () => {
     api = await startMockApi((m, u) =>
       m === "GET" && u === "/api/v1/groups"
-        ? { status: 200, json: { groups: [{ id: "grp_1", name: null, createdAt: "2026-09-01T00:00:00Z" }] } }
+        ? {
+            status: 200,
+            json: { groups: [{ id: "grp_1", name: null, createdAt: "2026-09-01T00:00:00Z" }] },
+          }
         : undefined,
     );
     process.env.DIAL_API_URL = api.url;

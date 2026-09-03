@@ -112,8 +112,7 @@ export async function sendMessage(opts: {
   // the onboarding convenience into a failed send. An explicitly passed one is still
   // forwarded, and still checked server-side.
   const explicitFrom = opts.fromNumber !== undefined || opts.fromNumberId !== undefined;
-  const from =
-    opts.groupId && !explicitFrom ? {} : resolveFromSelector(auth, opts);
+  const from = opts.groupId && !explicitFrom ? {} : resolveFromSelector(auth, opts);
   const media = opts.media ?? [];
   if (media.length > MAX_MEDIA_ITEMS) {
     throw new DialError(

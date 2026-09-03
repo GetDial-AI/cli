@@ -9,7 +9,9 @@ const inputSchema = {
   groupId: z
     .string()
     .optional()
-    .describe("Filter to one group conversation (see list_groups). Combines with the other filters"),
+    .describe(
+      "Filter to one group conversation (see list_groups). Combines with the other filters",
+    ),
   direction: z.enum(["inbound", "outbound"]).optional().describe("Filter by direction"),
   since: z.string().optional().describe("Only messages created after this ISO-8601 timestamp"),
 };

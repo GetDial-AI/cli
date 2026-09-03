@@ -103,7 +103,17 @@ describe("ops/groups", () => {
         seenBody = body;
         return {
           status: 201,
-          json: { message: { id: "m2", from: "+1", to: null, groupId: "grp_1", body: "hi", channel: "whatsapp", status: "unknown" } },
+          json: {
+            message: {
+              id: "m2",
+              from: "+1",
+              to: null,
+              groupId: "grp_1",
+              body: "hi",
+              channel: "whatsapp",
+              status: "unknown",
+            },
+          },
         };
       }
       return undefined;
@@ -122,7 +132,16 @@ describe("ops/groups", () => {
         bodies.push(body);
         return {
           status: 201,
-          json: { message: { id: "m3", from: "+1", to: "+2", body: "hi", channel: "whatsapp", status: "unknown" } },
+          json: {
+            message: {
+              id: "m3",
+              from: "+1",
+              to: "+2",
+              body: "hi",
+              channel: "whatsapp",
+              status: "unknown",
+            },
+          },
         };
       }
       return undefined;

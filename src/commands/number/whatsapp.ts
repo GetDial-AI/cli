@@ -22,7 +22,9 @@ export async function runNumberWhatsapp(opts: NumberWhatsappOptions): Promise<nu
     // The track's own status, not the number's: they are independent, and it is this
     // one the caller is waiting on.
     console.log(`  whatsapp: ${n.whatsapp?.status ?? "provisioning"}`);
-    console.log(`\nsetup runs in the background. poll \`dial number list\` until whatsapp is ready.`);
+    console.log(
+      `\nsetup runs in the background. poll \`dial number list\` until whatsapp is ready.`,
+    );
     return 0;
   } catch (e) {
     if (isDialError(e)) return printDialError(opts.json, e);
