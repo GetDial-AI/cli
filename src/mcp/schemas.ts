@@ -64,11 +64,35 @@ export const phoneNumberSchema = z
   })
   .passthrough();
 
+/**
+ * A group conversation. Mirrors the hosted server's `groupSchema` — `createdAt` is a
+ * string, never a z.date(), because a Date is unrepresentable in JSON Schema and one
+ * bad schema fails the whole `tools/list`.
+ */
+export const groupSchema = z.object({
+  id: z.string().describe("Group id — pass as groupId to send_message or list_messages"),
+  name: z
+    .string()
+    .nullable()
+    .describe("The group's current name, or null when no line could report it in time"),
+  createdAt: z
+    .string()
+    .optional()
+    .describe("ISO-8601: when Dial first learned of this group (a join, or its first message)"),
+});
+
 export const messageSchema = z
   .object({
     id: z.string(),
-    from: z.string(),
-    to: z.string(),
+    from: z.string().describe("Sender, E.164. On a group message, the participant who sent it"),
+    to: z
+      .string()
+      .nullable()
+      .describe("Recipient, E.164 — null on a group message, whose destination is groupId"),
+    groupId: z
+      .string()
+      .nullish()
+      .describe("The group this message belongs to, or null for a one-to-one conversation"),
     body: z.string(),
     channel: z.string().optional(),
     direction: z.string().optional(),

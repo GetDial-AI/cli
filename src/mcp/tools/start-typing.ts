@@ -11,6 +11,12 @@ const inputSchema = {
     .describe(
       "Number the indicator appears from: a phone number id, one of your numbers in E.164, or a nickname",
     ),
+  channel: z
+    .enum(["imessage", "whatsapp"])
+    .optional()
+    .describe(
+      "Which channel to show it on, for a line that carries more than one. Omit to use the number's own default. Typing inside a group is not supported",
+    ),
 };
 
 export const startTypingTool: ToolModule = {
@@ -32,6 +38,7 @@ export const startTypingTool: ToolModule = {
       await setTyping({
         toNumber: args.toNumber as string,
         fromNumber: args.fromNumber as string,
+        channel: args.channel as "imessage" | "whatsapp" | undefined,
         value: true,
       }),
     ),

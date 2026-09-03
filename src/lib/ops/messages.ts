@@ -16,8 +16,16 @@ export type MessageMediaItem = {
 export type MessageRow = {
   id: string;
   phoneNumberId?: string;
+  /** Who sent it. On an inbound group message, the participant — not the group. */
   from: string;
-  to: string;
+  /**
+   * The destination, and null exactly when `groupId` is set: a group message is
+   * addressed to the group, which is not a phone number. Which of the account's
+   * numbers the conversation is on is `phoneNumberId`.
+   */
+  to: string | null;
+  /** The group this message belongs to, or null for a one-to-one conversation. */
+  groupId?: string | null;
   body: string;
   direction?: string;
   channel: string;
@@ -81,19 +89,31 @@ function readMediaFile(path: string): { data: Buffer; contentType: string; name:
 }
 
 export async function sendMessage(opts: {
-  to: string;
+  /** The peer's number. Exclusive with groupId. */
+  to?: string;
+  /** A group conversation on this account. Exclusive with `to`; the group names the line. */
+  groupId?: string;
   /** Optional when media is attached — a media-only send records an empty body. */
   body?: string;
   /** Flexible ref: number id, owned E.164, or nickname. Exclusive with fromNumberId. */
   fromNumber?: string;
   fromNumberId?: string;
+  /** Which rail to send on, for a line carrying both. Omitted keeps the number's default. */
+  channel?: "imessage" | "whatsapp";
   /** Local file paths and/or public http(s) URLs, in send order (max 10). */
   media?: string[];
   /** Send an audio attachment as a regular file attachment instead of an iMessage voice message. */
   forceAudioFile?: boolean;
 }): Promise<MessageRow> {
   const auth = maybeAuth();
-  const from = resolveFromSelector(auth, opts);
+  // A group already belongs to one of the account's lines, so a group send needs no
+  // from-number — and must not inherit the SAVED DEFAULT one, because the server
+  // refuses a from-number that disagrees with the group. Inheriting it would turn
+  // the onboarding convenience into a failed send. An explicitly passed one is still
+  // forwarded, and still checked server-side.
+  const explicitFrom = opts.fromNumber !== undefined || opts.fromNumberId !== undefined;
+  const from =
+    opts.groupId && !explicitFrom ? {} : resolveFromSelector(auth, opts);
   const media = opts.media ?? [];
   if (media.length > MAX_MEDIA_ITEMS) {
     throw new DialError(
@@ -102,9 +122,12 @@ export async function sendMessage(opts: {
     );
   }
 
-  // No `channel`: the server determines it from the from-number (a standard number
-  // sends SMS; an iMessage number sends iMessage with RCS/SMS fallback) and its send
-  // schema is strict — sending a stale `channel` field is rejected as a 400.
+  // `channel` is sent only when the caller named one. Omitted, the server uses the
+  // from-number's own default (a standard number sends SMS; an iMessage number sends
+  // iMessage with RCS/SMS fallback) — and the send schema is strict, so an empty or
+  // stale field would be a 400 rather than a no-op.
+  // Each destination likewise appears only when given: the server enforces the
+  // to/groupId XOR, and a key present-but-empty reads as a second destination.
   // URLs-only goes as plain JSON; any local file switches to multipart.
   const hasFiles = media.some((m) => !isHttpUrl(m));
   let res: ApiResult<{ message: MessageRow }>;
@@ -112,7 +135,9 @@ export async function sendMessage(opts: {
     res = await apiPost<{ message: MessageRow }>(
       "/api/v1/messages",
       {
-        to: opts.to,
+        ...(opts.to !== undefined ? { to: opts.to } : {}),
+        ...(opts.groupId !== undefined ? { groupId: opts.groupId } : {}),
+        ...(opts.channel !== undefined ? { channel: opts.channel } : {}),
         ...(opts.body ? { body: opts.body } : {}),
         ...from,
         ...(media.length ? { mediaUrls: media } : {}),
@@ -122,7 +147,9 @@ export async function sendMessage(opts: {
     );
   } else {
     const form = new ApiFormData();
-    form.set("to", opts.to);
+    if (opts.to !== undefined) form.set("to", opts.to);
+    if (opts.groupId !== undefined) form.set("groupId", opts.groupId);
+    if (opts.channel !== undefined) form.set("channel", opts.channel);
     if (opts.body) form.set("body", opts.body);
     for (const [field, value] of Object.entries(from)) form.set(field, value);
     if (opts.forceAudioFile) form.set("forceAudioFile", "true");
@@ -146,12 +173,15 @@ export async function sendMessage(opts: {
 
 export async function listMessages(opts: {
   numberId?: string;
+  /** One group's conversation. Combines with the other filters. */
+  groupId?: string;
   direction?: string;
   since?: string;
 }): Promise<MessageRow[]> {
   const auth = maybeAuth();
   const params = new URLSearchParams();
   if (opts.numberId) params.set("numberId", opts.numberId);
+  if (opts.groupId) params.set("groupId", opts.groupId);
   if (opts.direction) params.set("direction", opts.direction);
   if (opts.since) params.set("since", opts.since);
   const qs = params.toString();

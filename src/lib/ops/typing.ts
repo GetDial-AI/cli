@@ -13,12 +13,23 @@ export async function setTyping(opts: {
   value: boolean;
   /** Flexible ref: number id, owned E.164, or nickname. Defaults to the onboarded number. */
   fromNumber?: string;
+  /**
+   * Which rail to show it on, for a line carrying both. Omitted keeps the number's
+   * default. There is no group form — typing inside a group isn't supported.
+   */
+  channel?: "imessage" | "whatsapp";
 }): Promise<{ ok: boolean }> {
   const auth = maybeAuth();
   const fromNumber = requireFromNumber(auth, opts.fromNumber);
   const res = await apiPost<{ ok: boolean }>(
     "/api/v1/typing",
-    { toNumber: opts.toNumber, value: opts.value, fromNumber },
+    {
+      toNumber: opts.toNumber,
+      value: opts.value,
+      fromNumber,
+      // Only when named: the typing schema is strict, so an empty field is a 400.
+      ...(opts.channel !== undefined ? { channel: opts.channel } : {}),
+    },
     auth?.apiKey,
   );
   if (!res.ok) throw new DialError("typing_failed", res.error, res.status);

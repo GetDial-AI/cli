@@ -16,6 +16,8 @@ import { runWaitFor } from "./commands/wait-for.ts";
 import { runNumberList } from "./commands/number/list.ts";
 import { runNumberPurchase } from "./commands/number/purchase.ts";
 import { runNumberSet } from "./commands/number/set.ts";
+import { runNumberWhatsapp } from "./commands/number/whatsapp.ts";
+import { runGroupList } from "./commands/group/list.ts";
 import { runMessageSend } from "./commands/message/send.ts";
 import { runMessageReply } from "./commands/message/reply.ts";
 import { runMessageList } from "./commands/message/list.ts";
@@ -241,6 +243,10 @@ number
     "--include-imessage",
     "provision an iMessage number (pay-as-you-go only; provisioned asynchronously — poll `dial number list` until ready)",
   )
+  .option(
+    "--whatsapp",
+    "also connect WhatsApp to the new line (beta, enabled per account). Requires --include-imessage: WhatsApp is a channel on an iMessage line",
+  )
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(
@@ -251,9 +257,20 @@ number
         inboundLanguage: opts.inboundLanguage,
         areaCode: opts.areaCode,
         includeImessage: !!opts.includeImessage,
+        whatsapp: !!opts.whatsapp,
         json: !!opts.json,
       }),
     ),
+  );
+
+number
+  .command("whatsapp <number>")
+  .description(
+    "Connect WhatsApp to a number you already hold (beta, enabled per account). POST /api/v1/numbers/<id>/whatsapp.",
+  )
+  .option("--json", "machine-readable output")
+  .action(async (number: string, opts) =>
+    process.exit(await runNumberWhatsapp({ number, json: !!opts.json })),
   );
 
 number
@@ -323,8 +340,18 @@ number
 
 const message = program
   .command("message")
-  .description("Send an SMS, optionally with media (MMS). POST /api/v1/messages.")
+  .description(
+    "Send a message to a number or a group, optionally with media (MMS). POST /api/v1/messages.",
+  )
   .option("--to <e164>", "destination phone number, E.164 (e.g. +14155551234)")
+  .option(
+    "--group <id>",
+    "send into a group conversation instead (see `dial group list`); the sending line comes from the group. Exclusive with --to",
+  )
+  .option(
+    "--channel <imessage|whatsapp>",
+    "which channel to send on, for a line carrying both; omit to use the number's own default",
+  )
   .option("--body <text>", "message body")
   .option(
     "--from-number <ref>",
@@ -346,9 +373,12 @@ const message = program
   )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
-    if (!opts.to) {
+    // A destination is still required — it just has two forms now. The exactly-one
+    // rule itself lives in runMessageSend, so the MCP tool and the verb enforce it
+    // from one place; this only keeps the familiar message for the common mistake.
+    if (!opts.to && !opts.group) {
       console.error(
-        "error: --to is required to send a message. Use `dial message list` to list, or `dial message --help` for usage.",
+        "error: --to or --group is required to send a message. Use `dial message list` to list, `dial group list` for your groups, or `dial message --help` for usage.",
       );
       process.exit(2);
     }
@@ -361,6 +391,8 @@ const message = program
     process.exit(
       await runMessageSend({
         to: opts.to,
+        group: opts.group,
+        channel: opts.channel,
         body: opts.body,
         fromNumber: opts.fromNumber,
         fromNumberId: opts.fromNumberId,
@@ -401,6 +433,7 @@ message
   .command("list")
   .description("List recent messages on your account. GET /api/v1/messages.")
   .option("--number-id <id>", "filter to a single phone number")
+  .option("--group <id>", "filter to one group conversation (see `dial group list`)")
   .option("--direction <dir>", "inbound or outbound")
   .option("--since <iso8601>", "only messages created after this timestamp")
   .option("--json", "machine-readable output")
@@ -408,12 +441,23 @@ message
     process.exit(
       await runMessageList({
         numberId: opts.numberId,
+        group: opts.group,
         direction: opts.direction,
         since: opts.since,
         json: !!opts.json,
       }),
     ),
   );
+
+const group = program
+  .command("group")
+  .description("Group conversations your lines are in (WhatsApp).");
+
+group
+  .command("list")
+  .description("List the group conversations your lines are in. GET /api/v1/groups.")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => process.exit(await runGroupList({ json: !!opts.json })));
 
 const typing = program
   .command("typing")
@@ -431,6 +475,10 @@ typing
     "--from-number <ref>",
     "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)",
   )
+  .option(
+    "--channel <imessage|whatsapp>",
+    "which channel to show it on, for a line carrying both; omit to use the number's own default. Typing inside a group isn't supported",
+  )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
     if (!opts.toNumber) {
@@ -441,6 +489,7 @@ typing
       await runTypingStart({
         toNumber: opts.toNumber,
         fromNumber: opts.fromNumber,
+        channel: opts.channel,
         json: !!opts.json,
       }),
     );
@@ -454,6 +503,10 @@ typing
     "--from-number <ref>",
     "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)",
   )
+  .option(
+    "--channel <imessage|whatsapp>",
+    "which channel to clear it on; pass the same channel `typing start` was given",
+  )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
     if (!opts.toNumber) {
@@ -464,6 +517,7 @@ typing
       await runTypingStop({
         toNumber: opts.toNumber,
         fromNumber: opts.fromNumber,
+        channel: opts.channel,
         json: !!opts.json,
       }),
     );

@@ -26,6 +26,17 @@ export type PhoneNumberRow = {
   firstName?: string | null;
   lastName?: string | null;
   avatarUrl?: string | null;
+  /**
+   * The WhatsApp channel's own setup state, or null when the number has no WhatsApp
+   * registration. Independent of `setupStatus` — separate tracks on one line, so voice
+   * caller-ID can be ready while WhatsApp has failed, and the other way round.
+   */
+  whatsapp?: {
+    status: "provisioning" | "ready" | "failed";
+    error: string | null;
+    /** ISO-8601: when the channel will accept another attempt; null when it will now. */
+    retryAvailableAt: string | null;
+  } | null;
 };
 
 // Image types the avatar upload accepts, keyed by file extension.
@@ -82,6 +93,8 @@ export async function purchaseNumber(opts: {
   areaCode?: string;
   /** When true, provision an iMessage number (async; setupStatus starts "provisioning"). */
   includeImessage?: boolean;
+  /** Also connect WhatsApp. Only valid alongside includeImessage. */
+  whatsapp?: boolean;
 }): Promise<PhoneNumberRow> {
   const auth = maybeAuth();
   const body: Record<string, unknown> = {
@@ -93,8 +106,62 @@ export async function purchaseNumber(opts: {
   // iMessage numbers ignore areaCode, so only send it for standard numbers.
   if (opts.includeImessage) body.capabilities = ["sms", "call", "imessage"];
   else if (opts.areaCode) body.areaCode = opts.areaCode;
+  if (opts.whatsapp) body.whatsapp = true;
   const res = await apiPost<{ number: PhoneNumberRow }>("/api/v1/numbers", body, auth?.apiKey);
   if (!res.ok) throw new DialError("purchase_failed", res.error, res.status);
+  return res.data.number;
+}
+
+/**
+ * Resolve a number reference — an id, an owned E.164, or a nickname — to its id.
+ *
+ * The REST API keys numbers by id while every CLI verb takes whichever form the caller
+ * has to hand, so one lookup serves them all. An id is returned as given when it
+ * matches a number the account owns, which also keeps a copy-pasted id from a previous
+ * `dial number list` working.
+ */
+export async function resolveNumberId(ref: string): Promise<string> {
+  const auth = maybeAuth();
+  const list = await apiGet<{ numbers: PhoneNumberRow[] }>("/api/v1/numbers", auth?.apiKey);
+  if (!list.ok) throw new DialError("list_failed", list.error, list.status);
+  const match = list.data.numbers.find(
+    (n) => n.id === ref || n.number === ref || n.nickname === ref,
+  );
+  if (!match) {
+    const known = list.data.numbers.map((n) => n.number).join(", ") || "(none)";
+    throw new DialError(
+      "number_not_found",
+      `No phone number ${ref} on your account. Yours: ${known}.`,
+    );
+  }
+  return match.id;
+}
+
+/** Copy for the 404 both WhatsApp provisioning paths answer without beta access. */
+export const WHATSAPP_NOT_ENABLED =
+  "WhatsApp is in beta and isn't enabled for this account. " +
+  "See https://docs.getdial.ai/documentation/capabilities/whatsapp to request access.";
+
+/**
+ * Connect WhatsApp to a number the account already holds
+ * (POST /api/v1/numbers/{id}/whatsapp).
+ *
+ * A 404 means one of two things — no such number, or no beta access — and the API
+ * cannot distinguish them by design: to an account without access the endpoint does
+ * not exist. Reported as the access message, because "not found" on a number the
+ * caller just listed reads as a typo and sends them looking in the wrong place.
+ */
+export async function addWhatsappToNumber(numberId: string): Promise<PhoneNumberRow> {
+  const auth = maybeAuth();
+  const res = await apiPost<{ number: PhoneNumberRow }>(
+    `/api/v1/numbers/${encodeURIComponent(numberId)}/whatsapp`,
+    {},
+    auth?.apiKey,
+  );
+  if (!res.ok) {
+    if (res.status === 404) throw new DialError("whatsapp_unavailable", WHATSAPP_NOT_ENABLED, 404);
+    throw new DialError("whatsapp_failed", res.error, res.status);
+  }
   return res.data.number;
 }
 
