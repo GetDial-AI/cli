@@ -9,10 +9,21 @@ export type NumberPurchaseOptions = {
   inboundLanguage?: string;
   areaCode?: string;
   includeImessage?: boolean;
+  /** Also connect WhatsApp. Only valid alongside --imessage. */
+  whatsapp?: boolean;
   json: boolean;
 };
 
 export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<number> {
+  // WhatsApp rides on an iMessage line, so there is no standard-number combination to
+  // ask for. Refused here, before spending anything, and naming the requirement rather
+  // than relaying a 400 the caller has to map back to their flags.
+  if (opts.whatsapp && !opts.includeImessage) {
+    console.error(
+      "error: --whatsapp requires --include-imessage (WhatsApp is a channel on an iMessage line).",
+    );
+    return 2;
+  }
   try {
     const n = await purchaseNumber({
       inboundInstruction: opts.inboundInstruction,
@@ -21,6 +32,7 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
       inboundLanguage: opts.inboundLanguage,
       areaCode: opts.areaCode,
       includeImessage: opts.includeImessage,
+      whatsapp: opts.whatsapp,
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, number: n }));
