@@ -314,6 +314,14 @@ number
     "--avatar <path-or-url>",
     "iMessage avatar photo (iMessage numbers only): a local image file (jpeg/png/gif/webp, max 5 MB) to upload, or a public image URL to fetch. Replaces the current photo; photos can't be removed",
   )
+  .option(
+    "--whatsapp-name <text>",
+    "WhatsApp display name shown to recipients (WhatsApp-ready numbers only): 1-25 chars, no reserved marks. The call blocks until WhatsApp applies it",
+  )
+  .option(
+    "--whatsapp-avatar <path-or-url>",
+    "WhatsApp avatar photo (WhatsApp-ready numbers only): a local image file or public URL. Square jpeg/png between 192x192 and 640x640 (not resized)",
+  )
   .option("--json", "machine-readable output")
   .action(async (numberArg: string, opts) => {
     let maxCallDurationSeconds: number | null | undefined;
@@ -333,6 +341,8 @@ number
         firstName: opts.firstName,
         lastName: opts.lastName,
         avatar: opts.avatar,
+        whatsappName: opts.whatsappName,
+        whatsappAvatar: opts.whatsappAvatar,
         json: !!opts.json,
       }),
     );

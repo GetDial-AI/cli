@@ -58,6 +58,19 @@ const inputSchema = {
     .describe(
       "Public image URL to set as the number's iMessage avatar photo (the server downloads it). jpeg/png/gif/webp, max 5 MB. iMessage numbers only. The photo can be replaced but not removed.",
     ),
+  whatsappName: z
+    .string()
+    .optional()
+    .describe(
+      "WhatsApp display name shown to recipients. 1-25 chars, no reserved verification marks. WhatsApp-ready numbers only; the call blocks until WhatsApp applies it.",
+    ),
+  whatsappAvatarUrl: z
+    .string()
+    .url()
+    .optional()
+    .describe(
+      "Public image URL to set as the number's WhatsApp avatar (the server downloads it). Square jpeg or png between 192x192 and 640x640 (not resized). WhatsApp-ready numbers only.",
+    ),
 };
 
 export const setNumberPropertiesTool: ToolModule = {
@@ -65,7 +78,7 @@ export const setNumberPropertiesTool: ToolModule = {
   config: {
     title: "Set Number Properties",
     description:
-      "Update a phone number's properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, and — for iMessage numbers — its display identity (firstName, lastName, avatarUrl shown beside its messages). Provide at least one.",
+      "Update a phone number's properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, and — for iMessage numbers — its display identity (firstName, lastName, avatarUrl), and for WhatsApp-ready numbers its WhatsApp identity (whatsappName, whatsappAvatarUrl). Provide at least one.",
     inputSchema,
     outputSchema: { number: phoneNumberSchema },
     annotations: { openWorldHint: true },
@@ -86,6 +99,10 @@ export const setNumberPropertiesTool: ToolModule = {
           ? { maxCallDurationSeconds: args.maxCallDurationSeconds as number | null }
           : {}),
         ...(args.firstName !== undefined ? { firstName: args.firstName as string } : {}),
+        ...(args.whatsappName !== undefined ? { whatsappName: args.whatsappName as string } : {}),
+        ...(args.whatsappAvatarUrl !== undefined
+          ? { whatsappAvatar: args.whatsappAvatarUrl as string }
+          : {}),
         ...(args.lastName !== undefined ? { lastName: args.lastName as string } : {}),
         ...(args.avatarUrl !== undefined ? { avatar: args.avatarUrl as string } : {}),
       }),
