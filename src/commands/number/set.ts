@@ -23,6 +23,10 @@ export type NumberSetOptions = {
   lastName?: string;
   /** iMessage avatar photo: local image path (uploaded) or public image URL (fetched server-side). Replace-only. */
   avatar?: string;
+  /** WhatsApp display name; 1-25 chars, no reserved marks. WhatsApp-ready numbers only. */
+  whatsappName?: string;
+  /** WhatsApp avatar photo: local image path (uploaded) or public image URL. Square 192-640 jpeg/png. */
+  whatsappAvatar?: string;
   json: boolean;
 };
 
@@ -42,6 +46,8 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       ...(opts.firstName !== undefined ? { firstName: opts.firstName } : {}),
       ...(opts.lastName !== undefined ? { lastName: opts.lastName } : {}),
       ...(opts.avatar !== undefined ? { avatar: opts.avatar } : {}),
+      ...(opts.whatsappName !== undefined ? { whatsappName: opts.whatsappName } : {}),
+      ...(opts.whatsappAvatar !== undefined ? { whatsappAvatar: opts.whatsappAvatar } : {}),
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, number: n }));
@@ -59,6 +65,10 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
           `  display name:          ${[n.firstName, n.lastName].filter(Boolean).join(" ")}`,
         );
         console.log(`  avatar:                ${n.avatarUrl ?? ""}`);
+      }
+      if (n.whatsappName != null || n.whatsappAvatarUrl != null) {
+        console.log(`  whatsapp name:         ${n.whatsappName ?? ""}`);
+        console.log(`  whatsapp avatar:       ${n.whatsappAvatarUrl ?? ""}`);
       }
     }
     return 0;

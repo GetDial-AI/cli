@@ -61,6 +61,16 @@ export const phoneNumberSchema = z
       .describe(
         "URL of the number's iMessage avatar photo; null when unset or not an iMessage number",
       ),
+    whatsappName: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("WhatsApp display name; null on numbers without a WhatsApp track"),
+    whatsappAvatarUrl: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("URL of the number's WhatsApp avatar; null when unset"),
   })
   .passthrough();
 

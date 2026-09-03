@@ -26,6 +26,8 @@ export type PhoneNumberRow = {
   firstName?: string | null;
   lastName?: string | null;
   avatarUrl?: string | null;
+  whatsappName?: string | null;
+  whatsappAvatarUrl?: string | null;
   /**
    * The WhatsApp channel's own setup state, or null when the number has no WhatsApp
    * registration. Independent of `setupStatus` — separate tracks on one line, so voice
@@ -190,6 +192,10 @@ export async function setNumberProperties(opts: {
    * numbers only.
    */
   avatar?: string;
+  /** WhatsApp display name; 1-25 chars, no reserved marks. WhatsApp-ready numbers only. */
+  whatsappName?: string;
+  /** WhatsApp avatar: local file path (uploaded) or http(s) URL. Square 192-640 jpeg/png. */
+  whatsappAvatar?: string;
 }): Promise<PhoneNumberRow> {
   const body: Record<string, unknown> = {};
   if (opts.inboundInstruction !== undefined) body.inboundInstruction = opts.inboundInstruction;
@@ -202,17 +208,23 @@ export async function setNumberProperties(opts: {
     body.maxCallDurationSeconds = opts.maxCallDurationSeconds;
   if (opts.firstName !== undefined) body.firstName = opts.firstName;
   if (opts.lastName !== undefined) body.lastName = opts.lastName;
+  if (opts.whatsappName !== undefined) body.whatsappName = opts.whatsappName;
   // A URL avatar goes in the JSON body; a local file forces multipart (below).
   // Read + validate the file up front, before any API round-trip, so a bad
   // path or unsupported type fails fast.
   const avatarFile =
     opts.avatar !== undefined && !isHttpUrl(opts.avatar) ? readAvatarFile(opts.avatar) : null;
   if (opts.avatar !== undefined && !avatarFile) body.avatarUrl = opts.avatar;
+  const whatsappAvatarFile =
+    opts.whatsappAvatar !== undefined && !isHttpUrl(opts.whatsappAvatar)
+      ? readAvatarFile(opts.whatsappAvatar)
+      : null;
+  if (opts.whatsappAvatar !== undefined && !whatsappAvatarFile) body.whatsappAvatarUrl = opts.whatsappAvatar;
 
-  if (Object.keys(body).length === 0 && !avatarFile) {
+  if (Object.keys(body).length === 0 && !avatarFile && !whatsappAvatarFile) {
     throw new DialError(
       "bad_request",
-      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, firstName, lastName, or avatar).",
+      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, firstName, lastName, avatar, whatsappName, or whatsappAvatar).",
     );
   }
   const auth = maybeAuth();
@@ -233,14 +245,23 @@ export async function setNumberProperties(opts: {
   // A local avatar file forces a multipart PATCH: every scalar field goes in as a
   // text part alongside the uploaded `avatar` file. Otherwise a plain JSON PATCH.
   let res: ApiResult<{ number: PhoneNumberRow }>;
-  if (avatarFile) {
+  if (avatarFile || whatsappAvatarFile) {
     const form = new ApiFormData();
     for (const [field, value] of Object.entries(body)) form.set(field, String(value));
-    form.append(
-      "avatar",
-      new Blob([new Uint8Array(avatarFile.data)], { type: avatarFile.contentType }),
-      avatarFile.name,
-    );
+    if (avatarFile) {
+      form.append(
+        "avatar",
+        new Blob([new Uint8Array(avatarFile.data)], { type: avatarFile.contentType }),
+        avatarFile.name,
+      );
+    }
+    if (whatsappAvatarFile) {
+      form.append(
+        "whatsappAvatar",
+        new Blob([new Uint8Array(whatsappAvatarFile.data)], { type: whatsappAvatarFile.contentType }),
+        whatsappAvatarFile.name,
+      );
+    }
     res = await apiPatchMultipart<{ number: PhoneNumberRow }>(path, form, auth?.apiKey);
   } else {
     res = await apiPatch<{ number: PhoneNumberRow }>(path, body, auth?.apiKey);
