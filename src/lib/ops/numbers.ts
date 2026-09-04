@@ -39,6 +39,12 @@ export type PhoneNumberRow = {
     /** ISO-8601: when the channel will accept another attempt; null when it will now. */
     retryAvailableAt: string | null;
   } | null;
+  /**
+   * Whether calling is switched on for the number, both directions. Separate
+   * from `capabilities`, which reports what the line was provisioned for and
+   * does not change when the switch is flipped.
+   */
+  callingEnabled?: boolean;
 };
 
 // Image types the avatar upload accepts, keyed by file extension.
@@ -95,6 +101,8 @@ export async function purchaseNumber(opts: {
   areaCode?: string;
   /** When true, provision an iMessage number (async; setupStatus starts "provisioning"). */
   includeImessage?: boolean;
+  /** Whether calling is switched on for the new number; omitted → on. */
+  callingEnabled?: boolean;
   /** Also connect WhatsApp. Only valid alongside includeImessage. */
   whatsapp?: boolean;
 }): Promise<PhoneNumberRow> {
@@ -105,6 +113,9 @@ export async function purchaseNumber(opts: {
   };
   if (opts.inboundVoiceGender) body.inboundVoiceGender = opts.inboundVoiceGender;
   if (opts.inboundLanguage) body.inboundLanguage = opts.inboundLanguage;
+  // Only sent when asked for, so the server's default (on) stays the one place
+  // that decides what an unspecified number does.
+  if (opts.callingEnabled !== undefined) body.callingEnabled = opts.callingEnabled;
   // iMessage numbers ignore areaCode, so only send it for standard numbers.
   if (opts.includeImessage) body.capabilities = ["sms", "call", "imessage"];
   else if (opts.areaCode) body.areaCode = opts.areaCode;
@@ -196,6 +207,11 @@ export async function setNumberProperties(opts: {
   whatsappName?: string;
   /** WhatsApp avatar: local file path (uploaded) or http(s) URL. Square 192-640 jpeg/png. */
   whatsappAvatar?: string;
+  /**
+   * Switch calling on/off for the number, both directions. Messaging is
+   * unaffected. Omit to leave unchanged.
+   */
+  callingEnabled?: boolean;
 }): Promise<PhoneNumberRow> {
   const body: Record<string, unknown> = {};
   if (opts.inboundInstruction !== undefined) body.inboundInstruction = opts.inboundInstruction;
@@ -208,6 +224,7 @@ export async function setNumberProperties(opts: {
     body.maxCallDurationSeconds = opts.maxCallDurationSeconds;
   if (opts.firstName !== undefined) body.firstName = opts.firstName;
   if (opts.lastName !== undefined) body.lastName = opts.lastName;
+  if (opts.callingEnabled !== undefined) body.callingEnabled = opts.callingEnabled;
   if (opts.whatsappName !== undefined) body.whatsappName = opts.whatsappName;
   // A URL avatar goes in the JSON body; a local file forces multipart (below).
   // Read + validate the file up front, before any API round-trip, so a bad
@@ -225,7 +242,7 @@ export async function setNumberProperties(opts: {
   if (Object.keys(body).length === 0 && !avatarFile && !whatsappAvatarFile) {
     throw new DialError(
       "bad_request",
-      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, firstName, lastName, avatar, whatsappName, or whatsappAvatar).",
+      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, calling, firstName, lastName, avatar, whatsappName, or whatsappAvatar).",
     );
   }
   const auth = maybeAuth();

@@ -27,6 +27,8 @@ export type NumberSetOptions = {
   whatsappName?: string;
   /** WhatsApp avatar photo: local image path (uploaded) or public image URL. Square 192-640 jpeg/png. */
   whatsappAvatar?: string;
+  /** Switch calling on/off for the number, both directions; undefined leaves it unchanged. */
+  callingEnabled?: boolean;
   json: boolean;
 };
 
@@ -46,6 +48,7 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       ...(opts.firstName !== undefined ? { firstName: opts.firstName } : {}),
       ...(opts.lastName !== undefined ? { lastName: opts.lastName } : {}),
       ...(opts.avatar !== undefined ? { avatar: opts.avatar } : {}),
+      ...(opts.callingEnabled !== undefined ? { callingEnabled: opts.callingEnabled } : {}),
       ...(opts.whatsappName !== undefined ? { whatsappName: opts.whatsappName } : {}),
       ...(opts.whatsappAvatar !== undefined ? { whatsappAvatar: opts.whatsappAvatar } : {}),
     });
@@ -59,6 +62,9 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       console.log(`  inbound instruction:   ${n.inboundInstruction ?? ""}`);
       console.log(`  inbound voice gender:  ${n.inboundVoiceGender ?? ""}`);
       console.log(`  inbound language:      ${n.inboundLanguage ?? ""}`);
+      // Always printed, not only when it changed: "is calling on?" is the
+      // question someone runs this command to settle.
+      console.log(`  calling:               ${n.callingEnabled === false ? "off" : "on"}`);
       const hasIdentity = n.firstName != null || n.lastName != null || n.avatarUrl != null;
       if (hasIdentity) {
         console.log(
