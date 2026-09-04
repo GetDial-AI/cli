@@ -18,7 +18,11 @@ export async function runNumberList(opts: NumberListOptions): Promise<number> {
     for (const n of numbers) {
       const tag = n.id === defaultNumberId ? "  (default)" : "";
       const nickname = n.nickname ? `  "${n.nickname}"` : "";
-      console.log(`${n.number}  id=${n.id}  ${n.country}${nickname}${tag}`);
+      // Marked only when off. `--json` carries callingEnabled either way, but
+      // this line is hand-built, so without this the switch would be invisible
+      // in the CLI's default output.
+      const calling = n.callingEnabled === false ? "  calling:off" : "";
+      console.log(`${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${tag}`);
     }
     return 0;
   } catch (e) {

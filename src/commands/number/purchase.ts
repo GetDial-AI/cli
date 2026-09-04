@@ -11,6 +11,8 @@ export type NumberPurchaseOptions = {
   includeImessage?: boolean;
   /** Also connect WhatsApp. Only valid alongside --imessage. */
   whatsapp?: boolean;
+  /** Whether calling is switched on for the new number; undefined → on. */
+  callingEnabled?: boolean;
   json: boolean;
 };
 
@@ -32,6 +34,7 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
       inboundLanguage: opts.inboundLanguage,
       areaCode: opts.areaCode,
       includeImessage: opts.includeImessage,
+      callingEnabled: opts.callingEnabled,
       whatsapp: opts.whatsapp,
     });
     if (opts.json) {
@@ -41,6 +44,9 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
       console.log(`  number:   ${n.number}`);
       console.log(`  id:       ${n.id}`);
       console.log(`  country:  ${n.country}`);
+      // Only worth a line when it isn't the default — a messaging-only line is
+      // a surprising thing to discover later.
+      if (n.callingEnabled === false) console.log(`  calling:  off (messaging only)`);
       // iMessage numbers provision asynchronously: the number is returned right
       // away in setupStatus "provisioning". Tell the user to poll before using it.
       if (opts.includeImessage) {

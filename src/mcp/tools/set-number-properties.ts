@@ -71,6 +71,12 @@ const inputSchema = {
     .describe(
       "Public image URL to set as the number's WhatsApp avatar (the server downloads it). Square jpeg or png between 192x192 and 640x640 (not resized). WhatsApp-ready numbers only.",
     ),
+  callingEnabled: z
+    .boolean()
+    .optional()
+    .describe(
+      "Switch calling on or off for this number, in both directions. false stops inbound calls from being connected (the caller is never answered) and makes place_call from this number fail with calling_disabled (409); messaging on the number is unaffected. Takes effect on the next call — a call already in progress is not ended. Omit to leave it unchanged.",
+    ),
 };
 
 export const setNumberPropertiesTool: ToolModule = {
@@ -78,7 +84,7 @@ export const setNumberPropertiesTool: ToolModule = {
   config: {
     title: "Set Number Properties",
     description:
-      "Update a phone number's properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, and — for iMessage numbers — its display identity (firstName, lastName, avatarUrl), and for WhatsApp-ready numbers its WhatsApp identity (whatsappName, whatsappAvatarUrl). Provide at least one.",
+      "Update a phone number's properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, whether calling is switched on at all (callingEnabled), and — for iMessage numbers — its display identity (firstName, lastName, avatarUrl), and for WhatsApp-ready numbers its WhatsApp identity (whatsappName, whatsappAvatarUrl). Provide at least one.",
     inputSchema,
     outputSchema: { number: phoneNumberSchema },
     annotations: { openWorldHint: true },
@@ -100,6 +106,9 @@ export const setNumberPropertiesTool: ToolModule = {
           : {}),
         ...(args.firstName !== undefined ? { firstName: args.firstName as string } : {}),
         ...(args.whatsappName !== undefined ? { whatsappName: args.whatsappName as string } : {}),
+        ...(args.callingEnabled !== undefined
+          ? { callingEnabled: args.callingEnabled as boolean }
+          : {}),
         ...(args.whatsappAvatarUrl !== undefined
           ? { whatsappAvatar: args.whatsappAvatarUrl as string }
           : {}),

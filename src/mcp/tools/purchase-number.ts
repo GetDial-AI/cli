@@ -35,6 +35,12 @@ const inputSchema = {
     .describe(
       'Provision an iMessage number (pay-as-you-go only; provisioned asynchronously — poll List Numbers until setupStatus is "ready")',
     ),
+  callingEnabled: z
+    .boolean()
+    .optional()
+    .describe(
+      "Whether calling is switched on for the new number; omitted → true. Pass false for a messaging-only line: inbound calls are never connected and place_call from it fails, with no window in which it answers a call. Changeable later with set_number_properties.",
+    ),
 };
 
 export const purchaseNumberTool: ToolModule = {
@@ -55,6 +61,7 @@ export const purchaseNumberTool: ToolModule = {
         inboundLanguage: args.inboundLanguage as string | undefined,
         areaCode: args.areaCode as string | undefined,
         includeImessage: args.includeImessage as boolean | undefined,
+        callingEnabled: args.callingEnabled as boolean | undefined,
       }),
     }),
 };

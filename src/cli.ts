@@ -51,6 +51,21 @@ function parsePositiveInteger(value: string): number {
   return parsed;
 }
 
+/**
+ * `--calling <on|off>` → boolean.
+ *
+ * One flag taking an explicit value, rather than a `--calling`/`--no-calling`
+ * pair: it reads the same in a script and in a skill, and it cannot be confused
+ * with "leave unchanged" (which is what omitting the flag means). Anything other
+ * than the two spellings is an error, never quietly read as off.
+ */
+function parseCalling(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "on") return true;
+  if (normalized === "off") return false;
+  throw new InvalidArgumentError(`must be "on" or "off", got: ${value}`);
+}
+
 program
   .name("dial")
   .description("Dial CLI — set up your account and run the listen service.")
@@ -247,6 +262,11 @@ number
     "--whatsapp",
     "also connect WhatsApp to the new line (beta, enabled per account). Requires --include-imessage: WhatsApp is a channel on an iMessage line",
   )
+  .option(
+    "--calling <on|off>",
+    'whether calling is switched on for the new number (default: on). "off" provisions a messaging-only line with no window in which it answers a call',
+    parseCalling,
+  )
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(
@@ -258,6 +278,7 @@ number
         areaCode: opts.areaCode,
         includeImessage: !!opts.includeImessage,
         whatsapp: !!opts.whatsapp,
+        callingEnabled: opts.calling,
         json: !!opts.json,
       }),
     ),
@@ -322,6 +343,11 @@ number
     "--whatsapp-avatar <path-or-url>",
     "WhatsApp avatar photo (WhatsApp-ready numbers only): a local image file or public URL. Square jpeg/png between 192x192 and 640x640 (not resized)",
   )
+  .option(
+    "--calling <on|off>",
+    "switch calling on or off for this number, both directions: off means inbound calls aren't connected and none can be placed from it (messaging is unaffected)",
+    parseCalling,
+  )
   .option("--json", "machine-readable output")
   .action(async (numberArg: string, opts) => {
     let maxCallDurationSeconds: number | null | undefined;
@@ -343,6 +369,7 @@ number
         avatar: opts.avatar,
         whatsappName: opts.whatsappName,
         whatsappAvatar: opts.whatsappAvatar,
+        callingEnabled: opts.calling,
         json: !!opts.json,
       }),
     );

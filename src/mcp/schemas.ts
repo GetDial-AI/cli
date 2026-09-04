@@ -44,6 +44,12 @@ export const phoneNumberSchema = z
       .describe(
         "BCP-47 language tag inbound calls are pinned to; null → detected from the caller's country prefix per call",
       ),
+    callingEnabled: z
+      .boolean()
+      .optional()
+      .describe(
+        "Whether calling is switched on for this number, both directions. false → inbound calls are not connected and place_call from it fails with calling_disabled; messaging is unaffected",
+      ),
     firstName: z
       .string()
       .nullable()
