@@ -31,7 +31,7 @@ export const startTypingTool: ToolModule = {
       "call start_typing again after a send to keep composing, and stop_typing when you stop without sending.",
     inputSchema,
     outputSchema: { ok: z.boolean() },
-    annotations: { openWorldHint: true },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   },
   run: async (args) =>
     jsonResult(

@@ -30,7 +30,7 @@ export const authRegisterNumberTool: ToolModule = {
       registrationId: z.string(),
       phoneNumber: z.string().describe("The number in canonical E.164 form"),
     },
-    annotations: { openWorldHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   },
   run: async (args) =>
     jsonResult(

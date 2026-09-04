@@ -66,7 +66,7 @@ export const sendMessageTool: ToolModule = {
       "Address it with exactly one of to or groupId. WhatsApp sends are text-only.",
     inputSchema,
     outputSchema: { message: messageSchema },
-    annotations: { openWorldHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   },
   run: async (args) =>
     jsonResult({

@@ -81,7 +81,7 @@ export const setNumberPropertiesTool: ToolModule = {
       "Update a phone number's properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, and — for iMessage numbers — its display identity (firstName, lastName, avatarUrl), and for WhatsApp-ready numbers its WhatsApp identity (whatsappName, whatsappAvatarUrl). Provide at least one.",
     inputSchema,
     outputSchema: { number: phoneNumberSchema },
-    annotations: { openWorldHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   },
   run: async (args) =>
     jsonResult({

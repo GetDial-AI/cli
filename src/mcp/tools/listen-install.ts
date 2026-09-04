@@ -16,7 +16,7 @@ export const listenInstallTool: ToolModule = {
       warnings: z.array(z.string()),
       unitPath: z.string().describe("Path to the installed launchd/systemd unit"),
     },
-    annotations: {},
+    annotations: { destructiveHint: true, openWorldHint: false },
   },
   run: async () => jsonResult(listenInstall()),
 };
