@@ -51,7 +51,7 @@ const inputSchema = {
     .boolean()
     .optional()
     .describe(
-      "Send an audio attachment as a regular file attachment instead of an iMessage voice message. No effect on standard numbers or non-audio media.",
+      "Send a lone audio attachment as a regular file instead of a voice message — an iMessage voice message on iMessage numbers, a WhatsApp voice note on WhatsApp numbers. No effect on standard numbers or non-audio media.",
     ),
 };
 
@@ -63,7 +63,8 @@ export const sendMessageTool: ToolModule = {
       "Send a message from one of your Dial numbers — to a phone number, or into a group conversation — " +
       "optionally with media attachments (MMS). On an iMessage number, a single audio attachment is " +
       "delivered as a voice message unless forceAudioFile is true. " +
-      "Address it with exactly one of to or groupId. WhatsApp sends are text-only.",
+      "Address it with exactly one of to or groupId. A WhatsApp number sends text and a single " +
+      "attachment (a caption is allowed only with an image or video).",
     inputSchema,
     outputSchema: { message: messageSchema },
     annotations: { openWorldHint: true },
