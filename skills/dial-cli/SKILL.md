@@ -49,6 +49,15 @@ dial listen install                           # background daemon for inbound ev
 
 **Ask the user for the phone number — never invent one.** It must be able to receive SMS, it should be one the user keeps, and a Dial number is refused. Re-run `dial auth register-number` with the same number to resend the code, or with a different one to fix a typo before verifying.
 
+**If a signup looks stuck, resume it — never start it over.** Signups are keyed on the email address, so signing up again returns the *same* registration in the *same* state; restarting can only loop. The case you will meet is a signup interrupted after the texted code was accepted but before the account was created: the number is already verified, so there is no code left to send or to ask the user for. Both of these recover it, and neither sends a text or charges anything:
+
+```bash
+dial auth register-number +14155550123   # detects it and finishes the signup itself
+dial auth verify-otp --number            # or go straight to the finish, with no --code
+```
+
+`--json` marks the first as `resumed: true`. If you see the phone number described as already verified, that is this situation: finish it, don't restart it and don't ask for a code.
+
 A new number starts with a **default** inbound voice-agent prompt — the system prompt the AI uses on calls *to* your number. Change it with `dial number set <number> --inbound-instruction "..."`.
 
 `dial auth verify-otp` also installs a Dial skill into your agent's config (claude-code, cursor, codex, opencode, pi, openclaw, nanoclaw, hermes) when you pass `--agent <name>` — including on the email step when a phone number is still pending, so you keep the instructions needed to finish.

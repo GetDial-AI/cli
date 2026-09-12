@@ -327,6 +327,14 @@ export async function onboard(opts: OnboardInput): Promise<OnboardResult | Pendi
 // ── Phone verification ───────────────────────────────────────────────────────
 
 /**
+ * The server's code for "this registration's number is already verified", the one
+ * register-number conflict that means resume rather than start over. Reused
+ * verbatim as the DialError code, so `--json` consumers see the server's own
+ * vocabulary rather than a CLI synonym for it.
+ */
+export const PHONE_ALREADY_VERIFIED_CODE = "phone_already_verified";
+
+/**
  * Send a verification code to the phone number that will own the account.
  *
  * The number is passed through as typed: the server canonicalizes it and returns
@@ -350,7 +358,18 @@ export async function registerNumber(opts: {
     "/api/v1/auth/register-number",
     { registrationId, phoneNumber: opts.phoneNumber },
   );
-  if (!res.ok) throw new DialError("register_number_failed", res.error, res.status);
+  if (!res.ok) {
+    // Carried as its own code so the command can finish the signup instead of
+    // reporting a failure: the number is already verified and only the account is
+    // missing. `registrationId` rides along because the caller needs it to resume
+    // and may not have had one of its own (it came from the pending signup above).
+    throw new DialError(
+      res.code === PHONE_ALREADY_VERIFIED_CODE ? PHONE_ALREADY_VERIFIED_CODE : "register_number_failed",
+      res.error,
+      res.status,
+      { registrationId },
+    );
+  }
 
   const pending = readPendingSignup();
   if (pending) {
@@ -363,10 +382,17 @@ export async function registerNumber(opts: {
  * Submit the SMS code, which creates the account. Same result shape as onboard's
  * account outcome, so both paths finish identically — key saved, skills installed,
  * listen service offered.
+ *
+ * `code` is optional because this is also the RESUME call. A signup interrupted
+ * after the code was accepted but before the account existed has nothing left to
+ * check, and the endpoint contacts no provider in that state — so resuming must
+ * not oblige anyone to invent six digits that are read and discarded. Omitting it
+ * on a number that still needs verifying is refused by the server, which is the
+ * only place that knows which of the two situations this is.
  */
 export async function verifyNumber(opts: {
   registrationId?: string;
-  code: string;
+  code?: string;
   agents?: string[];
 }): Promise<OnboardResult> {
   const pending = readPendingSignup();
@@ -380,7 +406,9 @@ export async function verifyNumber(opts: {
 
   const res = await apiPost<VerifyResponse>("/api/v1/auth/verify-number", {
     registrationId,
-    code: opts.code,
+    // Omitted rather than sent empty: the server's schema rejects a code that is
+    // present but not six digits, which would turn a resume into a 400.
+    ...(opts.code ? { code: opts.code } : {}),
   });
   if (!res.ok) throw new DialError("verify_failed", res.error, res.status);
 
