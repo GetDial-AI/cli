@@ -57,8 +57,16 @@ function printSkills(skills: Array<InstallResult | { agent: string; error: strin
   }
 }
 
-/** The account exists: report the key, the skills, and the listen-service offer. */
-function reportOnboarded(result: OnboardResult, json: boolean): number {
+/**
+ * The account exists: report the key, the skills, and the listen-service offer.
+ *
+ * Exported because `auth register-number` finishes the signup itself when the
+ * number turns out to be already verified, and its output must be
+ * indistinguishable from this command's — an agent reads the finalization block
+ * below as a script, so a second, near-identical rendering of it would be a place
+ * for the two to drift apart.
+ */
+export function reportOnboarded(result: OnboardResult, json: boolean): number {
   const { apiKey, accountId, phoneNumber, phoneNumberId, apiKeyPath, skills, supervisor } = result;
   const masked = maskApiKey(apiKey);
 
@@ -252,8 +260,10 @@ function reportFailure(e: unknown, opts: AuthVerifyOtpOptions, label: string): n
         JSON.stringify({ ok: false, code: "verify_failed", status: e.status, error: e.message }),
       );
     else console.error(`${label} failed: ${e.message}`);
-    // 401 is a wrong/expired code (the user's problem); anything else is ours.
-    return e.status === 401 ? 1 : 2;
+    // 401 is a wrong/expired code and 400 a malformed request — a missing --code on
+    // a number that still needs verifying. Both are the caller's to fix (1);
+    // anything else is ours (2).
+    return e.status === 401 || e.status === 400 ? 1 : 2;
   }
   // missing_api_key
   if (opts.json) console.log(JSON.stringify({ ok: false, code: e.code, error: e.message }));
@@ -264,13 +274,11 @@ function reportFailure(e: unknown, opts: AuthVerifyOtpOptions, label: string): n
 export async function runAuthVerifyOtp(opts: AuthVerifyOtpOptions): Promise<number> {
   // ── SMS code: the step that creates the account ──
   if (opts.number) {
-    if (!opts.code) {
-      const message = "A --code is required with --number. Check the text message.";
-      if (opts.json)
-        console.log(JSON.stringify({ ok: false, code: "code_required", error: message }));
-      else console.error(message);
-      return 1;
-    }
+    // No --code is the RESUME call, not a mistake: a signup whose number is already
+    // verified has nothing left to check, and demanding six digits there would mean
+    // inventing digits the server reads and discards. The server decides which
+    // situation this is — it is the only side that knows — and refuses a missing
+    // code on a number that still needs verifying.
     if (!opts.registrationId && !readPendingSignup()?.registrationId) {
       const message = `No phone number awaiting verification. Run \`${REGISTER_NUMBER_COMMAND}\` first.`;
       if (opts.json)

@@ -20,7 +20,7 @@ const inputSchema = {
     .min(1)
     .optional()
     .describe(
-      "The 6-digit OTP. Omit if the account is already signed in — the tool will just install the requested agent skills and skip verification.",
+      "The 6-digit OTP. Omit if the account is already signed in — the tool will just install the requested agent skills and skip verification. With number: true, omit it to RESUME a signup whose phone number is already verified (no new text is sent, nothing is charged).",
     ),
   number: z
     .boolean()
@@ -77,7 +77,12 @@ export const authVerifyOtpTool: ToolModule = {
   run: async (args) => {
     // Skill-install-only branch — mirror runOnboard(): if no --code and we're
     // already signed in, skip verification and just install the requested skills.
-    if (!args.code) {
+    //
+    // `number: true` is excluded because there a missing code means the opposite:
+    // it is the resume call for a signup whose phone is already verified, which has
+    // an account to CREATE rather than one already signed in. Without this guard
+    // that resume would fall in here and be answered "Not signed in".
+    if (!args.code && !args.number) {
       const auth = readAuth();
       if (!auth) {
         throw new Error(
@@ -119,10 +124,13 @@ export const authVerifyOtpTool: ToolModule = {
         listenAvailable: supervisor.available,
       });
     }
-    // number: true is the SMS step, which creates the account.
+    // number: true is the SMS step, which creates the account. The code is passed
+    // through as-is, including absent: omitting it resumes a signup whose number is
+    // already verified, and only the server can tell that from a missing code that
+    // was actually needed.
     const r = args.number
       ? await verifyNumber({
-          code: args.code as string,
+          code: args.code as string | undefined,
           registrationId: args.registrationId as string | undefined,
           agents: args.agents as string[] | undefined,
         })

@@ -46,7 +46,18 @@ export function applyRefParamsHeader(headers: Record<string, string>): Record<st
 
 export type ApiResult<T> =
   | { ok: true; status: number; data: T }
-  | { ok: false; status: number; error: string };
+  | {
+      ok: false;
+      status: number;
+      error: string;
+      /**
+       * The server's stable machine identifier for the failure, when it sent one.
+       * Present only on the errors a client is meant to BRANCH on rather than
+       * merely print, so callers must tolerate its absence — and must never
+       * recover it by matching `error`, which is prose and gets reworded.
+       */
+      code?: string;
+    };
 
 export async function apiPost<T>(
   path: string,
@@ -89,7 +100,15 @@ function toResult<T>(statusCode: number, text: string): ApiResult<T> {
       : rawError != null
         ? JSON.stringify(rawError)
         : text || `HTTP ${statusCode}`;
-  return { ok: false, status: statusCode, error: errMsg };
+  // Only a string code is carried: anything else is not the documented shape, and
+  // passing it through would let a caller branch on a value it cannot compare.
+  const rawCode = (parsed as { code?: unknown } | null)?.code;
+  return {
+    ok: false,
+    status: statusCode,
+    error: errMsg,
+    ...(typeof rawCode === "string" ? { code: rawCode } : {}),
+  };
 }
 
 async function apiRequest<T>(
