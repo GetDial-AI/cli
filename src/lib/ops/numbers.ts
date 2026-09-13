@@ -193,6 +193,10 @@ export async function setNumberProperties(opts: {
    * Pass `null` to clear; omit to leave unchanged.
    */
   maxCallDurationSeconds?: number | null;
+  /** Which display profile(s) `name`/`avatar` are written to: "imessage", "whatsapp", or "both". */
+  channel?: string;
+  /** One display name for `channel`. WhatsApp takes it verbatim; iMessage splits it on the first space. */
+  name?: string;
   /** iMessage display first name; an empty string clears it. iMessage numbers only. */
   firstName?: string;
   /** iMessage display last name; an empty string clears it. iMessage numbers only. */
@@ -222,6 +226,8 @@ export async function setNumberProperties(opts: {
   if (opts.nickname !== undefined) body.nickname = opts.nickname;
   if (opts.maxCallDurationSeconds !== undefined)
     body.maxCallDurationSeconds = opts.maxCallDurationSeconds;
+  if (opts.channel !== undefined) body.channel = opts.channel;
+  if (opts.name !== undefined) body.name = opts.name;
   if (opts.firstName !== undefined) body.firstName = opts.firstName;
   if (opts.lastName !== undefined) body.lastName = opts.lastName;
   if (opts.callingEnabled !== undefined) body.callingEnabled = opts.callingEnabled;
@@ -242,7 +248,7 @@ export async function setNumberProperties(opts: {
   if (Object.keys(body).length === 0 && !avatarFile && !whatsappAvatarFile) {
     throw new DialError(
       "bad_request",
-      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, calling, firstName, lastName, avatar, whatsappName, or whatsappAvatar).",
+      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, calling, channel with name/avatar, firstName, lastName, avatar, whatsappName, or whatsappAvatar).",
     );
   }
   const auth = maybeAuth();
