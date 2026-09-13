@@ -324,6 +324,14 @@ number
   )
   .option("--clear-max-call-duration", "remove the per-number call duration cap")
   .option(
+    "--channel <imessage|whatsapp|both>",
+    'which display profile(s) --name and --avatar are written to; "both" sets one identity on every channel the number has, in a single call. Cannot be combined with --first-name/--last-name/--whatsapp-name/--whatsapp-avatar',
+  )
+  .option(
+    "--name <text>",
+    'display name for --channel (required alongside it); WhatsApp stores it verbatim (1-25 chars), iMessage splits it on the first space ("Maya Chen" -> Maya / Chen)',
+  )
+  .option(
     "--first-name <text>",
     'iMessage display first name shown beside this number\'s messages (iMessage numbers only); pass "" to clear',
   )
@@ -364,6 +372,8 @@ number
         inboundLanguage: opts.inboundLanguage,
         nickname: opts.nickname,
         maxCallDurationSeconds,
+        channel: opts.channel,
+        name: opts.name,
         firstName: opts.firstName,
         lastName: opts.lastName,
         avatar: opts.avatar,

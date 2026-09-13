@@ -17,6 +17,10 @@ export type NumberSetOptions = {
    * `null` clears the cap; `undefined` leaves it unchanged.
    */
   maxCallDurationSeconds?: number | null;
+  /** Which display profile(s) `name`/`avatar` are written to: "imessage", "whatsapp", or "both". */
+  channel?: string;
+  /** One display name for `channel`. WhatsApp takes it verbatim; iMessage splits it on the first space. */
+  name?: string;
   /** iMessage display first name; an empty string clears it. iMessage numbers only. */
   firstName?: string;
   /** iMessage display last name; an empty string clears it. iMessage numbers only. */
@@ -45,6 +49,8 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       ...(opts.maxCallDurationSeconds !== undefined
         ? { maxCallDurationSeconds: opts.maxCallDurationSeconds }
         : {}),
+      ...(opts.channel !== undefined ? { channel: opts.channel } : {}),
+      ...(opts.name !== undefined ? { name: opts.name } : {}),
       ...(opts.firstName !== undefined ? { firstName: opts.firstName } : {}),
       ...(opts.lastName !== undefined ? { lastName: opts.lastName } : {}),
       ...(opts.avatar !== undefined ? { avatar: opts.avatar } : {}),

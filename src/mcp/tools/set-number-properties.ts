@@ -37,6 +37,19 @@ const inputSchema = {
     .describe(
       "Call duration cap for this number, in seconds, applied as a hard ceiling to both inbound and outbound calls (the smallest of the per-number, account, and per-call caps wins). On a free account (no top-up or subscription yet) a value above 300 is rejected with 400. Pass null to clear the cap; omit to leave it unchanged.",
     ),
+  channel: z
+    .enum(["imessage", "whatsapp", "both"])
+    .optional()
+    .describe(
+      'Which display profile(s) `name` and `avatarUrl` are written to: "imessage", "whatsapp", or "both". Use this when the number should present the same identity everywhere — one call instead of two, validated against every targeted channel before any of them is written, so the profiles cannot drift apart. Cannot be combined with firstName/lastName/whatsappName/whatsappAvatarUrl.',
+    ),
+  name: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'The display name to set on the channel(s) `channel` names; requires `channel`. WhatsApp stores it verbatim (1-25 chars); iMessage has no single-name field, so it is split on the first space — "Ana Lee" becomes firstName "Ana", lastName "Lee".',
+    ),
   firstName: z
     .string()
     .max(30)
@@ -84,7 +97,7 @@ export const setNumberPropertiesTool: ToolModule = {
   config: {
     title: "Set Number Properties",
     description:
-      "Update a phone number's properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, whether calling is switched on at all (callingEnabled), and — for iMessage numbers — its display identity (firstName, lastName, avatarUrl), and for WhatsApp-ready numbers its WhatsApp identity (whatsappName, whatsappAvatarUrl). Provide at least one.",
+      'Update a phone number\'s properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, whether calling is switched on at all (callingEnabled), and its display identity. For the display identity prefer `channel` ("imessage", "whatsapp", or "both") with `name`/`avatarUrl` — one call that keeps every channel\'s profile identical. The per-channel fields remain for when the profiles differ: firstName/lastName/avatarUrl for iMessage, whatsappName/whatsappAvatarUrl for WhatsApp-ready numbers. Provide at least one property, and don\'t mix `channel` with the per-channel fields.',
     inputSchema,
     outputSchema: { number: phoneNumberSchema },
     annotations: { openWorldHint: true },
@@ -104,6 +117,8 @@ export const setNumberPropertiesTool: ToolModule = {
         ...(args.maxCallDurationSeconds !== undefined
           ? { maxCallDurationSeconds: args.maxCallDurationSeconds as number | null }
           : {}),
+        ...(args.channel !== undefined ? { channel: args.channel as string } : {}),
+        ...(args.name !== undefined ? { name: args.name as string } : {}),
         ...(args.firstName !== undefined ? { firstName: args.firstName as string } : {}),
         ...(args.whatsappName !== undefined ? { whatsappName: args.whatsappName as string } : {}),
         ...(args.callingEnabled !== undefined
