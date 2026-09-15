@@ -59,12 +59,18 @@ export async function listCalls(opts: {
   numberId?: string;
   direction?: string;
   since?: string;
+  /**
+   * One contact's calls: exchanged with this number, both directions, across every line on the
+   * account. Mirrors the same filter on listMessages.
+   */
+  contact?: string;
 }): Promise<CallRow[]> {
   const auth = maybeAuth();
   const params = new URLSearchParams();
   if (opts.numberId) params.set("numberId", opts.numberId);
   if (opts.direction) params.set("direction", opts.direction);
   if (opts.since) params.set("since", opts.since);
+  if (opts.contact) params.set("contact", opts.contact);
   const qs = params.toString();
   const res = await apiGet<{ calls: CallRow[] }>(
     qs ? `/api/v1/calls?${qs}` : "/api/v1/calls",

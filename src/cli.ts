@@ -18,6 +18,7 @@ import { runNumberPurchase } from "./commands/number/purchase.ts";
 import { runNumberSet } from "./commands/number/set.ts";
 import { runNumberWhatsapp } from "./commands/number/whatsapp.ts";
 import { runGroupList } from "./commands/group/list.ts";
+import { runContactsList } from "./commands/contacts/list.ts";
 import { runMessageSend } from "./commands/message/send.ts";
 import { runMessageReply } from "./commands/message/reply.ts";
 import { runMessageList } from "./commands/message/list.ts";
@@ -480,17 +481,42 @@ message
   .command("list")
   .description("List recent messages on your account. GET /api/v1/messages.")
   .option("--number-id <id>", "filter to a single phone number")
+  .option("--contact <e164>", "one contact's conversation, both directions, across every line")
   .option("--group <id>", "filter to one group conversation (see `dial group list`)")
   .option("--direction <dir>", "inbound or outbound")
   .option("--since <iso8601>", "only messages created after this timestamp")
+  .option("--search <text>", "match message bodies containing this text (case-insensitive)")
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(
       await runMessageList({
         numberId: opts.numberId,
+        contact: opts.contact,
         group: opts.group,
         direction: opts.direction,
         since: opts.since,
+        search: opts.search,
+        json: !!opts.json,
+      }),
+    ),
+  );
+
+program
+  .command("contacts")
+  .description(
+    "Every number your lines have texted or called, newest activity first. Walks every page " +
+      "unless you pass --limit. GET /api/v1/contacts.",
+  )
+  .option("--limit <n>", "return one page of at most n contacts (1-1000) instead of all", (v) =>
+    Number.parseInt(v, 10),
+  )
+  .option("--starting-after <iso8601>", "page cursor: the lastAt of the last contact you received")
+  .option("--json", "machine-readable output")
+  .action(async (opts) =>
+    process.exit(
+      await runContactsList({
+        limit: opts.limit,
+        startingAfter: opts.startingAfter,
         json: !!opts.json,
       }),
     ),
@@ -639,6 +665,7 @@ call
   .command("list")
   .description("List recent calls on your account. GET /api/v1/calls.")
   .option("--number-id <id>", "filter to a single phone number")
+  .option("--contact <e164>", "one contact's calls, both directions, across every line")
   .option("--direction <dir>", "inbound or outbound")
   .option("--since <iso8601>", "only calls created after this timestamp")
   .option("--json", "machine-readable output")
@@ -646,6 +673,7 @@ call
     process.exit(
       await runCallList({
         numberId: opts.numberId,
+        contact: opts.contact,
         direction: opts.direction,
         since: opts.since,
         json: !!opts.json,

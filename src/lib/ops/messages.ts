@@ -176,6 +176,18 @@ export async function listMessages(opts: {
   groupId?: string;
   direction?: string;
   since?: string;
+  /**
+   * Case-insensitive substring match on the message body.
+   *
+   * Searched by the API over the whole history, which then returns the newest 100 matches — so a
+   * hit far back in a conversation is found, not just one in the newest 100 messages.
+   */
+  search?: string;
+  /**
+   * One contact's conversation: messages exchanged with this number, both directions, across
+   * every line on the account. Group messages are never included; use `groupId` for those.
+   */
+  contact?: string;
 }): Promise<MessageRow[]> {
   const auth = maybeAuth();
   const params = new URLSearchParams();
@@ -183,6 +195,8 @@ export async function listMessages(opts: {
   if (opts.groupId) params.set("groupId", opts.groupId);
   if (opts.direction) params.set("direction", opts.direction);
   if (opts.since) params.set("since", opts.since);
+  if (opts.search) params.set("search", opts.search);
+  if (opts.contact) params.set("contact", opts.contact);
   const qs = params.toString();
   const res = await apiGet<{ messages: MessageRow[] }>(
     qs ? `/api/v1/messages?${qs}` : "/api/v1/messages",
