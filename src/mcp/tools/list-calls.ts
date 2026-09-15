@@ -8,7 +8,9 @@ const inputSchema = {
   contact: z
     .string()
     .optional()
-    .describe("One conversation: calls exchanged with this number (E.164), both directions, across every line"),
+    .describe(
+      "One conversation: calls exchanged with this number (E.164), both directions, across every line",
+    ),
   numberId: z.string().optional().describe("Filter to a single phone number id"),
   direction: z.enum(["inbound", "outbound"]).optional().describe("Filter by direction"),
   since: z.string().optional().describe("Only calls created after this ISO-8601 timestamp"),

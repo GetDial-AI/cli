@@ -39,11 +39,13 @@ export type ContactsPage = { contacts: ContactRow[]; hasMore: boolean };
  * Shared by `dial contacts` and the local MCP `list_contacts` tool, so both speak to the API
  * through one place and inherit the saved key the same way.
  */
-export async function listContacts(opts: {
-  limit?: number;
-  /** Exclusive ISO-8601 cursor: the `lastAt` of the last contact from the previous page. */
-  startingAfter?: string;
-} = {}): Promise<ContactsPage> {
+export async function listContacts(
+  opts: {
+    limit?: number;
+    /** Exclusive ISO-8601 cursor: the `lastAt` of the last contact from the previous page. */
+    startingAfter?: string;
+  } = {},
+): Promise<ContactsPage> {
   const auth = maybeAuth();
   const params = new URLSearchParams();
   if (opts.limit !== undefined) params.set("limit", String(opts.limit));

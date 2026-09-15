@@ -108,20 +108,34 @@ export const contactSchema = z.object({
   number: z.string().describe("The contact's number, E.164 — pass as `contact` to list_messages"),
   messageCount: z
     .number()
-    .describe("One-to-one messages with this contact across every line on the account, both directions"),
-  callCount: z.number().describe("Calls with this contact across every line on the account, both directions"),
+    .describe(
+      "One-to-one messages with this contact across every line on the account, both directions",
+    ),
+  callCount: z
+    .number()
+    .describe("Calls with this contact across every line on the account, both directions"),
   lastAt: z.string().describe("ISO-8601 timestamp of the most recent message or call"),
-  lastDirection: z.enum(["inbound", "outbound"]).describe("Whether the most recent interaction came from them or you"),
+  lastDirection: z
+    .enum(["inbound", "outbound"])
+    .describe("Whether the most recent interaction came from them or you"),
   lastKind: z.enum(["message", "call"]).describe("What the most recent interaction was"),
   lastBody: z
     .string()
-    .describe("The most recent message's text. Empty for a call, a media-only message, or a redacted one"),
-  lastMediaCount: z.number().describe("Attachments on the most recent message; 0 for a call or a text-only message"),
-  lastRedacted: z.boolean().describe("True when data retention cleared the most recent message's content"),
+    .describe(
+      "The most recent message's text. Empty for a call, a media-only message, or a redacted one",
+    ),
+  lastMediaCount: z
+    .number()
+    .describe("Attachments on the most recent message; 0 for a call or a text-only message"),
+  lastRedacted: z
+    .boolean()
+    .describe("True when data retention cleared the most recent message's content"),
   lastCallDuration: z
     .number()
     .nullable()
-    .describe("The most recent call's duration in seconds, or null when the most recent interaction was a message"),
+    .describe(
+      "The most recent call's duration in seconds, or null when the most recent interaction was a message",
+    ),
 });
 
 export const messageSchema = z

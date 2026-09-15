@@ -15,7 +15,9 @@ const inputSchema = {
   startingAfter: z
     .string()
     .optional()
-    .describe("ISO-8601 cursor — the lastAt of the last contact you received; returns only older ones"),
+    .describe(
+      "ISO-8601 cursor — the lastAt of the last contact you received; returns only older ones",
+    ),
 };
 
 export const listContactsTool: ToolModule = {
