@@ -4,6 +4,8 @@ import { printDialError } from "../../lib/cli-error.ts";
 
 export type CallListOptions = {
   numberId?: string;
+  /** One contact's calls, both directions, across every line. */
+  contact?: string;
   direction?: string;
   since?: string;
   json: boolean;
@@ -13,6 +15,7 @@ export async function runCallList(opts: CallListOptions): Promise<number> {
   try {
     const calls = await listCalls({
       numberId: opts.numberId,
+      contact: opts.contact,
       direction: opts.direction,
       since: opts.since,
     });

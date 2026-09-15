@@ -30,6 +30,7 @@ export const OPERATIONAL_TOOL_NAMES = [
   "stop_typing",
   "list_messages",
   "list_groups",
+  "list_contacts",
   "place_call",
   "list_calls",
   "get_call",

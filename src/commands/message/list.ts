@@ -6,8 +6,12 @@ export type MessageListOptions = {
   numberId?: string;
   /** One group's conversation. Combines with the other filters. */
   group?: string;
+  /** One contact's conversation, both directions, across every line. */
+  contact?: string;
   direction?: string;
   since?: string;
+  /** Case-insensitive substring match on the body, searched over the whole history. */
+  search?: string;
   json: boolean;
 };
 
@@ -16,8 +20,10 @@ export async function runMessageList(opts: MessageListOptions): Promise<number> 
     const messages = await listMessages({
       numberId: opts.numberId,
       groupId: opts.group,
+      contact: opts.contact,
       direction: opts.direction,
       since: opts.since,
+      search: opts.search,
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, messages }));
