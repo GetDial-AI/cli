@@ -13,9 +13,9 @@ export const getCallTool: ToolModule = {
   config: {
     title: "Get Call",
     description:
-      "Fetch a single call by id — status, duration, and transcript when available. "
-      + "The transcript comes back twice: `transcript` as flat text, and `transcriptTurns` "
-      + "as timed turns for analysing pacing and spotting long pauses.",
+      "Fetch a single call by id — status, duration, and transcript when available. " +
+      "The transcript comes back twice: `transcript` as flat text, and `transcriptTurns` " +
+      "as timed turns for analysing pacing and spotting long pauses.",
     inputSchema,
     outputSchema: { call: callSchema },
     annotations: { readOnlyHint: true, openWorldHint: true },
