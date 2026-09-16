@@ -2,6 +2,18 @@ import { apiGet, apiPost } from "../api.ts";
 import { maybeAuth, resolveFromSelector } from "./auth.ts";
 import { DialError } from "./errors.ts";
 
+/**
+ * One uninterrupted stretch of speech by one party, placed in time. Offsets count
+ * milliseconds from the moment the call connected, so the pause before a turn is
+ * its `startMs` minus the previous turn's `endMs`.
+ */
+export type TranscriptTurn = {
+  speaker: "agent" | "user";
+  text: string;
+  startMs: number;
+  endMs: number;
+};
+
 export type CallRow = {
   id: string;
   phoneNumberId?: string;
@@ -11,6 +23,12 @@ export type CallRow = {
   status: string;
   duration?: number;
   transcript?: string | null;
+  /**
+   * The same conversation as `transcript`, split into timed turns and ordered by
+   * `startMs`. Null when the call has no transcript, and on calls that finished
+   * before Dial recorded turn timing.
+   */
+  transcriptTurns?: TranscriptTurn[] | null;
   instruction: string | null;
   transferTo?: string | null;
   transferredAt?: string | null;
