@@ -167,6 +167,20 @@ export const messageSchema = z
   })
   .passthrough();
 
+export const transcriptTurnSchema = z
+  .object({
+    speaker: z
+      .enum(["agent", "user", "transfer_target"])
+      .describe(
+        "`agent` is Dial's AI voice agent, `user` the human on the other end, and " +
+          "`transfer_target` the human the call was cold-transferred to",
+      ),
+    text: z.string().describe("What was said during the turn"),
+    startMs: z.number().describe("Approximate ms into the call's audio at which the turn began"),
+    endMs: z.number().describe("Approximate ms into the call's audio at which the turn ended"),
+  })
+  .describe("One uninterrupted stretch of speech by one party, placed in time");
+
 export const callSchema = z
   .object({
     id: z.string(),
@@ -176,6 +190,15 @@ export const callSchema = z
     status: statusSchema,
     duration: z.number().nullish(),
     transcript: z.string().nullish(),
+    transcriptTurns: transcriptTurnSchema
+      .array()
+      .nullish()
+      .describe(
+        "The same conversation as `transcript`, split into timed turns and ordered by " +
+          "startMs. Use it to measure pacing: the pause before a turn is its startMs minus " +
+          "the previous turn's endMs. Null when the call has no transcript, or when the " +
+          "call's turn timing was not recorded.",
+      ),
     instruction: z.string().nullable().optional(),
     createdAt: z.string().optional(),
   })
