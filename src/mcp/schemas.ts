@@ -169,10 +169,15 @@ export const messageSchema = z
 
 export const transcriptTurnSchema = z
   .object({
-    speaker: z.enum(["agent", "user"]).describe("`agent` is Dial's AI voice agent; `user` is the human"),
+    speaker: z
+      .enum(["agent", "user", "transfer_target"])
+      .describe(
+        "`agent` is Dial's AI voice agent, `user` the human on the other end, and " +
+          "`transfer_target` the human the call was cold-transferred to",
+      ),
     text: z.string().describe("What was said during the turn"),
-    startMs: z.number().describe("Milliseconds after the call connected at which the turn began"),
-    endMs: z.number().describe("Milliseconds after the call connected at which the turn ended"),
+    startMs: z.number().describe("Approximate ms into the call's audio at which the turn began"),
+    endMs: z.number().describe("Approximate ms into the call's audio at which the turn ended"),
   })
   .describe("One uninterrupted stretch of speech by one party, placed in time");
 

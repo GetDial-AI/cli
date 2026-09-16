@@ -4,11 +4,20 @@ import { DialError } from "./errors.ts";
 
 /**
  * One uninterrupted stretch of speech by one party, placed in time. Offsets count
- * milliseconds from the moment the call connected, so the pause before a turn is
- * its `startMs` minus the previous turn's `endMs`.
+ * milliseconds into the call's audio, so the pause before a turn is its
+ * `startMs` minus the previous turn's `endMs`.
+ *
+ * The offsets are approximate: they come from per-word timings the voice runtime
+ * does not guarantee to be exact. Ample for spotting a long silence, which is
+ * what they are for; not a basis for splitting tenths of a second.
  */
 export type TranscriptTurn = {
-  speaker: "agent" | "user";
+  /**
+   * `agent` is Dial's AI voice agent, `user` the human on the other end, and
+   * `transfer_target` the human the call was cold-transferred to, who is a
+   * different party from `user`.
+   */
+  speaker: "agent" | "user" | "transfer_target";
   text: string;
   startMs: number;
   endMs: number;

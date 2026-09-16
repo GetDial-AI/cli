@@ -9,7 +9,17 @@ import { printDialError } from "../../lib/cli-error.ts";
  */
 const NOTABLE_PAUSE_MS = 3000;
 
-/** ms from call start → "m:ss.t", the stamp each transcript line carries. */
+/**
+ * Plain words for who spoke. "person" rather than "caller" because on an outbound
+ * call the human is the callee; "transferred" for the third party a call was
+ * handed off to, who is a different human from the one who was on the line first.
+ */
+function speakerLabel(speaker: TranscriptTurn["speaker"]): string {
+  if (speaker === "agent") return "agent";
+  return speaker === "transfer_target" ? "transferred" : "person";
+}
+
+/** ms into the call's audio → "m:ss.t", the stamp each transcript line carries. */
 function formatOffset(ms: number): string {
   const minutes = Math.floor(ms / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
@@ -32,8 +42,8 @@ function printTimedTranscript(turns: TranscriptTurn[]): void {
         console.log(`            ... ${(pauseMs / 1000).toFixed(1)}s pause`);
       }
     }
-    const speaker = turn.speaker === "agent" ? "agent " : "person";
-    console.log(`  ${formatOffset(turn.startMs).padStart(7)}  ${speaker}  ${turn.text}`);
+    const speaker = speakerLabel(turn.speaker).padEnd(12);
+    console.log(`  ${formatOffset(turn.startMs).padStart(7)}  ${speaker}${turn.text}`);
   });
 }
 
