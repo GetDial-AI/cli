@@ -17,7 +17,7 @@ const inputSchema = {
     .min(1)
     .optional()
     .describe(
-      "A group conversation to send into (see list_groups), instead of a to number. The sending line comes from the group, so no from-number is needed. Provide exactly one of to or groupId",
+      "A group conversation to send into (see list_groups), instead of a to number. The sending line comes from the group, so no from-number is needed, and neither is channel — the group already knows which one it is on, and naming a different one is refused. Provide exactly one of to or groupId",
     ),
   channel: z
     .enum(["imessage", "whatsapp"])
@@ -64,7 +64,8 @@ export const sendMessageTool: ToolModule = {
       "optionally with media attachments (MMS). On an iMessage number, a single audio attachment is " +
       "delivered as a voice message unless forceAudioFile is true. " +
       "Address it with exactly one of to or groupId. A WhatsApp number sends text and a single " +
-      "attachment (a caption is allowed only with an image or video).",
+      "attachment (a caption is allowed only with an image or video); a WhatsApp group is text-only, " +
+      "while an iMessage group takes media like any other iMessage conversation.",
     inputSchema,
     outputSchema: { message: messageSchema },
     annotations: { openWorldHint: true },
