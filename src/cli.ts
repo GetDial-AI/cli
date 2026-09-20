@@ -18,6 +18,7 @@ import { runNumberPurchase } from "./commands/number/purchase.ts";
 import { runNumberSet } from "./commands/number/set.ts";
 import { runNumberWhatsapp } from "./commands/number/whatsapp.ts";
 import { runGroupList } from "./commands/group/list.ts";
+import { runLookup } from "./commands/lookup/lookup.ts";
 import { runContactsList } from "./commands/contacts/list.ts";
 import { runMessageSend } from "./commands/message/send.ts";
 import { runMessageReply } from "./commands/message/reply.ts";
@@ -521,6 +522,16 @@ program
       }),
     ),
   );
+
+program
+  .command("lookup")
+  .argument("<number>", "the phone number to look up, in E.164 (e.g. +14155550123)")
+  .description(
+    "What channels a phone number can receive on, so you can pick one before sending. Works on " +
+      "any number, not just yours. GET /api/v1/lookup.",
+  )
+  .option("--json", "machine-readable output")
+  .action(async (number, opts) => process.exit(await runLookup(number, { json: !!opts.json })));
 
 const group = program
   .command("group")

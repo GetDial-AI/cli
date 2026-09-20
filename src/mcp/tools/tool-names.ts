@@ -31,6 +31,7 @@ export const OPERATIONAL_TOOL_NAMES = [
   "list_messages",
   "list_groups",
   "list_contacts",
+  "lookup_number",
   "place_call",
   "list_calls",
   "get_call",
