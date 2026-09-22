@@ -14,6 +14,8 @@ import { placeCallTool } from "./tools/place-call.ts";
 import { startTypingTool } from "./tools/start-typing.ts";
 import { stopTypingTool } from "./tools/stop-typing.ts";
 import { authVerifyOtpTool } from "./tools/auth-verify-otp.ts";
+import { setNumberPropertiesTool } from "./tools/set-number-properties.ts";
+import { phoneNumberSchema } from "./schemas.ts";
 
 // One tool per non-excluded `dial` command (`dial listen` worker + `dial mcp` itself
 // excluded). Both halves come from tools/tool-names.ts rather than a copy living here:
@@ -114,6 +116,25 @@ describe("mcp tools", () => {
         false,
       );
     }
+  });
+
+  it("set_number_properties accepts forwardTo as a string or null, and the number shape carries it", () => {
+    const input = z.object(setNumberPropertiesTool.config.inputSchema as z.ZodRawShape).strict();
+    assert.equal(
+      input.safeParse({ number: "+14155550123", forwardTo: "+18005550100" }).success,
+      true,
+    );
+    assert.equal(input.safeParse({ number: "+14155550123", forwardTo: null }).success, true);
+    assert.equal(input.safeParse({ number: "+14155550123", forwardTo: 5 }).success, false);
+    const out = phoneNumberSchema;
+    assert.equal(
+      out.safeParse({ id: "pn_1", number: "+14155550123", forwardTo: "+18005550100" }).success,
+      true,
+    );
+    assert.equal(
+      out.safeParse({ id: "pn_1", number: "+14155550123", forwardTo: null }).success,
+      true,
+    );
   });
 
   it("send_message and place_call accept the flexible fromNumber selector", () => {

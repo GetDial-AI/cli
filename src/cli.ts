@@ -68,6 +68,20 @@ function parseCalling(value: string): boolean {
   throw new InvalidArgumentError(`must be "on" or "off", got: ${value}`);
 }
 
+/**
+ * `--forward-to <e164|off>` → the number as typed, or null to stop forwarding.
+ *
+ * `off` (any case) or an empty string means "stop forwarding", sent as null.
+ * Anything else is sent as-is: the CLI never validates phone numbers locally,
+ * so the server's own 400 (invalid E.164, or the number's own number) is the
+ * one message the user sees.
+ */
+function parseForwardTo(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed.toLowerCase() === "off") return null;
+  return value;
+}
+
 program
   .name("dial")
   .description("Dial CLI — set up your account and run the listen service.")
@@ -358,6 +372,11 @@ number
     "switch calling on or off for this number, both directions: off means inbound calls aren't connected and none can be placed from it (messaging is unaffected)",
     parseCalling,
   )
+  .option(
+    "--forward-to <e164|off>",
+    "forward inbound calls to this phone number instead of answering them with the AI voice agent. `off` stops forwarding",
+    parseForwardTo,
+  )
   .option("--json", "machine-readable output")
   .action(async (numberArg: string, opts) => {
     let maxCallDurationSeconds: number | null | undefined;
@@ -382,6 +401,7 @@ number
         whatsappName: opts.whatsappName,
         whatsappAvatar: opts.whatsappAvatar,
         callingEnabled: opts.calling,
+        forwardTo: opts.forwardTo,
         json: !!opts.json,
       }),
     );
