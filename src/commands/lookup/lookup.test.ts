@@ -90,6 +90,25 @@ describe("dial lookup", () => {
       m === "GET" && u.startsWith("/api/v1/lookup")
         ? {
             status: 200,
+            json: { number: "+14155550123", supports: { imessage: true, telepathy: false } },
+          }
+        : undefined,
+    );
+    process.env.DIAL_API_URL = api.url;
+    auth();
+
+    assert.equal(await runLookup("+14155550123", { json: false }), 0);
+    const out = logged.join("\n");
+    assert.match(out, /iMessage\s+yes/);
+    // Under its raw key, because reporting an unknown channel beats hiding it.
+    assert.match(out, /telepathy\s+no/);
+  });
+
+  it("prints both known channels under their labels", async () => {
+    api = await startMockApi((m, u) =>
+      m === "GET" && u.startsWith("/api/v1/lookup")
+        ? {
+            status: 200,
             json: { number: "+14155550123", supports: { imessage: true, whatsapp: false } },
           }
         : undefined,
@@ -100,7 +119,53 @@ describe("dial lookup", () => {
     assert.equal(await runLookup("+14155550123", { json: false }), 0);
     const out = logged.join("\n");
     assert.match(out, /iMessage\s+yes/);
-    assert.match(out, /whatsapp\s+no/);
+    assert.match(out, /WhatsApp\s+no/);
+  });
+
+  it("a null verdict prints as neither yes nor no", async () => {
+    // `null` means Dial did not answer for that channel — for WhatsApp, because the account holds
+    // no WhatsApp number of its own. Rendering it as `no` would say the number is unreachable,
+    // which is the one thing it does not mean, and a `supported ? "yes" : "no"` does exactly that.
+    api = await startMockApi((m, u) =>
+      m === "GET" && u.startsWith("/api/v1/lookup")
+        ? {
+            status: 200,
+            json: { number: "+14155550123", supports: { imessage: true, whatsapp: null } },
+          }
+        : undefined,
+    );
+    process.env.DIAL_API_URL = api.url;
+    auth();
+
+    assert.equal(await runLookup("+14155550123", { json: false }), 0);
+    const line = logged
+      .join("\n")
+      .split("\n")
+      .find((l) => l.includes("WhatsApp"));
+    assert.ok(line, "the WhatsApp channel must still be printed");
+    assert.ok(!/\byes\b/.test(line), `a null must not read as yes: ${line}`);
+    assert.ok(!/\bno\b/.test(line), `a null must not read as no: ${line}`);
+    assert.match(line, /unknown/);
+  });
+
+  it("--json round-trips a null verdict rather than coercing it", async () => {
+    api = await startMockApi((m, u) =>
+      m === "GET" && u.startsWith("/api/v1/lookup")
+        ? {
+            status: 200,
+            json: { number: "+14155550123", supports: { imessage: true, whatsapp: null } },
+          }
+        : undefined,
+    );
+    process.env.DIAL_API_URL = api.url;
+    auth();
+
+    assert.equal(await runLookup("+14155550123", { json: true }), 0);
+    assert.deepEqual(JSON.parse(logged[0]), {
+      ok: true,
+      number: "+14155550123",
+      supports: { imessage: true, whatsapp: null },
+    });
   });
 
   it("--json emits the API shape unchanged", async () => {
