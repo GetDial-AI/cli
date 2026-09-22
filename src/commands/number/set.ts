@@ -33,6 +33,8 @@ export type NumberSetOptions = {
   whatsappAvatar?: string;
   /** Switch calling on/off for the number, both directions; undefined leaves it unchanged. */
   callingEnabled?: boolean;
+  /** E.164 number inbound calls are forwarded to instead of the AI voice agent; null stops forwarding; undefined leaves it unchanged. */
+  forwardTo?: string | null;
   json: boolean;
 };
 
@@ -55,6 +57,7 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       ...(opts.lastName !== undefined ? { lastName: opts.lastName } : {}),
       ...(opts.avatar !== undefined ? { avatar: opts.avatar } : {}),
       ...(opts.callingEnabled !== undefined ? { callingEnabled: opts.callingEnabled } : {}),
+      ...(opts.forwardTo !== undefined ? { forwardTo: opts.forwardTo } : {}),
       ...(opts.whatsappName !== undefined ? { whatsappName: opts.whatsappName } : {}),
       ...(opts.whatsappAvatar !== undefined ? { whatsappAvatar: opts.whatsappAvatar } : {}),
     });
@@ -71,6 +74,9 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       // Always printed, not only when it changed: "is calling on?" is the
       // question someone runs this command to settle.
       console.log(`  calling:               ${n.callingEnabled === false ? "off" : "on"}`);
+      // Printed alongside calling for the same reason: "who picks up?" is the
+      // other half of that question.
+      console.log(`  forward to:            ${n.forwardTo ?? "off (AI voice agent answers)"}`);
       const hasIdentity = n.firstName != null || n.lastName != null || n.avatarUrl != null;
       if (hasIdentity) {
         console.log(

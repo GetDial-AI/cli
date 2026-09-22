@@ -50,6 +50,13 @@ export const phoneNumberSchema = z
       .describe(
         "Whether calling is switched on for this number, both directions. false → inbound calls are not connected and place_call from it fails with calling_disabled; messaging is unaffected",
       ),
+    forwardTo: z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        "E.164 number inbound calls are forwarded to instead of the AI voice agent answering, or null when the agent answers.",
+      ),
     firstName: z
       .string()
       .nullable()

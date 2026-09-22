@@ -22,7 +22,9 @@ export async function runNumberList(opts: NumberListOptions): Promise<number> {
       // this line is hand-built, so without this the switch would be invisible
       // in the CLI's default output.
       const calling = n.callingEnabled === false ? "  calling:off" : "";
-      console.log(`${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${tag}`);
+      // Same reasoning: marked only when set, since the default is the AI agent answering.
+      const forward = n.forwardTo ? `  forward:${n.forwardTo}` : "";
+      console.log(`${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${forward}${tag}`);
     }
     return 0;
   } catch (e) {

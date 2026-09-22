@@ -45,6 +45,11 @@ export type PhoneNumberRow = {
    * does not change when the switch is flipped.
    */
   callingEnabled?: boolean;
+  /**
+   * E.164 number inbound calls are forwarded to instead of the AI voice agent
+   * answering, or null when the agent answers.
+   */
+  forwardTo?: string | null;
 };
 
 // Image types the avatar upload accepts, keyed by file extension.
@@ -216,6 +221,11 @@ export async function setNumberProperties(opts: {
    * unaffected. Omit to leave unchanged.
    */
   callingEnabled?: boolean;
+  /**
+   * Forward inbound calls to this E.164 number instead of the AI voice agent
+   * answering. null or an empty string stops forwarding. Omit to leave unchanged.
+   */
+  forwardTo?: string | null;
 }): Promise<PhoneNumberRow> {
   const body: Record<string, unknown> = {};
   if (opts.inboundInstruction !== undefined) body.inboundInstruction = opts.inboundInstruction;
@@ -231,6 +241,8 @@ export async function setNumberProperties(opts: {
   if (opts.firstName !== undefined) body.firstName = opts.firstName;
   if (opts.lastName !== undefined) body.lastName = opts.lastName;
   if (opts.callingEnabled !== undefined) body.callingEnabled = opts.callingEnabled;
+  // Empty string stops forwarding → send null, the one "off" spelling on the wire.
+  if (opts.forwardTo !== undefined) body.forwardTo = opts.forwardTo || null;
   if (opts.whatsappName !== undefined) body.whatsappName = opts.whatsappName;
   // A URL avatar goes in the JSON body; a local file forces multipart (below).
   // Read + validate the file up front, before any API round-trip, so a bad
@@ -248,7 +260,7 @@ export async function setNumberProperties(opts: {
   if (Object.keys(body).length === 0 && !avatarFile && !whatsappAvatarFile) {
     throw new DialError(
       "bad_request",
-      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, calling, channel with name/avatar, firstName, lastName, avatar, whatsappName, or whatsappAvatar).",
+      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, calling, forwardTo, channel with name/avatar, firstName, lastName, avatar, whatsappName, or whatsappAvatar).",
     );
   }
   const auth = maybeAuth();
@@ -271,7 +283,10 @@ export async function setNumberProperties(opts: {
   let res: ApiResult<{ number: PhoneNumberRow }>;
   if (avatarFile || whatsappAvatarFile) {
     const form = new ApiFormData();
-    for (const [field, value] of Object.entries(body)) form.set(field, String(value));
+    // A null (a clear, e.g. `--forward-to off`) goes as an empty text part —
+    // multipart has no null, and String(null) would send the word "null".
+    for (const [field, value] of Object.entries(body))
+      form.set(field, value === null ? "" : String(value));
     if (avatarFile) {
       form.append(
         "avatar",

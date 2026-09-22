@@ -90,6 +90,13 @@ const inputSchema = {
     .describe(
       "Switch calling on or off for this number, in both directions. false stops inbound calls from being connected (the caller is never answered) and makes place_call from this number fail with calling_disabled (409); messaging on the number is unaffected. Takes effect on the next call — a call already in progress is not ended. Omit to leave it unchanged.",
     ),
+  forwardTo: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "Forward inbound calls to this phone number (E.164) instead of having the AI voice agent answer; the caller is connected when that phone answers, and the call ends if it is busy or doesn't answer. null stops forwarding. Ignored while calling is off. Omitted leaves it unchanged.",
+    ),
 };
 
 export const setNumberPropertiesTool: ToolModule = {
@@ -97,7 +104,7 @@ export const setNumberPropertiesTool: ToolModule = {
   config: {
     title: "Set Number Properties",
     description:
-      'Update a phone number\'s properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, whether calling is switched on at all (callingEnabled), and its display identity. For the display identity prefer `channel` ("imessage", "whatsapp", or "both") with `name`/`avatarUrl` — one call that keeps every channel\'s profile identical. The per-channel fields remain for when the profiles differ: firstName/lastName/avatarUrl for iMessage, whatsappName/whatsappAvatarUrl for WhatsApp-ready numbers. Provide at least one property, and don\'t mix `channel` with the per-channel fields.',
+      'Update a phone number\'s properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, whether calling is switched on at all (callingEnabled), a phone to forward inbound calls to instead of the AI voice agent (forwardTo), and its display identity. For the display identity prefer `channel` ("imessage", "whatsapp", or "both") with `name`/`avatarUrl` — one call that keeps every channel\'s profile identical. The per-channel fields remain for when the profiles differ: firstName/lastName/avatarUrl for iMessage, whatsappName/whatsappAvatarUrl for WhatsApp-ready numbers. Provide at least one property, and don\'t mix `channel` with the per-channel fields.',
     inputSchema,
     outputSchema: { number: phoneNumberSchema },
     annotations: { openWorldHint: true },
@@ -124,6 +131,7 @@ export const setNumberPropertiesTool: ToolModule = {
         ...(args.callingEnabled !== undefined
           ? { callingEnabled: args.callingEnabled as boolean }
           : {}),
+        ...(args.forwardTo !== undefined ? { forwardTo: args.forwardTo as string | null } : {}),
         ...(args.whatsappAvatarUrl !== undefined
           ? { whatsappAvatar: args.whatsappAvatarUrl as string }
           : {}),

@@ -138,6 +138,36 @@ describe("ops/numbers", () => {
     assert.deepEqual(JSON.parse(patchBody), { inboundLanguage: null });
   });
 
+  it("setNumberProperties sends forwardTo, mapping null and an empty string to null (stops forwarding)", async () => {
+    let patchBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        const forwardTo = (JSON.parse(body) as { forwardTo: string | null }).forwardTo;
+        return {
+          status: 200,
+          json: { number: { id: "pn_1", number: "+15550000", country: "US", forwardTo } },
+        };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    const n = await setNumberProperties({ number: "+15550000", forwardTo: "+18005550100" });
+    assert.deepEqual(JSON.parse(patchBody), { forwardTo: "+18005550100" });
+    assert.equal(n.forwardTo, "+18005550100");
+    const cleared = await setNumberProperties({ number: "+15550000", forwardTo: null });
+    assert.deepEqual(JSON.parse(patchBody), { forwardTo: null });
+    assert.equal(cleared.forwardTo, null);
+    await setNumberProperties({ number: "+15550000", forwardTo: "" });
+    assert.deepEqual(JSON.parse(patchBody), { forwardTo: null });
+  });
+
   it("setNumberProperties throws bad_request when no properties are given", async () => {
     signIn();
     try {
