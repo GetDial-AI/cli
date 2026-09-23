@@ -4,20 +4,35 @@ import { jsonResult } from "../result.ts";
 import { setTyping } from "../../lib/ops/typing.ts";
 
 const inputSchema = {
-  toNumber: z.string().min(7).describe("Recipient phone number, E.164 (e.g. +14155550123)"),
+  toNumber: z
+    .string()
+    .min(7)
+    .optional()
+    .describe(
+      "Recipient phone number, E.164 (e.g. +14155550123). Provide exactly one of toNumber or groupId",
+    ),
+  groupId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "A group conversation to show it in instead (see list_groups). The line comes from the group. Provide exactly one of toNumber or groupId",
+    ),
   fromNumber: z
     .string()
     .min(1)
+    .optional()
     .describe(
-      "Number the indicator appears from: a phone number id, one of your numbers in E.164, or a nickname",
+      "Number the indicator appears from: a phone number id, one of your numbers in E.164, or a nickname. Required with toNumber; optional with groupId, which already names its line",
     ),
   channel: z
     .enum(["imessage", "whatsapp"])
     .optional()
     .describe(
-      "Which channel to show it on, for a line that carries more than one. Omit to use the number's own default. Typing inside a group is not supported",
+      "Which channel to show it on, for a line that carries more than one. Omit to use the number's own default, and omit it with groupId — the group already names its channel",
     ),
 };
+
 
 export const startTypingTool: ToolModule = {
   name: "start_typing",
@@ -25,7 +40,7 @@ export const startTypingTool: ToolModule = {
     title: "Start typing indicator",
     description:
       "Show a typing indicator to the recipient, as if someone were composing a message from your number. " +
-      "iMessage numbers display it; standard (SMS) numbers have no typing concept and silently ignore it, " +
+      "Address a group with groupId instead of toNumber and every member sees it. iMessage numbers display it; standard (SMS) numbers have no typing concept and silently ignore it, " +
       "so this is safe to call unconditionally before a send. Fire-and-forget and free. " +
       "Delivering a message or reaction clears the indicator natively on the recipient's device — " +
       "call start_typing again after a send to keep composing, and stop_typing when you stop without sending.",
@@ -36,8 +51,9 @@ export const startTypingTool: ToolModule = {
   run: async (args) =>
     jsonResult(
       await setTyping({
-        toNumber: args.toNumber as string,
-        fromNumber: args.fromNumber as string,
+        toNumber: args.toNumber as string | undefined,
+        groupId: args.groupId as string | undefined,
+        fromNumber: args.fromNumber as string | undefined,
         channel: args.channel as "imessage" | "whatsapp" | undefined,
         value: true,
       }),

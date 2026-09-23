@@ -576,22 +576,29 @@ typing
   )
   .option("--to-number <e164>", "recipient phone number, E.164 (e.g. +14155551234)")
   .option(
+    "--group <id>",
+    "a group conversation to show it in instead (see `dial group list`); the line comes from the group",
+  )
+  .option(
     "--from-number <ref>",
-    "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)",
+    "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number); optional with --group",
   )
   .option(
     "--channel <imessage|whatsapp>",
-    "which channel to show it on, for a line carrying both; omit to use the number's own default. Typing inside a group isn't supported",
+    "which channel to show it on, for a line carrying both; omit to use the number's own default, and omit it with --group — the group names its own channel",
   )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
-    if (!opts.toNumber) {
-      console.error("error: --to-number is required. Use `dial typing start --help` for usage.");
+    if (!opts.toNumber && !opts.group) {
+      console.error(
+        "error: --to-number or --group is required. Use `dial group list` for your groups, or `dial typing start --help` for usage.",
+      );
       process.exit(2);
     }
     process.exit(
       await runTypingStart({
         toNumber: opts.toNumber,
+        group: opts.group,
         fromNumber: opts.fromNumber,
         channel: opts.channel,
         json: !!opts.json,
@@ -604,22 +611,29 @@ typing
   .description("Clear a typing indicator previously shown with `typing start`.")
   .option("--to-number <e164>", "recipient phone number, E.164 (e.g. +14155551234)")
   .option(
+    "--group <id>",
+    "the group conversation to clear it in (see `dial group list`)",
+  )
+  .option(
     "--from-number <ref>",
-    "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)",
+    "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number); optional with --group",
   )
   .option(
     "--channel <imessage|whatsapp>",
-    "which channel to clear it on; pass the same channel `typing start` was given",
+    "which channel to clear it on; pass the same channel `typing start` was given, and omit it with --group",
   )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
-    if (!opts.toNumber) {
-      console.error("error: --to-number is required. Use `dial typing stop --help` for usage.");
+    if (!opts.toNumber && !opts.group) {
+      console.error(
+        "error: --to-number or --group is required. Use `dial typing stop --help` for usage.",
+      );
       process.exit(2);
     }
     process.exit(
       await runTypingStop({
         toNumber: opts.toNumber,
+        group: opts.group,
         fromNumber: opts.fromNumber,
         channel: opts.channel,
         json: !!opts.json,
