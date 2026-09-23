@@ -54,8 +54,14 @@ describe("mcp tools", () => {
     const tool = tools.find((t) => t.name === "list_groups")!;
     const groups = tool.config.outputSchema!.groups as z.ZodArray<z.ZodObject<z.ZodRawShape>>;
     assert.ok("channel" in groups.element.shape, "group schema is missing channel");
-    assert.equal(groups.element.safeParse({ id: "grp_1", channel: "imessage", name: null }).success, true);
-    assert.equal(groups.element.safeParse({ id: "grp_1", channel: "sms", name: null }).success, false);
+    assert.equal(
+      groups.element.safeParse({ id: "grp_1", channel: "imessage", name: null }).success,
+      true,
+    );
+    assert.equal(
+      groups.element.safeParse({ id: "grp_1", channel: "sms", name: null }).success,
+      false,
+    );
   });
 
   it("auth_verify_otp declares dashboardUrl and email in its output schema", () => {

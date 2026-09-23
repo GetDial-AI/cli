@@ -53,7 +53,12 @@ describe("group list and the group/channel flags", () => {
             status: 200,
             json: {
               groups: [
-                { id: "grp_1", channel: "whatsapp", name: "Planning bday party", createdAt: "2026-09-01T00:00:00Z" },
+                {
+                  id: "grp_1",
+                  channel: "whatsapp",
+                  name: "Planning bday party",
+                  createdAt: "2026-09-01T00:00:00Z",
+                },
                 { id: "grp_2", channel: "imessage", name: null, createdAt: "2026-09-02T00:00:00Z" },
               ],
             },
@@ -76,7 +81,11 @@ describe("group list and the group/channel flags", () => {
       m === "GET" && u === "/api/v1/groups"
         ? {
             status: 200,
-            json: { groups: [{ id: "grp_1", channel: "whatsapp", name: null, createdAt: "2026-09-01T00:00:00Z" }] },
+            json: {
+              groups: [
+                { id: "grp_1", channel: "whatsapp", name: null, createdAt: "2026-09-01T00:00:00Z" },
+              ],
+            },
           }
         : undefined,
     );

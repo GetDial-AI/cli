@@ -27,7 +27,7 @@ export const replyToMessageTool: ToolModule = {
   config: {
     title: "Reply to a message",
     description:
-      "Reply in-thread or react to an existing message. The reply goes out from the Dial number the target message belongs to, to the other party — no from/to needed. Provide exactly one of body or reaction. On iMessage numbers replies thread and reactions are native; recipients that can only receive SMS get an emoji reaction as a regular text, and named reactions are rejected. On WhatsApp numbers both are native, in a one-to-one conversation or a group: a reaction lands on the target message, and a body is a quoted reply.",
+      "Reply in-thread or react to an existing message. The reply goes out from the Dial number the target message belongs to, to the other party — no from/to needed. Provide exactly one of body or reaction. On iMessage numbers replies thread and reactions are native; recipients that can only receive SMS get an emoji reaction as a regular text, and named reactions are rejected. On an iMessage number, a body reply needs a target that arrived over iMessage or RCS — one that came in over SMS carries no thread to attach to and is rejected, so send a new message with send_message instead of retrying. On WhatsApp numbers both are native, in a one-to-one conversation or a group: a reaction lands on the target message, and a body is a quoted reply.",
     inputSchema,
     outputSchema: { message: messageSchema },
     annotations: { openWorldHint: true },
