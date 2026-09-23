@@ -13,9 +13,9 @@ const CHANNEL_LABELS: Record<string, string> = {
 /**
  * How one channel's verdict reads.
  *
- * Three states, not two. `null` means Dial did not answer for that channel — today only because the
- * account holds no WhatsApp number of its own — and printing it as `no` would say the number is
- * unreachable, which is the one thing it does not mean. A `?? "no"` here is the whole bug.
+ * Dial answers every channel with a boolean. Anything else — an older server's `null` for WhatsApp,
+ * or a value a later API adds — is printed as `unknown` rather than `no`: `no` would say the number
+ * is unreachable, which is the one thing a non-answer does not mean. A `?? "no"` here is the bug.
  */
 function verdictOf(supported: unknown): string {
   if (supported === true) return "yes";

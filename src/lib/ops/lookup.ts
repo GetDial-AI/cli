@@ -11,12 +11,7 @@ import { DialError } from "./errors.ts";
  */
 export type NumberSupport = {
   imessage: boolean;
-  /**
-   * `null` when the account has no WhatsApp number of its own: a WhatsApp check is made FROM a
-   * WhatsApp line, so Dial answers it only for accounts that have one. It says something about the
-   * account, never about the number — it is not a failure and it does not mean unreachable.
-   */
-  whatsapp: boolean | null;
+  whatsapp: boolean;
 };
 
 export type NumberLookup = {
@@ -33,9 +28,7 @@ export type NumberLookup = {
  *
  * A lookup Dial could not complete comes back as an error (502), never as a
  * negative verdict — so a `false` here always means the number genuinely is not
- * reachable on that channel, and a `null` always means Dial did not answer for
- * that channel. Neither ever means "we could not find out", and callers can
- * treat all three differently.
+ * reachable on that channel, never "we could not find out".
  */
 export async function lookupNumber(number: string): Promise<NumberLookup> {
   const auth = maybeAuth();

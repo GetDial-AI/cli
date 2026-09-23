@@ -23,24 +23,15 @@ export const lookupNumberTool: ToolModule = {
       "are added over time. The answer is point-in-time, not a property of the number — someone who changes " +
       "device or turns the service off stops being reachable — so treat `true` as a strong signal for picking " +
       "a channel rather than a promise that the send will land. A lookup that fails is an error, never a " +
-      "`false` and never a `null`, so a `false` always means the number genuinely isn't reachable there. " +
-      "`whatsapp` is `null` when this account has no WhatsApp number of its own: a WhatsApp check is made " +
-      "from a WhatsApp line, so it is answered only for accounts that have one. `null` says something about " +
-      "the account, never about the number — do not report it as unreachable.",
+      "`false`, so a `false` always means the number genuinely isn't reachable there. It needs nothing from " +
+      "this account: you don't have to hold an iMessage or WhatsApp number to ask about either channel.",
     inputSchema,
     outputSchema: {
       number: z.string().describe("The number you asked about, normalized to E.164"),
       supports: z
         .object({
           imessage: z.boolean().describe("Whether the number can currently receive iMessage"),
-          whatsapp: z
-            .boolean()
-            .nullable()
-            .describe(
-              "Whether the number can currently receive WhatsApp: true reachable, false not " +
-                "reachable, null this account has no WhatsApp number so the check was not made. " +
-                "null is never a failure and never means unreachable.",
-            ),
+          whatsapp: z.boolean().describe("Whether the number can currently receive WhatsApp"),
         })
         .describe("One key per channel, true when the number can be reached there"),
     },
