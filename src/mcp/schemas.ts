@@ -94,6 +94,9 @@ export const phoneNumberSchema = z
  */
 export const groupSchema = z.object({
   id: z.string().describe("Group id — pass as groupId to send_message or list_messages"),
+  channel: z
+    .enum(["whatsapp", "imessage"])
+    .describe("The channel the group is on; its rules apply to anything sent into the group"),
   name: z
     .string()
     .nullable()

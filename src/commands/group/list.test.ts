@@ -46,15 +46,20 @@ describe("group list and the group/channel flags", () => {
     delete process.env.DIAL_API_URL;
   });
 
-  it("renders ids and names, and a dash for a group nobody could name", async () => {
+  it("renders ids, channels and names, and a dash for a group nobody could name", async () => {
     api = await startMockApi((m, u) =>
       m === "GET" && u === "/api/v1/groups"
         ? {
             status: 200,
             json: {
               groups: [
-                { id: "grp_1", name: "Planning bday party", createdAt: "2026-09-01T00:00:00Z" },
-                { id: "grp_2", name: null, createdAt: "2026-09-02T00:00:00Z" },
+                {
+                  id: "grp_1",
+                  channel: "whatsapp",
+                  name: "Planning bday party",
+                  createdAt: "2026-09-01T00:00:00Z",
+                },
+                { id: "grp_2", channel: "imessage", name: null, createdAt: "2026-09-02T00:00:00Z" },
               ],
             },
           }
@@ -65,10 +70,10 @@ describe("group list and the group/channel flags", () => {
 
     assert.equal(await runGroupList({ json: false }), 0);
     const out = logged.join("\n");
-    assert.match(out, /grp_1\s+Planning bday party/);
+    assert.match(out, /grp_1\s+whatsapp\s+Planning bday party/);
     // Never the literal "null", and never the id standing in for a name.
     assert.ok(!out.includes("null"), `a null name must not print as "null": ${out}`);
-    assert.match(out, /grp_2\s+—/);
+    assert.match(out, /grp_2\s+imessage\s+—/);
   });
 
   it("--json emits the API shape unchanged", async () => {
@@ -76,7 +81,11 @@ describe("group list and the group/channel flags", () => {
       m === "GET" && u === "/api/v1/groups"
         ? {
             status: 200,
-            json: { groups: [{ id: "grp_1", name: null, createdAt: "2026-09-01T00:00:00Z" }] },
+            json: {
+              groups: [
+                { id: "grp_1", channel: "whatsapp", name: null, createdAt: "2026-09-01T00:00:00Z" },
+              ],
+            },
           }
         : undefined,
     );
@@ -86,7 +95,7 @@ describe("group list and the group/channel flags", () => {
     assert.equal(await runGroupList({ json: true }), 0);
     assert.deepEqual(JSON.parse(logged[0]), {
       ok: true,
-      groups: [{ id: "grp_1", name: null, createdAt: "2026-09-01T00:00:00Z" }],
+      groups: [{ id: "grp_1", channel: "whatsapp", name: null, createdAt: "2026-09-01T00:00:00Z" }],
     });
   });
 

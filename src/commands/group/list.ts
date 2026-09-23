@@ -19,7 +19,7 @@ export async function runGroupList(opts: GroupListOptions): Promise<number> {
       // A name Dial could not read is rendered as a dash — never the literal "null",
       // and never the group id standing in for a name, which would read as one.
       const name = g.name ?? "—";
-      console.log(`${g.id}  ${name}`);
+      console.log(`${g.id}  ${g.channel}  ${name}`);
     }
     return 0;
   } catch (e) {

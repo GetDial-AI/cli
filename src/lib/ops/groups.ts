@@ -5,6 +5,8 @@ import { DialError } from "./errors.ts";
 export type GroupRow = {
   /** The group's Dial id — pass it as `--group` when sending or listing. */
   id: string;
+  /** The channel the group is on — the same value its messages carry. Never changes. */
+  channel: "whatsapp" | "imessage";
   /**
    * The group's current name, or null when no line could report it in time.
    *
