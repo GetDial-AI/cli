@@ -610,10 +610,7 @@ typing
   .command("stop")
   .description("Clear a typing indicator previously shown with `typing start`.")
   .option("--to-number <e164>", "recipient phone number, E.164 (e.g. +14155551234)")
-  .option(
-    "--group <id>",
-    "the group conversation to clear it in (see `dial group list`)",
-  )
+  .option("--group <id>", "the group conversation to clear it in (see `dial group list`)")
   .option(
     "--from-number <ref>",
     "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number); optional with --group",

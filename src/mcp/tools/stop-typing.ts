@@ -33,7 +33,6 @@ const inputSchema = {
     ),
 };
 
-
 export const stopTypingTool: ToolModule = {
   name: "stop_typing",
   config: {

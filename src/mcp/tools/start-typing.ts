@@ -33,7 +33,6 @@ const inputSchema = {
     ),
 };
 
-
 export const startTypingTool: ToolModule = {
   name: "start_typing",
   config: {
