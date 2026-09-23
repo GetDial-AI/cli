@@ -123,8 +123,8 @@ describe("dial lookup", () => {
   });
 
   it("a null verdict prints as neither yes nor no", async () => {
-    // `null` means Dial did not answer for that channel — for WhatsApp, because the account holds
-    // no WhatsApp number of its own. Rendering it as `no` would say the number is unreachable,
+    // The API answers with booleans, but an older server sent `null` for WhatsApp when the account
+    // held no WhatsApp number. Rendering a non-answer as `no` would say the number is unreachable,
     // which is the one thing it does not mean, and a `supported ? "yes" : "no"` does exactly that.
     api = await startMockApi((m, u) =>
       m === "GET" && u.startsWith("/api/v1/lookup")
