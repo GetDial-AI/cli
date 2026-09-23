@@ -108,7 +108,7 @@ describe("mcp tools", () => {
     );
   });
 
-  it("typing tools require toNumber and fromNumber, and reject a value field", () => {
+  it("typing tools take either destination, and reject a value field", () => {
     for (const tool of [startTypingTool, stopTypingTool]) {
       const schema = z.object(tool.config.inputSchema as z.ZodRawShape).strict();
       assert.equal(
@@ -116,18 +116,17 @@ describe("mcp tools", () => {
         true,
       );
       assert.equal(
-        schema.safeParse({ toNumber: "+14155550123" }).success,
-        false,
-        `${tool.name}: fromNumber required`,
+        schema.safeParse({ groupId: "grp_1" }).success,
+        true,
+        `${tool.name}: a group names its own line, so fromNumber is optional`,
       );
-      assert.equal(
-        schema.safeParse({ fromNumber: "pn_1" }).success,
-        false,
-        `${tool.name}: toNumber required`,
-      );
+      // "Exactly one destination" is a cross-field rule and this is a flat shape, so the
+      // server is what enforces it — mirrored here only as the fields being present.
+      assert.ok("groupId" in (tool.config.inputSchema as object), `${tool.name} takes a groupId`);
       assert.equal(
         schema.safeParse({ toNumber: "+14155550123", fromNumber: "pn_1", value: true }).success,
         false,
+        `${tool.name}: no value field — the verb is the tool name`,
       );
     }
   });
