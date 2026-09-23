@@ -63,9 +63,9 @@ export const sendMessageTool: ToolModule = {
       "Send a message from one of your Dial numbers — to a phone number, or into a group conversation — " +
       "optionally with media attachments (MMS). On an iMessage number, a single audio attachment is " +
       "delivered as a voice message unless forceAudioFile is true. " +
-      "Address it with exactly one of to or groupId. A WhatsApp number sends text and a single " +
-      "attachment (a caption is allowed only with an image or video); a WhatsApp group is text-only, " +
-      "while an iMessage group takes media like any other iMessage conversation.",
+      "Address it with exactly one of to or groupId. A WhatsApp send — one-to-one or into a group — " +
+      "carries at most one attachment, and a body may accompany it only for an image or video; an " +
+      "iMessage group takes media like any other iMessage conversation.",
     inputSchema,
     outputSchema: { message: messageSchema },
     annotations: { openWorldHint: true },

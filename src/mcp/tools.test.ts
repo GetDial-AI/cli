@@ -50,6 +50,14 @@ describe("mcp tools", () => {
     );
   });
 
+  it("list_groups declares each group's channel, as the hosted server does", () => {
+    const tool = tools.find((t) => t.name === "list_groups")!;
+    const groups = tool.config.outputSchema!.groups as z.ZodArray<z.ZodObject<z.ZodRawShape>>;
+    assert.ok("channel" in groups.element.shape, "group schema is missing channel");
+    assert.equal(groups.element.safeParse({ id: "grp_1", channel: "imessage", name: null }).success, true);
+    assert.equal(groups.element.safeParse({ id: "grp_1", channel: "sms", name: null }).success, false);
+  });
+
   it("auth_verify_otp declares dashboardUrl and email in its output schema", () => {
     // The account path spreads OnboardResult, so both fields already flow
     // through — but a field absent from the schema is invisible to the model
