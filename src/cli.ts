@@ -365,7 +365,7 @@ number
   )
   .option(
     "--whatsapp-avatar <path-or-url>",
-    "WhatsApp avatar photo (WhatsApp-ready numbers only): a local image file or public URL. Square jpeg/png between 192x192 and 640x640 (not resized)",
+    "WhatsApp avatar photo (WhatsApp-ready numbers only): a local image file or public URL. Square jpeg/png between 192x192 and 640x640 (not resized), with no transparent pixels",
   )
   .option(
     "--calling <on|off>",

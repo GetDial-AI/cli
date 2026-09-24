@@ -214,7 +214,7 @@ export async function setNumberProperties(opts: {
   avatar?: string;
   /** WhatsApp display name; 1-25 chars, no reserved marks. WhatsApp-ready numbers only. */
   whatsappName?: string;
-  /** WhatsApp avatar: local file path (uploaded) or http(s) URL. Square 192-640 jpeg/png. */
+  /** WhatsApp avatar: local file path (uploaded) or http(s) URL. Square 192-640 jpeg/png, no transparent pixels. */
   whatsappAvatar?: string;
   /**
    * Switch calling on/off for the number, both directions. Messaging is
