@@ -82,7 +82,7 @@ const inputSchema = {
     .url()
     .optional()
     .describe(
-      "Public image URL to set as the number's WhatsApp avatar (the server downloads it). Square jpeg or png between 192x192 and 640x640 (not resized). WhatsApp-ready numbers only.",
+      "Public image URL to set as the number's WhatsApp avatar (the server downloads it). Square jpeg or png between 192x192 and 640x640 (not resized), with no transparent pixels. WhatsApp-ready numbers only.",
     ),
   callingEnabled: z
     .boolean()

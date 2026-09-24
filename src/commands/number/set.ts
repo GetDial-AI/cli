@@ -29,7 +29,7 @@ export type NumberSetOptions = {
   avatar?: string;
   /** WhatsApp display name; 1-25 chars, no reserved marks. WhatsApp-ready numbers only. */
   whatsappName?: string;
-  /** WhatsApp avatar photo: local image path (uploaded) or public image URL. Square 192-640 jpeg/png. */
+  /** WhatsApp avatar photo: local image path (uploaded) or public image URL. Square 192-640 jpeg/png, no transparent pixels. */
   whatsappAvatar?: string;
   /** Switch calling on/off for the number, both directions; undefined leaves it unchanged. */
   callingEnabled?: boolean;
