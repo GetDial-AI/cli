@@ -528,6 +528,7 @@ program
     "Every number your lines have texted or called, newest activity first. Walks every page " +
       "unless you pass --limit. GET /api/v1/contacts.",
   )
+  .option("--number-id <id>", "only one of your numbers' contacts, with that line's counts")
   .option("--limit <n>", "return one page of at most n contacts (1-1000) instead of all", (v) =>
     Number.parseInt(v, 10),
   )
@@ -536,6 +537,7 @@ program
   .action(async (opts) =>
     process.exit(
       await runContactsList({
+        numberId: opts.numberId,
         limit: opts.limit,
         startingAfter: opts.startingAfter,
         json: !!opts.json,

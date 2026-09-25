@@ -41,6 +41,11 @@ export type ContactsPage = { contacts: ContactRow[]; hasMore: boolean };
  */
 export async function listContacts(
   opts: {
+    /**
+     * One of the account's own lines: only the contacts that line has talked to, with that line's
+     * counts. An id not on the account answers with an empty page, not an error.
+     */
+    numberId?: string;
     limit?: number;
     /** Exclusive ISO-8601 cursor: the `lastAt` of the last contact from the previous page. */
     startingAfter?: string;
@@ -48,6 +53,7 @@ export async function listContacts(
 ): Promise<ContactsPage> {
   const auth = maybeAuth();
   const params = new URLSearchParams();
+  if (opts.numberId) params.set("numberId", opts.numberId);
   if (opts.limit !== undefined) params.set("limit", String(opts.limit));
   if (opts.startingAfter) params.set("starting_after", opts.startingAfter);
   const qs = params.toString();
@@ -65,13 +71,20 @@ export async function listContacts(
  * `dial contacts` answers "who have I talked to", and a first page is not an answer to that — so
  * the default walks the pages. `--limit` opts back into a single page for a caller that wants one.
  */
-export async function listAllContacts(pageSize = 1000): Promise<ContactRow[]> {
+export async function listAllContacts(
+  pageSize = 1000,
+  filter: { numberId?: string } = {},
+): Promise<ContactRow[]> {
   const all: ContactRow[] = [];
   let startingAfter: string | undefined;
   // Bounded rather than `while (hasMore)`: a bug at either end that always answered `hasMore:
   // true` would otherwise loop forever against the network. 25 pages is 25,000 contacts.
   for (let page = 0; page < 25; page++) {
-    const { contacts, hasMore } = await listContacts({ limit: pageSize, startingAfter });
+    const { contacts, hasMore } = await listContacts({
+      numberId: filter.numberId,
+      limit: pageSize,
+      startingAfter,
+    });
     all.push(...contacts);
     if (!hasMore || contacts.length === 0) break;
     startingAfter = contacts[contacts.length - 1].lastAt;

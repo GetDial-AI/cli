@@ -3,6 +3,8 @@ import { isDialError } from "../../lib/ops/errors.ts";
 import { printDialError } from "../../lib/cli-error.ts";
 
 export type ContactsListOptions = {
+  /** Only one line's contacts, with that line's counts. */
+  numberId?: string;
   /** One page of this size instead of the whole list. Absent means "every contact". */
   limit?: number;
   startingAfter?: string;
@@ -33,15 +35,23 @@ export async function runContactsList(opts: ContactsListOptions): Promise<number
     // answers the question it is named for — who have I talked to — by walking every page.
     const paged = opts.limit !== undefined || opts.startingAfter !== undefined;
     const page = paged
-      ? await listContacts({ limit: opts.limit, startingAfter: opts.startingAfter })
-      : { contacts: await listAllContacts(), hasMore: false };
+      ? await listContacts({
+          numberId: opts.numberId,
+          limit: opts.limit,
+          startingAfter: opts.startingAfter,
+        })
+      : { contacts: await listAllContacts(1000, { numberId: opts.numberId }), hasMore: false };
 
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, contacts: page.contacts, hasMore: page.hasMore }));
       return 0;
     }
     if (page.contacts.length === 0) {
-      console.log("no contacts. a number appears here once one of your lines texts or calls it.");
+      console.log(
+        opts.numberId
+          ? "no contacts on that number. a contact appears here once the line texts or calls it."
+          : "no contacts. a number appears here once one of your lines texts or calls it.",
+      );
       return 0;
     }
     for (const c of page.contacts) {
@@ -55,7 +65,8 @@ export async function runContactsList(opts: ContactsListOptions): Promise<number
     }
     if (page.hasMore) {
       const cursor = page.contacts[page.contacts.length - 1].lastAt;
-      console.log(`\nmore contacts. next page: dial contacts --starting-after ${cursor}`);
+      const scope = opts.numberId ? ` --number-id ${opts.numberId}` : "";
+      console.log(`\nmore contacts. next page: dial contacts${scope} --starting-after ${cursor}`);
     }
     return 0;
   } catch (e) {
