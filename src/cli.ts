@@ -279,6 +279,10 @@ number
     "also connect WhatsApp to the new line (beta, enabled per account). Requires --include-imessage: WhatsApp is a channel on an iMessage line",
   )
   .option(
+    "--whatsapp-only",
+    "provision a WhatsApp-only number: a line whose only channel is WhatsApp — no calls, no SMS (beta, enabled per account; pay-as-you-go only; provisioned asynchronously). Not combinable with --include-imessage or --whatsapp",
+  )
+  .option(
     "--calling <on|off>",
     'whether calling is switched on for the new number (default: on). "off" provisions a messaging-only line with no window in which it answers a call',
     parseCalling,
@@ -294,6 +298,7 @@ number
         areaCode: opts.areaCode,
         includeImessage: !!opts.includeImessage,
         whatsapp: !!opts.whatsapp,
+        whatsappOnly: !!opts.whatsappOnly,
         callingEnabled: opts.calling,
         json: !!opts.json,
       }),

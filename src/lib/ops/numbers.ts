@@ -110,6 +110,8 @@ export async function purchaseNumber(opts: {
   callingEnabled?: boolean;
   /** Also connect WhatsApp. Only valid alongside includeImessage. */
   whatsapp?: boolean;
+  /** A WhatsApp-only number (capabilities ["whatsapp"]); async, setupStatus starts "provisioning". */
+  whatsappOnly?: boolean;
 }): Promise<PhoneNumberRow> {
   const auth = maybeAuth();
   const body: Record<string, unknown> = {
@@ -121,8 +123,12 @@ export async function purchaseNumber(opts: {
   // Only sent when asked for, so the server's default (on) stays the one place
   // that decides what an unspecified number does.
   if (opts.callingEnabled !== undefined) body.callingEnabled = opts.callingEnabled;
-  // iMessage numbers ignore areaCode, so only send it for standard numbers.
-  if (opts.includeImessage) body.capabilities = ["sms", "call", "imessage"];
+  // iMessage numbers ignore areaCode, so only send it for standard numbers. A
+  // WhatsApp-only number honours it best-effort, so it is sent there too.
+  if (opts.whatsappOnly) {
+    body.capabilities = ["whatsapp"];
+    if (opts.areaCode) body.areaCode = opts.areaCode;
+  } else if (opts.includeImessage) body.capabilities = ["sms", "call", "imessage"];
   else if (opts.areaCode) body.areaCode = opts.areaCode;
   if (opts.whatsapp) body.whatsapp = true;
   const res = await apiPost<{ number: PhoneNumberRow }>("/api/v1/numbers", body, auth?.apiKey);

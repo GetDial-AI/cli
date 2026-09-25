@@ -41,6 +41,12 @@ const inputSchema = {
     .describe(
       "Whether calling is switched on for the new number; omitted → true. Pass false for a messaging-only line: inbound calls are never connected and place_call from it fails, with no window in which it answers a call. Changeable later with set_number_properties.",
     ),
+  whatsappOnly: z
+    .boolean()
+    .optional()
+    .describe(
+      'Provision a WhatsApp-only number: a line whose only channel is WhatsApp (no calls, no SMS, no iMessage). Beta, enabled per account (404 without access); pay-as-you-go only; provisioned asynchronously — poll List Numbers until setupStatus is "ready". Not combinable with includeImessage',
+    ),
 };
 
 export const purchaseNumberTool: ToolModule = {
@@ -61,6 +67,7 @@ export const purchaseNumberTool: ToolModule = {
         inboundLanguage: args.inboundLanguage as string | undefined,
         areaCode: args.areaCode as string | undefined,
         includeImessage: args.includeImessage as boolean | undefined,
+        whatsappOnly: args.whatsappOnly as boolean | undefined,
         callingEnabled: args.callingEnabled as boolean | undefined,
       }),
     }),

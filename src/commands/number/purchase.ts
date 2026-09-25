@@ -11,6 +11,8 @@ export type NumberPurchaseOptions = {
   includeImessage?: boolean;
   /** Also connect WhatsApp. Only valid alongside --imessage. */
   whatsapp?: boolean;
+  /** A WhatsApp-only number: WhatsApp is its only channel. Excludes the two above. */
+  whatsappOnly?: boolean;
   /** Whether calling is switched on for the new number; undefined → on. */
   callingEnabled?: boolean;
   json: boolean;
@@ -26,6 +28,14 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
     );
     return 2;
   }
+  // A WhatsApp-only number is a third kind of line, not a modifier on the other two:
+  // it has no iMessage to ride and nothing for --whatsapp to add.
+  if (opts.whatsappOnly && (opts.includeImessage || opts.whatsapp)) {
+    console.error(
+      "error: --whatsapp-only can't be combined with --include-imessage or --whatsapp (a WhatsApp-only number has no other channel).",
+    );
+    return 2;
+  }
   try {
     const n = await purchaseNumber({
       inboundInstruction: opts.inboundInstruction,
@@ -36,6 +46,7 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
       includeImessage: opts.includeImessage,
       callingEnabled: opts.callingEnabled,
       whatsapp: opts.whatsapp,
+      whatsappOnly: opts.whatsappOnly,
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, number: n }));
@@ -52,6 +63,12 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
       if (opts.includeImessage) {
         console.log(
           `  status:   ${n.setupStatus ?? "provisioning"} — run \`dial number list\` until it's "ready" before sending or calling from it.`,
+        );
+      }
+      // Same for a WhatsApp-only number, whose whole setup is the WhatsApp registration.
+      if (opts.whatsappOnly) {
+        console.log(
+          `  status:   ${n.setupStatus ?? "provisioning"} — WhatsApp-only; run \`dial number list\` until it's "ready" before sending from it.`,
         );
       }
     }
