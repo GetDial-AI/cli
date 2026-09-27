@@ -24,7 +24,11 @@ export async function runNumberList(opts: NumberListOptions): Promise<number> {
       const calling = n.callingEnabled === false ? "  calling:off" : "";
       // Same reasoning: marked only when set, since the default is the AI agent answering.
       const forward = n.forwardTo ? `  forward:${n.forwardTo}` : "";
-      console.log(`${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${forward}${tag}`);
+      // Shown whenever the number has a WhatsApp track, so a warming or failed one is visible.
+      const whatsapp = n.whatsapp ? `  whatsapp:${n.whatsapp.status}` : "";
+      console.log(
+        `${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${forward}${whatsapp}${tag}`,
+      );
     }
     return 0;
   } catch (e) {
