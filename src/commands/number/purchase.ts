@@ -54,6 +54,8 @@ export async function runNumberPurchase(opts: NumberPurchaseOptions): Promise<nu
           `  status:   ${n.setupStatus ?? "provisioning"} — run \`dial number list\` until it's "ready" before sending or calling from it.`,
         );
       }
+      // Shown whenever the number has a WhatsApp track: bought with WhatsApp, it arrives ready.
+      if (n.whatsapp) console.log(`  whatsapp: ${n.whatsapp.status}`);
     }
     return 0;
   } catch (e) {

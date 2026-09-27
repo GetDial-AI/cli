@@ -34,7 +34,11 @@ export type PhoneNumberRow = {
    * caller-ID can be ready while WhatsApp has failed, and the other way round.
    */
   whatsapp?: {
-    status: "provisioning" | "ready" | "failed";
+    /**
+     * `warming_up`: a number you connected is registered and warming up (about 6 hours) before
+     * first use. `banned`: WhatsApp withdrew a line that was working; permanent.
+     */
+    status: WhatsappStatus;
     error: string | null;
     /** ISO-8601: when the channel will accept another attempt; null when it will now. */
     retryAvailableAt: string | null;
@@ -126,9 +130,28 @@ export async function purchaseNumber(opts: {
   else if (opts.areaCode) body.areaCode = opts.areaCode;
   if (opts.whatsapp) body.whatsapp = true;
   const res = await apiPost<{ number: PhoneNumberRow }>("/api/v1/numbers", body, auth?.apiKey);
-  if (!res.ok) throw new DialError("purchase_failed", res.error, res.status);
+  if (!res.ok) {
+    // A WhatsApp number that isn't available right now: nothing was bought or charged, so
+    // unlike a failed purchase this one is safe to retry. Told apart by status alone, since
+    // the CLI keeps the server's text and not its code.
+    if (res.status === 503 && opts.whatsapp) {
+      throw new DialError("whatsapp_numbers_unavailable", WHATSAPP_NUMBERS_UNAVAILABLE, 503);
+    }
+    throw new DialError("purchase_failed", res.error, res.status);
+  }
   return res.data.number;
 }
+
+/** The WhatsApp track's statuses, as the server reports them. */
+export type WhatsappStatus = "provisioning" | "warming_up" | "ready" | "failed" | "banned";
+
+/** Still working on it: waiting makes sense. */
+export function whatsappInProgress(status: WhatsappStatus | undefined): boolean {
+  return status === "provisioning" || status === "warming_up";
+}
+
+export const WHATSAPP_NUMBERS_UNAVAILABLE =
+  "WhatsApp numbers are temporarily unavailable. Nothing was bought or charged — it's safe to retry shortly.";
 
 /**
  * Resolve a number reference — an id, an owned E.164, or a nickname — to its id.
