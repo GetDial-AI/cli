@@ -363,13 +363,23 @@ describe("ops/numbers", () => {
   it("purchaseNumber maps a WhatsApp 503 to whatsapp_numbers_unavailable, safe to retry", async () => {
     api = await startMockApi((m, u) =>
       m === "POST" && u === "/api/v1/numbers"
-        ? { status: 503, json: { error: "WhatsApp numbers are temporarily unavailable. Please try again shortly." } }
+        ? {
+            status: 503,
+            json: {
+              error: "WhatsApp numbers are temporarily unavailable. Please try again shortly.",
+            },
+          }
         : undefined,
     );
     process.env.DIAL_API_URL = api.url;
     signIn();
     try {
-      await purchaseNumber({ inboundInstruction: "x", explicitProgrammaticConsent: "y", includeImessage: true, whatsapp: true });
+      await purchaseNumber({
+        inboundInstruction: "x",
+        explicitProgrammaticConsent: "y",
+        includeImessage: true,
+        whatsapp: true,
+      });
       assert.fail("expected throw");
     } catch (e) {
       assert.ok(isDialError(e));
@@ -381,7 +391,9 @@ describe("ops/numbers", () => {
 
   it("a 503 without WhatsApp stays an ordinary purchase failure", async () => {
     api = await startMockApi((m, u) =>
-      m === "POST" && u === "/api/v1/numbers" ? { status: 503, json: { error: "unavailable" } } : undefined,
+      m === "POST" && u === "/api/v1/numbers"
+        ? { status: 503, json: { error: "unavailable" } }
+        : undefined,
     );
     process.env.DIAL_API_URL = api.url;
     signIn();
@@ -396,13 +408,17 @@ describe("ops/numbers", () => {
   it("warming_up counts as in progress; ready, failed and banned don't", () => {
     assert.equal(whatsappInProgress("provisioning"), true);
     assert.equal(whatsappInProgress("warming_up"), true);
-    for (const s of ["ready", "failed", "banned"] as const) assert.equal(whatsappInProgress(s), false);
+    for (const s of ["ready", "failed", "banned"] as const)
+      assert.equal(whatsappInProgress(s), false);
   });
 
   it("connecting WhatsApp tells the caller it takes hours and how to wait for it", () => {
     const text = whatsappConnectNextStep("pn_1");
     assert.match(text, /about 6 hours/);
     assert.match(text, /warming_up/);
-    assert.match(text, /dial wait-for number\.status_changed -f status=ready -f phoneNumberId=pn_1 --timeout \d+/);
+    assert.match(
+      text,
+      /dial wait-for number\.status_changed -f status=ready -f phoneNumberId=pn_1 --timeout \d+/,
+    );
   });
 });

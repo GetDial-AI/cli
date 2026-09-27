@@ -26,7 +26,9 @@ export async function runNumberList(opts: NumberListOptions): Promise<number> {
       const forward = n.forwardTo ? `  forward:${n.forwardTo}` : "";
       // Shown whenever the number has a WhatsApp track, so a warming or failed one is visible.
       const whatsapp = n.whatsapp ? `  whatsapp:${n.whatsapp.status}` : "";
-      console.log(`${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${forward}${whatsapp}${tag}`);
+      console.log(
+        `${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${forward}${whatsapp}${tag}`,
+      );
     }
     return 0;
   } catch (e) {
