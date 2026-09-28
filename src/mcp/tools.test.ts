@@ -11,6 +11,8 @@ import { OPERATIONAL_TOOL_NAMES, LOCAL_ONLY_TOOL_NAMES } from "./tools/tool-name
 import { sendMessageTool } from "./tools/send-message.ts";
 import { replyToMessageTool } from "./tools/reply-to-message.ts";
 import { placeCallTool } from "./tools/place-call.ts";
+import { getCallTool } from "./tools/get-call.ts";
+import { listCallsTool } from "./tools/list-calls.ts";
 import { startTypingTool } from "./tools/start-typing.ts";
 import { stopTypingTool } from "./tools/stop-typing.ts";
 import { authVerifyOtpTool } from "./tools/auth-verify-otp.ts";
@@ -62,6 +64,19 @@ describe("mcp tools", () => {
       groups.element.safeParse({ id: "grp_1", channel: "sms", name: null }).success,
       false,
     );
+  });
+
+  it("get_call and list_calls declare failureReason in the call output schema", () => {
+    // Mirrors the hosted server's serializer: a failed call's failureReason must be
+    // visible to a model reading the schema, not just riding along via .passthrough().
+    for (const tool of [getCallTool, listCallsTool]) {
+      const schema = tool.config.outputSchema as z.ZodRawShape;
+      const callShape =
+        tool === getCallTool
+          ? (schema.call as z.ZodObject<z.ZodRawShape>).shape
+          : (schema.calls as z.ZodArray<z.ZodObject<z.ZodRawShape>>).element.shape;
+      assert.ok("failureReason" in callShape, `${tool.name} is missing failureReason`);
+    }
   });
 
   it("auth_verify_otp declares dashboardUrl and email in its output schema", () => {

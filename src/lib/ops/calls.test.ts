@@ -5,8 +5,47 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeAuth } from "../state.ts";
 import { startMockApi } from "../../test-utils.ts";
-import { placeCall, getCall } from "./calls.ts";
+import { placeCall, getCall, callStatusLabel, describeFailureReason } from "./calls.ts";
 import { isDialError } from "./errors.ts";
+
+describe("callStatusLabel", () => {
+  it("prefers the structured status object's label", () => {
+    assert.equal(
+      callStatusLabel({ state: "Terminated", label: "Failed/Wrong Number" }),
+      "Failed/Wrong Number",
+    );
+  });
+
+  it("falls back to state when a label is missing", () => {
+    assert.equal(callStatusLabel({ state: "Ringing" }), "Ringing");
+  });
+
+  it("passes through an old plain-string status unchanged", () => {
+    assert.equal(callStatusLabel("completed"), "completed");
+  });
+
+  it("never renders [object Object] for an empty status object", () => {
+    assert.notEqual(callStatusLabel({}), "[object Object]");
+  });
+});
+
+describe("describeFailureReason", () => {
+  it("returns a human sentence for each documented code", () => {
+    for (const code of [
+      "self_hosted_key_rejected",
+      "self_hosted_agent_not_found",
+      "self_hosted_at_capacity",
+      "self_hosted_unreachable",
+    ]) {
+      const description = describeFailureReason(code);
+      assert.ok(description && description.length > 0, `expected a description for ${code}`);
+    }
+  });
+
+  it("returns null for an unrecognized code, so callers print it raw", () => {
+    assert.equal(describeFailureReason("some_future_reason"), null);
+  });
+});
 
 let tmp: string;
 let api: { url: string; close: () => Promise<void> };

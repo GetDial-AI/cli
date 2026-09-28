@@ -219,6 +219,14 @@ export const callSchema = z
     direction: z.string().optional(),
     status: statusSchema,
     duration: z.number().nullish(),
+    failureReason: z
+      .string()
+      .nullish()
+      .describe(
+        "Why the call failed, when status's terminationType is failed and Dial knows the cause " +
+          "(e.g. self_hosted_key_rejected from a Self-Hosted audio target). Null otherwise, and on a " +
+          "failed call whose cause Dial can't name. Treat an unrecognized value like null.",
+      ),
     transcript: z.string().nullish(),
     transcriptTurns: transcriptTurnSchema
       .array()
