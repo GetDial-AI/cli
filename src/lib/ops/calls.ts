@@ -23,14 +23,44 @@ export type TranscriptTurn = {
   endMs: number;
 };
 
+/**
+ * The call's live lifecycle status. The server returns a structured object — a
+ * plain `string` only ever shows up on a call fetched before this shape shipped,
+ * or from a client that hasn't updated its assumption. Tolerate both.
+ */
+export type CallStatusObject = {
+  state?: string;
+  terminationType?: string | null;
+  cancelRequested?: boolean;
+  cancelPending?: boolean;
+  label?: string;
+};
+
+export type CallStatus = string | CallStatusObject;
+
+/**
+ * Why a call ended as `failed`, when Dial knows. Every reason today comes from a
+ * Self-Hosted **audio** target. `null` on every other call, and on a failed call
+ * whose cause Dial can't name. More values may be added — treat an unknown one
+ * like `null`.
+ */
+export type CallFailureReason =
+  | "self_hosted_key_rejected"
+  | "self_hosted_agent_not_found"
+  | "self_hosted_at_capacity"
+  | "self_hosted_unreachable"
+  | null;
+
 export type CallRow = {
   id: string;
   phoneNumberId?: string;
   from: string;
   to: string;
   direction: string;
-  status: string;
+  status: CallStatus;
   duration?: number;
+  /** Set only when `status`'s terminationType is `failed` and Dial knows why; null otherwise. */
+  failureReason?: CallFailureReason | string | null;
   transcript?: string | null;
   /**
    * The same conversation as `transcript`, split into timed turns and ordered by
@@ -43,6 +73,43 @@ export type CallRow = {
   transferredAt?: string | null;
   createdAt?: string;
 };
+
+/**
+ * The human-facing label for a call's status: `status.label` for the current
+ * object shape, `status.state` if a `label` wasn't sent, or the raw string for
+ * a call fetched before the object shape shipped. Never returns `[object
+ * Object]` — the bug this exists to avoid.
+ */
+export function callStatusLabel(status: CallStatus): string {
+  if (typeof status === "string") return status;
+  if (status && typeof status === "object") {
+    if (typeof status.label === "string") return status.label;
+    if (typeof status.state === "string") return status.state;
+    // Neither field present — never fall through to the default object-to-string
+    // coercion, which prints the useless (and confusing) "[object Object]".
+    return "unknown";
+  }
+  return String(status);
+}
+
+/**
+ * One short, human sentence per known `failureReason` code, matching the docs'
+ * "When a call fails" table. Returns `null` for a code we don't recognize
+ * (including a future addition) — callers print the raw code in that case.
+ */
+const FAILURE_REASON_DESCRIPTIONS: Record<string, string> = {
+  self_hosted_key_rejected:
+    "Pipecat Cloud rejected the public key. Save the right key in Self-Hosted settings.",
+  self_hosted_agent_not_found:
+    "No Pipecat Cloud agent has that name. Check agentName against your pcc-deploy.toml.",
+  self_hosted_at_capacity: "Your agent had no room for another session. Raise max_agents.",
+  self_hosted_unreachable:
+    "Your server didn't accept the connection, or Pipecat Cloud didn't answer. Check that your server or agent is up.",
+};
+
+export function describeFailureReason(reason: string): string | null {
+  return FAILURE_REASON_DESCRIPTIONS[reason] ?? null;
+}
 
 export async function placeCall(opts: {
   to: string;

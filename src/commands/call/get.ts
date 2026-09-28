@@ -1,4 +1,9 @@
-import { getCall, type TranscriptTurn } from "../../lib/ops/calls.ts";
+import {
+  getCall,
+  callStatusLabel,
+  describeFailureReason,
+  type TranscriptTurn,
+} from "../../lib/ops/calls.ts";
 import { isDialError } from "../../lib/ops/errors.ts";
 import { printDialError } from "../../lib/cli-error.ts";
 
@@ -63,7 +68,11 @@ export async function runCallGet(opts: CallGetOptions): Promise<number> {
     console.log(`direction:  ${c.direction}`);
     console.log(`from:       ${c.from}`);
     console.log(`to:         ${c.to}`);
-    console.log(`status:     ${c.status}`);
+    console.log(`status:     ${callStatusLabel(c.status)}`);
+    if (c.failureReason) {
+      const description = describeFailureReason(c.failureReason);
+      console.log(`failure:    ${c.failureReason}${description ? ` — ${description}` : ""}`);
+    }
     console.log(`duration:   ${c.duration}s`);
     console.log(`created:    ${c.createdAt}`);
     if (c.instruction) {
