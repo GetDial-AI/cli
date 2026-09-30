@@ -106,7 +106,7 @@ export async function sendMessage(opts: {
   forceAudioFile?: boolean;
   /**
    * WhatsApp only. `false` sends at once instead of first showing "typing…" (the server's
-   * default, scaled to the body, about 1.5-8 s). Left undefined, no `typing` key is sent at
+   * default, 200-250 ms per character of the body, no upper limit). Left undefined, no `typing` key is sent at
    * all, so a server that predates the field sees the same request as before.
    */
   typing?: boolean;

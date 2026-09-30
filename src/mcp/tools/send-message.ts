@@ -57,7 +57,7 @@ const inputSchema = {
     .boolean()
     .optional()
     .describe(
-      'WhatsApp only. Defaults to true: the recipient sees "typing…" for a few seconds (scaled to the body length, about 1.5-8 s) before a text message arrives, so the call takes that much longer. Set false to send immediately. Ignored for a send with an attachment and on other channels.',
+      'WhatsApp only. Defaults to true: the recipient sees "typing…" for a time scaled to the body (200-250 ms per character, no upper limit) before a text message arrives, so the call takes that much longer. Set false to send immediately. Ignored for a send with an attachment and on other channels.',
     ),
 };
 

@@ -24,7 +24,7 @@ const inputSchema = {
     .boolean()
     .optional()
     .describe(
-      'WhatsApp body replies only. Defaults to true: "typing…" shows for a few seconds before the reply arrives. Set false to reply immediately. Ignored for a reaction and on other channels.',
+      'WhatsApp body replies only. Defaults to true: "typing…" shows for 200-250 ms per character before the reply arrives. Set false to reply immediately. Ignored for a reaction and on other channels.',
     ),
 };
 

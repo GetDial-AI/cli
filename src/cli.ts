@@ -442,7 +442,7 @@ const message = program
   )
   .option(
     "--no-typing",
-    'WhatsApp only: send immediately, without first showing "typing…" (by default a text message types for ~1.5-8 s, scaled to its length)',
+    'WhatsApp only: send immediately, without first showing "typing…" (by default a text message types for 200-250 ms per character, no upper limit)',
   )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
