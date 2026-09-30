@@ -17,6 +17,8 @@ export type MessageSendOptions = {
   media?: string[];
   /** Send an audio attachment as a regular file attachment instead of an iMessage voice message. */
   forceAudioFile?: boolean;
+  /** `false` (from --no-typing) skips WhatsApp's "typing…" pause; undefined leaves the server default. */
+  typing?: boolean;
   json: boolean;
 };
 
@@ -45,6 +47,7 @@ export async function runMessageSend(opts: MessageSendOptions): Promise<number> 
       channel: opts.channel as (typeof CHANNELS)[number] | undefined,
       media: opts.media,
       forceAudioFile: opts.forceAudioFile,
+      typing: opts.typing,
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, message: m }));

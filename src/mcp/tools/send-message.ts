@@ -53,6 +53,12 @@ const inputSchema = {
     .describe(
       "Send a lone audio attachment as a regular file instead of a voice message — an iMessage voice message on iMessage numbers, a WhatsApp voice note on WhatsApp numbers. No effect on standard numbers or non-audio media.",
     ),
+  typing: z
+    .boolean()
+    .optional()
+    .describe(
+      'WhatsApp only. Defaults to true: the recipient sees "typing…" for a few seconds (scaled to the body length, about 1.5-8 s) before a text message arrives, so the call takes that much longer. Set false to send immediately. Ignored for a send with an attachment and on other channels.',
+    ),
 };
 
 export const sendMessageTool: ToolModule = {
@@ -81,6 +87,7 @@ export const sendMessageTool: ToolModule = {
         fromNumberId: args.fromNumberId as string | undefined,
         media: args.mediaUrls as string[] | undefined,
         forceAudioFile: args.forceAudioFile as boolean | undefined,
+        typing: args.typing as boolean | undefined,
       }),
     }),
 };

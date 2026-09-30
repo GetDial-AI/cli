@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeAuth } from "../state.ts";
 import { startMockApi } from "../../test-utils.ts";
-import { sendMessage, listMessages } from "./messages.ts";
+import { sendMessage, listMessages, replyToMessage } from "./messages.ts";
 import { isDialError } from "./errors.ts";
 
 let tmp: string;
@@ -324,6 +324,82 @@ describe("ops/messages", () => {
     assert.match(raw, /name="forceAudioFile"/);
     assert.match(raw, /true/);
     assert.doesNotMatch(raw, /name="body"/);
+  });
+
+  // `typing` rides only when the caller set it: a plain send must look exactly like it did
+  // before the field existed, so a server that predates it is unaffected.
+  function captureRoute(path: string, seen: { body?: string }) {
+    return (m: string, u: string, body: string) => {
+      if (m === "POST" && u === path) {
+        seen.body = body;
+        return {
+          status: 201,
+          json: {
+            message: {
+              id: "m1",
+              from: "+1",
+              to: "+2",
+              body: "",
+              channel: "whatsapp",
+              status: "sent",
+              media: [],
+            },
+          },
+        };
+      }
+      return undefined;
+    };
+  }
+  function signIn() {
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
+  }
+
+  it("sendMessage forwards typing: false (JSON)", async () => {
+    const seen: { body?: string } = {};
+    api = await startMockApi(captureRoute("/api/v1/messages", seen));
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    await sendMessage({ to: "+15551111", body: "hi", typing: false });
+    assert.equal(JSON.parse(seen.body ?? "{}").typing, false);
+  });
+
+  it("sendMessage sends no typing key when typing is not given (JSON)", async () => {
+    const seen: { body?: string } = {};
+    api = await startMockApi(captureRoute("/api/v1/messages", seen));
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    await sendMessage({ to: "+15551111", body: "hi" });
+    assert.equal("typing" in JSON.parse(seen.body ?? "{}"), false);
+  });
+
+  it("sendMessage carries typing=false as a text part, and omits it when absent (multipart)", async () => {
+    const filePath = join(tmp, "pic.png");
+    writeFileSync(filePath, Buffer.from("png-bytes"));
+    const seen: { body?: string } = {};
+    api = await startMockApi(captureRoute("/api/v1/messages", seen));
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    await sendMessage({ to: "+15551111", media: [filePath], typing: false });
+    assert.match(seen.body ?? "", /name="typing"\r\n\r\nfalse\r\n/);
+    await sendMessage({ to: "+15551111", media: [filePath] });
+    assert.doesNotMatch(seen.body ?? "", /name="typing"/);
+  });
+
+  it("replyToMessage forwards typing: false, and sends no typing key when absent", async () => {
+    const seen: { body?: string } = {};
+    api = await startMockApi(captureRoute("/api/v1/messages/m0/reply", seen));
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    await replyToMessage({ messageId: "m0", body: "ok", typing: false });
+    assert.deepEqual(JSON.parse(seen.body ?? "{}"), { body: "ok", typing: false });
+    await replyToMessage({ messageId: "m0", body: "ok" });
+    assert.deepEqual(JSON.parse(seen.body ?? "{}"), { body: "ok" });
   });
 
   it("sendMessage rejects unsupported media file extensions locally", async () => {

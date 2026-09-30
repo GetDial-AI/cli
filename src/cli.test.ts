@@ -1,11 +1,12 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { SANDBOX_DISABLED_COMMANDS } from "./lib/sandbox.ts";
+import { startMockApi } from "./test-utils.ts";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "cli.ts");
 
@@ -96,5 +97,76 @@ describe("cli sandbox gating", () => {
         assert.match(stderr, /must be a positive integer/);
       }
     });
+  });
+});
+
+// Async twin of runCli: the mock API lives in this process, so a blocking spawnSync would
+// starve it and the child's request would never be answered.
+function runCliAsync(args: string[], extraEnv: Record<string, string>): Promise<Run> {
+  const home = mkdtempSync(join(tmpdir(), "dial-cli-home-"));
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, ["--import", "tsx", CLI, ...args], {
+      env: { ...process.env, HOME: home, DIAL_NO_AUTO_UPDATE: "1", ...extraEnv },
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (c) => (stdout += c));
+    child.stderr.on("data", (c) => (stderr += c));
+    child.on("close", (status) => {
+      rmSync(home, { recursive: true, force: true });
+      resolve({ status, stdout, stderr });
+    });
+  });
+}
+
+describe("cli --no-typing", () => {
+  const message = {
+    id: "m1",
+    from: "+1",
+    to: "+2",
+    body: "hi",
+    channel: "whatsapp",
+    status: "sent",
+  };
+
+  async function bodyOf(args: string[], path: string): Promise<Record<string, unknown>> {
+    let seen = "";
+    const api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === path) {
+        seen = body;
+        return { status: 201, json: { message } };
+      }
+      return undefined;
+    });
+    try {
+      // Sandbox mode needs no saved login, so the test needs no auth file.
+      const run = await runCliAsync([...args, "--json"], {
+        DIAL_SANDBOX: "1",
+        DIAL_API_URL: api.url,
+      });
+      assert.equal(run.status, 0, run.stderr);
+      return JSON.parse(seen);
+    } finally {
+      await api.close();
+    }
+  }
+
+  const send = ["message", "--to", "+14155550123", "--body", "hi", "--from-number-id", "pn_1"];
+
+  it("message --no-typing sends typing: false", async () => {
+    const body = await bodyOf([...send, "--no-typing"], "/api/v1/messages");
+    assert.equal(body.typing, false);
+  });
+
+  it("message without --no-typing sends no typing key", async () => {
+    const body = await bodyOf(send, "/api/v1/messages");
+    assert.equal("typing" in body, false);
+  });
+
+  it("message reply --no-typing sends typing: false, and nothing without it", async () => {
+    const path = "/api/v1/messages/m0/reply";
+    const reply = ["message", "reply", "m0", "--body", "ok"];
+    assert.deepEqual(await bodyOf([...reply, "--no-typing"], path), { body: "ok", typing: false });
+    assert.deepEqual(await bodyOf(reply, path), { body: "ok" });
   });
 });

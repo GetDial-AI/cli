@@ -440,6 +440,10 @@ const message = program
     "--force-audio-file",
     "send an audio attachment as a regular file attachment instead of an iMessage voice message",
   )
+  .option(
+    "--no-typing",
+    'WhatsApp only: send immediately, without first showing "typing…" (by default a text message types for ~1.5-8 s, scaled to its length)',
+  )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
     // A destination is still required — it just has two forms now. The exactly-one
@@ -467,6 +471,9 @@ const message = program
         fromNumberId: opts.fromNumberId,
         media: opts.media,
         forceAudioFile: !!opts.forceAudioFile,
+        // Commander defaults a --no-* flag to true; only the explicit opt-out is forwarded,
+        // so a plain send carries no `typing` key and older servers see no change.
+        typing: opts.typing === false ? false : undefined,
         json: !!opts.json,
       }),
     );
@@ -479,6 +486,10 @@ message
   .option(
     "--react <reaction>",
     "reaction: love|like|dislike|laugh|emphasize|question, or a single emoji",
+  )
+  .option(
+    "--no-typing",
+    'WhatsApp --body replies only: reply immediately, without first showing "typing…"',
   )
   .option("--json", "machine-readable output")
   .action(async (messageId: string, opts) => {
@@ -493,6 +504,7 @@ message
         messageId,
         body: opts.body,
         react: opts.react,
+        typing: opts.typing === false ? false : undefined,
         json: !!opts.json,
       }),
     );

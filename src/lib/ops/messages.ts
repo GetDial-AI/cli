@@ -104,6 +104,12 @@ export async function sendMessage(opts: {
   media?: string[];
   /** Send an audio attachment as a regular file attachment instead of an iMessage voice message. */
   forceAudioFile?: boolean;
+  /**
+   * WhatsApp only. `false` sends at once instead of first showing "typing…" (the server's
+   * default, scaled to the body, about 1.5-8 s). Left undefined, no `typing` key is sent at
+   * all, so a server that predates the field sees the same request as before.
+   */
+  typing?: boolean;
 }): Promise<MessageRow> {
   const auth = maybeAuth();
   // A group already belongs to one of the account's lines, so a group send needs no
@@ -141,6 +147,7 @@ export async function sendMessage(opts: {
         ...from,
         ...(media.length ? { mediaUrls: media } : {}),
         ...(opts.forceAudioFile ? { forceAudioFile: true } : {}),
+        ...(opts.typing !== undefined ? { typing: opts.typing } : {}),
       },
       auth?.apiKey,
     );
@@ -152,6 +159,7 @@ export async function sendMessage(opts: {
     if (opts.body) form.set("body", opts.body);
     for (const [field, value] of Object.entries(from)) form.set(field, value);
     if (opts.forceAudioFile) form.set("forceAudioFile", "true");
+    if (opts.typing !== undefined) form.set("typing", String(opts.typing));
     for (const item of media) {
       if (isHttpUrl(item)) {
         form.append("mediaUrls", item);
@@ -210,13 +218,16 @@ export async function replyToMessage(opts: {
   messageId: string;
   body?: string;
   reaction?: string;
+  /** WhatsApp body replies only. `false` replies without the "typing…" pause; undefined sends no key. */
+  typing?: boolean;
 }): Promise<MessageRow> {
   const auth = maybeAuth();
   // No `to`/`fromNumberId`: the server derives both from the target message —
   // the reply stays in the conversation the target is part of.
-  const payload: Record<string, string> = {};
+  const payload: Record<string, string | boolean> = {};
   if (opts.body !== undefined) payload.body = opts.body;
   if (opts.reaction !== undefined) payload.reaction = opts.reaction;
+  if (opts.typing !== undefined) payload.typing = opts.typing;
   const res = await apiPost<{ message: MessageRow }>(
     `/api/v1/messages/${encodeURIComponent(opts.messageId)}/reply`,
     payload,

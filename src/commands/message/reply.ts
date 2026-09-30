@@ -8,6 +8,8 @@ export type MessageReplyOptions = {
   body?: string;
   /** Reaction: love|like|dislike|laugh|emphasize|question or a single emoji. */
   react?: string;
+  /** `false` (from --no-typing) skips WhatsApp's "typing…" pause; undefined leaves the server default. */
+  typing?: boolean;
   json: boolean;
 };
 
@@ -17,6 +19,7 @@ export async function runMessageReply(opts: MessageReplyOptions): Promise<number
       messageId: opts.messageId,
       body: opts.body,
       reaction: opts.react,
+      typing: opts.typing,
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, message: m }));

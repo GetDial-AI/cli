@@ -20,6 +20,12 @@ const inputSchema = {
     .describe(
       "Reaction to send instead of a body: love, like, dislike, laugh, emphasize, question, or a single emoji",
     ),
+  typing: z
+    .boolean()
+    .optional()
+    .describe(
+      'WhatsApp body replies only. Defaults to true: "typing…" shows for a few seconds before the reply arrives. Set false to reply immediately. Ignored for a reaction and on other channels.',
+    ),
 };
 
 export const replyToMessageTool: ToolModule = {
@@ -38,6 +44,7 @@ export const replyToMessageTool: ToolModule = {
         messageId: args.messageId as string,
         body: args.body as string | undefined,
         reaction: args.reaction as string | undefined,
+        typing: args.typing as boolean | undefined,
       }),
     }),
 };

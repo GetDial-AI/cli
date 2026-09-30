@@ -123,6 +123,18 @@ describe("mcp tools", () => {
     );
   });
 
+  it("send_message and reply_to_message take an optional typing boolean", () => {
+    for (const [tool, base] of [
+      [sendMessageTool, { to: "+14155550123", body: "hi" }],
+      [replyToMessageTool, { messageId: "m1", body: "ok" }],
+    ] as const) {
+      const schema = z.object(tool.config.inputSchema as z.ZodRawShape).strict();
+      assert.equal(schema.safeParse(base).success, true, `${tool.name}: typing is optional`);
+      assert.equal(schema.safeParse({ ...base, typing: false }).success, true);
+      assert.equal(schema.safeParse({ ...base, typing: "false" }).success, false);
+    }
+  });
+
   it("typing tools take either destination, and reject a value field", () => {
     for (const tool of [startTypingTool, stopTypingTool]) {
       const schema = z.object(tool.config.inputSchema as z.ZodRawShape).strict();
