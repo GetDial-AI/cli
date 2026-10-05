@@ -184,3 +184,26 @@ export async function getCall(callId: string): Promise<CallRow> {
     throw new DialError(res.status === 404 ? "not_found" : "get_failed", res.error, res.status);
   return res.data.call;
 }
+
+/**
+ * End a call that hasn't finished: a Queued or Ringing call is cancelled before it
+ * connects, an In-Progress one is hung up. POST /api/v1/calls/<id>/stop.
+ *
+ * Resolves as soon as the stop is accepted, with `status.cancelPending: true` — the
+ * call reaches Terminated a moment later (wait for `call.ended` to confirm). A 400
+ * means the call had already ended.
+ */
+export async function stopCall(callId: string): Promise<CallRow> {
+  const auth = maybeAuth();
+  const res = await apiPost<{ call: CallRow }>(
+    `/api/v1/calls/${encodeURIComponent(callId)}/stop`,
+    {},
+    auth?.apiKey,
+  );
+  if (!res.ok) {
+    const code =
+      res.status === 404 ? "not_found" : res.status === 400 ? "already_ended" : "stop_failed";
+    throw new DialError(code, res.error, res.status);
+  }
+  return res.data.call;
+}

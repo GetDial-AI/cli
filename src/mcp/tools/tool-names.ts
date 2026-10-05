@@ -35,6 +35,7 @@ export const OPERATIONAL_TOOL_NAMES = [
   "place_call",
   "list_calls",
   "get_call",
+  "stop_call",
   "wait_for_event",
 ] as const;
 
