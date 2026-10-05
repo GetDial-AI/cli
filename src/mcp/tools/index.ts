@@ -13,6 +13,7 @@ import { lookupNumberTool } from "./lookup-number.ts";
 import { placeCallTool } from "./place-call.ts";
 import { listCallsTool } from "./list-calls.ts";
 import { getCallTool } from "./get-call.ts";
+import { stopCallTool } from "./stop-call.ts";
 import { getAccountStatusTool } from "./get-account-status.ts";
 import { authLoginTool } from "./auth-login.ts";
 import { authVerifyOtpTool } from "./auth-verify-otp.ts";
@@ -42,6 +43,7 @@ export const tools: ToolModule[] = [
   placeCallTool,
   listCallsTool,
   getCallTool,
+  stopCallTool,
   getAccountStatusTool,
   authLoginTool,
   authRegisterNumberTool,

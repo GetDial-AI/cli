@@ -28,6 +28,7 @@ import { runTypingStop } from "./commands/typing/stop.ts";
 import { runCallSend } from "./commands/call/send.ts";
 import { runCallList } from "./commands/call/list.ts";
 import { runCallGet } from "./commands/call/get.ts";
+import { runCallStop } from "./commands/call/stop.ts";
 import { runLocalTargetAddUrl } from "./commands/local-target/add-url.ts";
 import { runLocalTargetAddCmd } from "./commands/local-target/add-cmd.ts";
 import { runLocalTargetRemove } from "./commands/local-target/remove.ts";
@@ -731,6 +732,16 @@ call
   .option("--json", "machine-readable output")
   .action(async (callId: string, opts) =>
     process.exit(await runCallGet({ callId, json: !!opts.json })),
+  );
+
+call
+  .command("stop <call-id>")
+  .description(
+    "Cancel a queued or ringing call, or hang up one in progress. POST /api/v1/calls/<id>/stop.",
+  )
+  .option("--json", "machine-readable output")
+  .action(async (callId: string, opts) =>
+    process.exit(await runCallStop({ callId, json: !!opts.json })),
   );
 
 if (!sandbox) {
