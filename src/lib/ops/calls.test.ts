@@ -377,7 +377,12 @@ describe("ops/calls", () => {
               to: "+2",
               direction: "outbound",
               instruction: null,
-              status: { state: "Ringing", cancelRequested: true, cancelPending: true, label: "Ringing" },
+              status: {
+                state: "Ringing",
+                cancelRequested: true,
+                cancelPending: true,
+                label: "Ringing",
+              },
             },
           },
         };
