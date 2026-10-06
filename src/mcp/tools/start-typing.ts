@@ -26,10 +26,10 @@ const inputSchema = {
       "Number the indicator appears from: a phone number id, one of your numbers in E.164, or a nickname. Required with toNumber; optional with groupId, which already names its line",
     ),
   channel: z
-    .enum(["imessage", "whatsapp"])
+    .enum(["sms", "imessage", "whatsapp"])
     .optional()
     .describe(
-      "Which channel to show it on, for a line that carries more than one. Omit to use the number's own default, and omit it with groupId — the group already names its channel",
+      "Which channel to show it on, for a line that carries more than one. Omit to use the number's own default, and omit it with groupId — the group already names its channel. SMS has no typing indicator, so 'sms' (and the default on a number without iMessage) succeeds without showing anything",
     ),
 };
 
@@ -53,7 +53,7 @@ export const startTypingTool: ToolModule = {
         toNumber: args.toNumber as string | undefined,
         groupId: args.groupId as string | undefined,
         fromNumber: args.fromNumber as string | undefined,
-        channel: args.channel as "imessage" | "whatsapp" | undefined,
+        channel: args.channel as "sms" | "imessage" | "whatsapp" | undefined,
         value: true,
       }),
     ),
