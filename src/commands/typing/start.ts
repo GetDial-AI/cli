@@ -15,7 +15,7 @@ export type TypingOptions = {
 };
 
 /** The channels the API accepts. Checked locally so a typo never becomes a 400. */
-export const TYPING_CHANNELS = ["imessage", "whatsapp"] as const;
+export const TYPING_CHANNELS = ["sms", "imessage", "whatsapp"] as const;
 
 /**
  * Validate `--channel` before any request. Shared by start and stop so the two

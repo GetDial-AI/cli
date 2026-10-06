@@ -23,7 +23,7 @@ export async function setTyping(opts: {
    * Which rail to show it on, for a line carrying both. Omitted keeps the number's
    * default; omitted with `groupId` because the group already names its channel.
    */
-  channel?: "imessage" | "whatsapp";
+  channel?: "sms" | "imessage" | "whatsapp";
 }): Promise<{ ok: boolean }> {
   const auth = maybeAuth();
   // A group already belongs to one of the account's lines, so a group request needs no

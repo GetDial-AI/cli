@@ -20,10 +20,10 @@ const inputSchema = {
       "A group conversation to send into (see list_groups), instead of a to number. The sending line comes from the group, so no from-number is needed, and neither is channel — the group already knows which one it is on, and naming a different one is refused. Provide exactly one of to or groupId",
     ),
   channel: z
-    .enum(["imessage", "whatsapp"])
+    .enum(["sms", "imessage", "whatsapp"])
     .optional()
     .describe(
-      "Which channel to send on, for a line that carries more than one. Omit to use the number's own default — a standard number sends SMS, an iMessage number sends iMessage. 'whatsapp' needs a line whose WhatsApp channel is ready; 'imessage' is refused on a number without an iMessage rail",
+      "Which channel to send on, for a line that carries more than one. Omit to use the number's own default — a number without iMessage sends SMS, an iMessage number sends iMessage. 'sms' names the SMS rail on a number without iMessage (on a number that has both SMS and WhatsApp, WhatsApp needs 'whatsapp'). 'whatsapp' needs a line whose WhatsApp channel is ready; 'imessage' is refused on a number without an iMessage rail",
     ),
   body: z
     .string()
@@ -75,7 +75,7 @@ export const sendMessageTool: ToolModule = {
       message: await sendMessage({
         to: args.to as string | undefined,
         groupId: args.groupId as string | undefined,
-        channel: args.channel as "imessage" | "whatsapp" | undefined,
+        channel: args.channel as "sms" | "imessage" | "whatsapp" | undefined,
         body: args.body as string | undefined,
         fromNumber: args.fromNumber as string | undefined,
         fromNumberId: args.fromNumberId as string | undefined,

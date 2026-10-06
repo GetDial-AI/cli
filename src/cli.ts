@@ -419,8 +419,8 @@ const message = program
     "send into a group conversation instead (see `dial group list`); the sending line comes from the group. Exclusive with --to",
   )
   .option(
-    "--channel <imessage|whatsapp>",
-    "which channel to send on, for a line carrying both; omit to use the number's own default",
+    "--channel <sms|imessage|whatsapp>",
+    "which channel to send on, for a line carrying more than one; omit to use the number's own default",
   )
   .option("--body <text>", "message body")
   .option(
@@ -587,8 +587,8 @@ typing
     "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number); optional with --group",
   )
   .option(
-    "--channel <imessage|whatsapp>",
-    "which channel to show it on, for a line carrying both; omit to use the number's own default, and omit it with --group — the group names its own channel",
+    "--channel <sms|imessage|whatsapp>",
+    "which channel to show it on, for a line carrying more than one; omit to use the number's own default, and omit it with --group — the group names its own channel. SMS has no typing indicator, so sms shows nothing",
   )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
@@ -619,7 +619,7 @@ typing
     "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number); optional with --group",
   )
   .option(
-    "--channel <imessage|whatsapp>",
+    "--channel <sms|imessage|whatsapp>",
     "which channel to clear it on; pass the same channel `typing start` was given, and omit it with --group",
   )
   .option("--json", "machine-readable output")
