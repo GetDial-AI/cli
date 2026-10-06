@@ -23,13 +23,20 @@ Requires **Node.js 22.19+**.
 ## Quick start
 
 ```bash
-dial signup you@example.com      # email a 6-digit sign-up code
-dial onboard --code 123456 \     # verify the code and provision your account
-  --inbound-instruction "You are my receptionist. Greet the caller and find out what they need."
-dial doctor                      # check account state and what to do next
+dial auth login you@example.com               # email a 6-digit sign-up code
+dial auth verify-otp --code 123456            # verify your email
+dial auth register-number +14155550123        # text a code to your phone
+dial auth verify-otp --number --code 654321   # verify your phone — creates the account
+dial doctor                                   # check account state and what to do next
 ```
 
-Once onboarded, your API key is saved locally and the CLI uses it automatically.
+Creating an account needs a verified **email** and a verified **phone number**. Each step prints the command to run next, so you don't have to memorize the flow.
+
+Signing in to an account you already have needs only the first two steps — you're never asked for a phone number again.
+
+The number you register can receive SMS and becomes **permanently linked to that account**: a number can register only one Dial account. A Dial number can't be used.
+
+Once the account exists, your API key is saved locally and the CLI uses it automatically. Your first number starts with a default inbound voice-agent prompt — change it with `dial number set <number> --inbound-instruction "..."`.
 
 ```bash
 # Send an SMS
@@ -47,8 +54,9 @@ dial wait-for message.received --field to=+14155550123
 | Command | Description |
 | --- | --- |
 | `dial doctor` | Report account state and what to do next. |
-| `dial signup <email>` | Email a 6-digit sign-up code. |
-| `dial onboard --code <code>` | Verify the code and finish onboarding. |
+| `dial auth login <email>` | Email a 6-digit sign-up code. |
+| `dial auth verify-otp --code <code>` | Verify an email code, or with `--number` a texted one. |
+| `dial auth register-number <phone>` | Text a code to the phone number that will own the account. |
 | `dial number list` | List the phone numbers on your account. |
 | `dial number purchase` | Purchase an additional phone number. |
 | `dial number set <number>` | Update a number's inbound instruction. |
@@ -83,14 +91,14 @@ Your API key is stored at `~/.local/share/dial/auth.json` (honoring `XDG_DATA_HO
 The CLI ships with a [skill](https://docs.getdial.ai/integrations/tools/cli-skill) that teaches AI coding agents how to drive `dial`. Install it into your agent's config during onboarding:
 
 ```bash
-dial onboard --code 123456 --agent claude-code
+dial auth verify-otp --code 123456 --agent claude-code
 ```
 
 Supported agents: `claude-code`, `cursor`, `codex`, `opencode`, `pi`, `openclaw`, `nanoclaw`, `hermes`.
 
 ## Local MCP server
 
-`dial mcp` runs a local [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, exposing every command as an agent tool. Point a local MCP client at `dial mcp` as the server command — it reuses the API key saved by `dial onboard` (no OAuth, no config). It's the local counterpart to the hosted [Remote MCP](https://docs.getdial.ai/integrations/tools/remote-mcp) server, with the same operational tools plus the local-only verbs (`signup`, `onboard`, `listen`, `local-target`).
+`dial mcp` runs a local [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, exposing every command as an agent tool. Point a local MCP client at `dial mcp` as the server command — it reuses the API key saved by `dial auth verify-otp` (no OAuth, no config). It's the local counterpart to the hosted [Remote MCP](https://docs.getdial.ai/integrations/tools/remote-mcp) server, with the same operational tools plus the local-only verbs (`auth`, `listen`, `local-target`).
 
 ```bash
 # Claude Code, for example
