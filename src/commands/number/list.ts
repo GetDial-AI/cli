@@ -17,7 +17,9 @@ export function formatNumberLine(n: PhoneNumberRow, defaultNumberId: string | nu
   // Shown whenever the number has a WhatsApp track, so a warming or failed one is visible.
   const whatsapp = n.whatsapp ? `  whatsapp:${n.whatsapp.status}` : "";
   // A number Dial moved onto a new line: the old E.164 still routes to the live one.
-  const replaces = n.replaces?.length ? `  replaces:${n.replaces.map((r) => r.number).join(",")}` : "";
+  const replaces = n.replaces?.length
+    ? `  replaces:${n.replaces.map((r) => r.number).join(",")}`
+    : "";
   const replacedBy = n.replacedBy ? `  replaced-by:${n.replacedBy.number}` : "";
   return `${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${forward}${whatsapp}${replaces}${replacedBy}${tag}`;
 }
