@@ -98,8 +98,8 @@ export async function sendMessage(opts: {
   /** Flexible ref: number id, owned E.164, or nickname. Exclusive with fromNumberId. */
   fromNumber?: string;
   fromNumberId?: string;
-  /** Which rail to send on, for a line carrying both. Omitted keeps the number's default. */
-  channel?: "imessage" | "whatsapp";
+  /** Which rail to send on, for a line carrying more than one. Omitted keeps the number's default. */
+  channel?: "sms" | "imessage" | "whatsapp";
   /** Local file paths and/or public http(s) URLs, in send order (max 10). */
   media?: string[];
   /** Send an audio attachment as a regular file attachment instead of an iMessage voice message. */

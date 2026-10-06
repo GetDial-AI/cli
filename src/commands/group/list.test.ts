@@ -126,19 +126,19 @@ describe("group list and the group/channel flags", () => {
     assert.match(errored.join("\n"), /exactly one of --to and --group/);
   });
 
-  it("refuses a channel that is not imessage or whatsapp", async () => {
+  it("refuses a channel that is not sms, imessage or whatsapp", async () => {
     auth();
     assert.equal(
-      await runMessageSend({ to: "+15551111", body: "hi", channel: "sms", json: false }),
+      await runMessageSend({ to: "+15551111", body: "hi", channel: "rcs", json: false }),
       2,
     );
-    assert.match(errored.join("\n"), /--channel must be one of imessage, whatsapp/);
+    assert.match(errored.join("\n"), /--channel must be one of sms, imessage, whatsapp/);
   });
 
   it("refuses a bad channel on both typing verbs", async () => {
     auth();
-    assert.equal(await runTypingStart({ toNumber: "+15551111", channel: "sms", json: false }), 2);
-    assert.equal(await runTypingStop({ toNumber: "+15551111", channel: "sms", json: false }), 2);
+    assert.equal(await runTypingStart({ toNumber: "+15551111", channel: "rcs", json: false }), 2);
+    assert.equal(await runTypingStop({ toNumber: "+15551111", channel: "rcs", json: false }), 2);
     assert.equal(errored.filter((e) => e.includes("--channel must be one of")).length, 2);
   });
 

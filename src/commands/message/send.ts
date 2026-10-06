@@ -21,7 +21,7 @@ export type MessageSendOptions = {
 };
 
 /** The channels the API accepts. Checked locally so a typo never becomes a 400. */
-export const CHANNELS = ["imessage", "whatsapp"] as const;
+export const CHANNELS = ["sms", "imessage", "whatsapp"] as const;
 
 export async function runMessageSend(opts: MessageSendOptions): Promise<number> {
   // Both destination checks happen BEFORE any HTTP call: a caller who gave two
