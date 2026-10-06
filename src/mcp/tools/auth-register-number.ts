@@ -23,9 +23,8 @@ export const authRegisterNumberTool: ToolModule = {
     description:
       "Text a 6-digit verification code to the phone number that will own the account. Required to " +
       "CREATE an account (never needed to sign in), and only valid after auth_verify_otp reported " +
-      "that a phone number is still required. The number becomes permanently bound to this " +
-      "account — a number can register only one Dial account. Submit the texted code with " +
-      "auth_verify_otp using number: true.",
+      "that a phone number is still required. It should be a number the user keeps. Submit the " +
+      "texted code with auth_verify_otp using number: true.",
     inputSchema,
     outputSchema: {
       registrationId: z.string(),

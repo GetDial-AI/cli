@@ -23,6 +23,12 @@ function plant(name: string, content: unknown, mode = 0o600) {
   writeFileSync(join(tmp, name), JSON.stringify(content), { mode });
 }
 
+/** Windows synthesizes st_mode, so POSIX bits are only meaningful elsewhere. */
+function assertMode(path: string, expected: number) {
+  if (process.platform === "win32") return;
+  assert.equal(statSync(path).mode & 0o777, expected);
+}
+
 describe("versioned-file", () => {
   beforeEach(() => {
     tmp = mkdtempSync(join(tmpdir(), "dial-vfile-"));
@@ -65,8 +71,9 @@ describe("versioned-file", () => {
       migrations: {},
     });
     f.write({ name: "a", count: 1 });
-    assert.equal(statSync(join(tmp, "nested", "thing.v1.json")).mode & 0o777, 0o600);
-    assert.equal(statSync(join(tmp, "nested")).mode & 0o777, 0o700);
+    assertMode(join(tmp, "nested", "thing.v1.json"), 0o600);
+    assertMode(join(tmp, "nested"), 0o700);
+    assert.equal(existsSync(join(tmp, "nested", "thing.v1.json")), true);
   });
 
   it("respects a custom file mode", () => {
@@ -79,7 +86,8 @@ describe("versioned-file", () => {
       mode: 0o644,
     });
     f.write({ name: "a", count: 1 });
-    assert.equal(statSync(join(tmp, "thing.v1.json")).mode & 0o777, 0o644);
+    assertMode(join(tmp, "thing.v1.json"), 0o644);
+    assert.deepEqual(f.read(), { name: "a", count: 1 });
   });
 
   it("adopts the legacy unversioned file as v0 via the first migration", () => {
@@ -153,7 +161,10 @@ describe("versioned-file", () => {
     assert.equal(thingFile(1).read(), null);
   });
 
-  it("rejects insecure permissions when secure, on current and legacy files", () => {
+  it("rejects insecure permissions when secure, on current and legacy files", {
+    // Windows has no POSIX modes; the check is skipped there by design.
+    skip: process.platform === "win32",
+  }, () => {
     const secure = defineVersionedFile<Thing>({
       dir: () => tmp,
       base: "thing",
@@ -168,6 +179,26 @@ describe("versioned-file", () => {
     rmSync(join(tmp, "thing.v1.json"));
     plant("thing.json", { name: "legacy", count: 7 }, 0o644);
     assert.throws(() => secure.read(), /insecure permissions/);
+  });
+
+  it("skips the permission check on Windows, where modes are synthesized", () => {
+    const orig = process.platform;
+    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    try {
+      const secure = defineVersionedFile<Thing>({
+        dir: () => tmp,
+        base: "thing",
+        version: 1,
+        schema: ThingV2,
+        migrations: {},
+        secure: true,
+      });
+      // Node reports 0666 for every file on Windows; that must not fail the read.
+      plant("thing.v1.json", { name: "a", count: 1 }, 0o666);
+      assert.deepEqual(secure.read(), { name: "a", count: 1 });
+    } finally {
+      Object.defineProperty(process, "platform", { value: orig, configurable: true });
+    }
   });
 
   it("reads group/other-readable files when not secure", () => {

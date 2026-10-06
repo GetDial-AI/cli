@@ -37,6 +37,19 @@ const inputSchema = {
     .describe(
       "Call duration cap for this number, in seconds, applied as a hard ceiling to both inbound and outbound calls (the smallest of the per-number, account, and per-call caps wins). On a free account (no top-up or subscription yet) a value above 300 is rejected with 400. Pass null to clear the cap; omit to leave it unchanged.",
     ),
+  channel: z
+    .enum(["imessage", "whatsapp", "both"])
+    .optional()
+    .describe(
+      'Which display profile(s) `name` and `avatarUrl` are written to: "imessage", "whatsapp", or "both". Use this when the number should present the same identity everywhere — one call instead of two, validated against every targeted channel before any of them is written, so the profiles cannot drift apart. Cannot be combined with firstName/lastName/whatsappName/whatsappAvatarUrl.',
+    ),
+  name: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'The display name to set on the channel(s) `channel` names; requires `channel`. WhatsApp stores it verbatim (1-25 chars); iMessage has no single-name field, so it is split on the first space — "Ana Lee" becomes firstName "Ana", lastName "Lee".',
+    ),
   firstName: z
     .string()
     .max(30)
@@ -58,6 +71,32 @@ const inputSchema = {
     .describe(
       "Public image URL to set as the number's iMessage avatar photo (the server downloads it). jpeg/png/gif/webp, max 5 MB. iMessage numbers only. The photo can be replaced but not removed.",
     ),
+  whatsappName: z
+    .string()
+    .optional()
+    .describe(
+      "WhatsApp display name shown to recipients. 1-25 chars, no reserved verification marks. WhatsApp-ready numbers only; the call blocks until WhatsApp applies it.",
+    ),
+  whatsappAvatarUrl: z
+    .string()
+    .url()
+    .optional()
+    .describe(
+      "Public image URL to set as the number's WhatsApp avatar (the server downloads it). Square jpeg or png between 192x192 and 640x640 (not resized), with no transparent pixels. WhatsApp-ready numbers only.",
+    ),
+  callingEnabled: z
+    .boolean()
+    .optional()
+    .describe(
+      "Switch calling on or off for this number, in both directions. false stops inbound calls from being connected (the caller is never answered) and makes place_call from this number fail with calling_disabled (409); messaging on the number is unaffected. Takes effect on the next call — a call already in progress is not ended. Omit to leave it unchanged.",
+    ),
+  forwardTo: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "Forward inbound calls to this phone number (E.164) instead of having the AI voice agent answer; the caller is connected when that phone answers, and the call ends if it is busy or doesn't answer. null stops forwarding. Ignored while calling is off. Omitted leaves it unchanged.",
+    ),
 };
 
 export const setNumberPropertiesTool: ToolModule = {
@@ -65,7 +104,7 @@ export const setNumberPropertiesTool: ToolModule = {
   config: {
     title: "Set Number Properties",
     description:
-      "Update a phone number's properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, and — for iMessage numbers — its display identity (firstName, lastName, avatarUrl shown beside its messages). Provide at least one.",
+      'Update a phone number\'s properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, whether calling is switched on at all (callingEnabled), a phone to forward inbound calls to instead of the AI voice agent (forwardTo), and its display identity. For the display identity prefer `channel` ("imessage", "whatsapp", or "both") with `name`/`avatarUrl` — one call that keeps every channel\'s profile identical. The per-channel fields remain for when the profiles differ: firstName/lastName/avatarUrl for iMessage, whatsappName/whatsappAvatarUrl for WhatsApp-ready numbers. Provide at least one property, and don\'t mix `channel` with the per-channel fields.',
     inputSchema,
     outputSchema: { number: phoneNumberSchema },
     annotations: { openWorldHint: true },
@@ -85,7 +124,17 @@ export const setNumberPropertiesTool: ToolModule = {
         ...(args.maxCallDurationSeconds !== undefined
           ? { maxCallDurationSeconds: args.maxCallDurationSeconds as number | null }
           : {}),
+        ...(args.channel !== undefined ? { channel: args.channel as string } : {}),
+        ...(args.name !== undefined ? { name: args.name as string } : {}),
         ...(args.firstName !== undefined ? { firstName: args.firstName as string } : {}),
+        ...(args.whatsappName !== undefined ? { whatsappName: args.whatsappName as string } : {}),
+        ...(args.callingEnabled !== undefined
+          ? { callingEnabled: args.callingEnabled as boolean }
+          : {}),
+        ...(args.forwardTo !== undefined ? { forwardTo: args.forwardTo as string | null } : {}),
+        ...(args.whatsappAvatarUrl !== undefined
+          ? { whatsappAvatar: args.whatsappAvatarUrl as string }
+          : {}),
         ...(args.lastName !== undefined ? { lastName: args.lastName as string } : {}),
         ...(args.avatarUrl !== undefined ? { avatar: args.avatarUrl as string } : {}),
       }),

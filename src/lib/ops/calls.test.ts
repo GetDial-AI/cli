@@ -5,8 +5,47 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeAuth } from "../state.ts";
 import { startMockApi } from "../../test-utils.ts";
-import { placeCall, getCall } from "./calls.ts";
+import { placeCall, getCall, stopCall, callStatusLabel, describeFailureReason } from "./calls.ts";
 import { isDialError } from "./errors.ts";
+
+describe("callStatusLabel", () => {
+  it("prefers the structured status object's label", () => {
+    assert.equal(
+      callStatusLabel({ state: "Terminated", label: "Failed/Wrong Number" }),
+      "Failed/Wrong Number",
+    );
+  });
+
+  it("falls back to state when a label is missing", () => {
+    assert.equal(callStatusLabel({ state: "Ringing" }), "Ringing");
+  });
+
+  it("passes through an old plain-string status unchanged", () => {
+    assert.equal(callStatusLabel("completed"), "completed");
+  });
+
+  it("never renders [object Object] for an empty status object", () => {
+    assert.notEqual(callStatusLabel({}), "[object Object]");
+  });
+});
+
+describe("describeFailureReason", () => {
+  it("returns a human sentence for each documented code", () => {
+    for (const code of [
+      "self_hosted_key_rejected",
+      "self_hosted_agent_not_found",
+      "self_hosted_at_capacity",
+      "self_hosted_unreachable",
+    ]) {
+      const description = describeFailureReason(code);
+      assert.ok(description && description.length > 0, `expected a description for ${code}`);
+    }
+  });
+
+  it("returns null for an unrecognized code, so callers print it raw", () => {
+    assert.equal(describeFailureReason("some_future_reason"), null);
+  });
+});
 
 let tmp: string;
 let api: { url: string; close: () => Promise<void> };
@@ -311,5 +350,61 @@ describe("ops/calls", () => {
     } catch (e) {
       assert.ok(isDialError(e) && e.code === "not_found" && e.status === 404);
     }
+  });
+
+  function authForStop() {
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: null,
+      phoneNumberId: "pn_1",
+    });
+  }
+
+  it("stopCall POSTs to /calls/<id>/stop and returns the pending call", async () => {
+    let seen = "";
+    api = await startMockApi((m, u) => {
+      if (m === "POST" && u.startsWith("/api/v1/calls/")) {
+        seen = u;
+        return {
+          status: 200,
+          json: {
+            call: {
+              id: "c 1",
+              from: "+1",
+              to: "+2",
+              direction: "outbound",
+              instruction: null,
+              status: {
+                state: "Ringing",
+                cancelRequested: true,
+                cancelPending: true,
+                label: "Ringing",
+              },
+            },
+          },
+        };
+      }
+      return undefined;
+    });
+    authForStop();
+    const c = await stopCall("c 1");
+    assert.equal(seen, "/api/v1/calls/c%201/stop");
+    assert.deepEqual(typeof c.status === "object" && c.status.cancelPending, true);
+  });
+
+  it("stopCall maps 400 to already_ended and 404 to not_found", async () => {
+    let status = 400;
+    api = await startMockApi((m, u) =>
+      m === "POST" && u.startsWith("/api/v1/calls/")
+        ? { status, json: { error: "Call is already terminated" } }
+        : undefined,
+    );
+    authForStop();
+    await assert.rejects(stopCall("c1"), (e) => isDialError(e) && e.code === "already_ended");
+    status = 404;
+    await assert.rejects(stopCall("c1"), (e) => isDialError(e) && e.code === "not_found");
   });
 });

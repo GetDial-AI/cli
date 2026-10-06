@@ -26,6 +26,44 @@ export type PhoneNumberRow = {
   firstName?: string | null;
   lastName?: string | null;
   avatarUrl?: string | null;
+  whatsappName?: string | null;
+  whatsappAvatarUrl?: string | null;
+  /**
+   * The WhatsApp channel's own setup state, or null when the number has no WhatsApp
+   * registration. Independent of `setupStatus` — separate tracks on one line, so voice
+   * caller-ID can be ready while WhatsApp has failed, and the other way round.
+   */
+  whatsapp?: {
+    /**
+     * `warming_up`: a number you connected is registered and warming up (about 6 hours) before
+     * first use. `banned`: WhatsApp withdrew a line that was working; permanent.
+     */
+    status: WhatsappStatus;
+    error: string | null;
+    /** ISO-8601: when the channel will accept another attempt; null when it will now. */
+    retryAvailableAt: string | null;
+  } | null;
+  /**
+   * Whether calling is switched on for the number, both directions. Separate
+   * from `capabilities`, which reports what the line was provisioned for and
+   * does not change when the switch is flipped.
+   */
+  callingEnabled?: boolean;
+  /**
+   * E.164 number inbound calls are forwarded to instead of the AI voice agent
+   * answering, or null when the agent answers.
+   */
+  forwardTo?: string | null;
+  /**
+   * Numbers this one replaced, newest first. Dial can move a number onto a new line: the id and
+   * settings stay, `number` becomes the new E.164, and the old E.164 (or the replaced number's id)
+   * still works anywhere a number is named — e.g. as `--from-number`.
+   */
+  replaces?: { id: string; number: string; replacedAt: string }[];
+  /** The live number a replaced number routes to; null for a live number. */
+  replacedBy?: { id: string; number: string } | null;
+  /** When the number was replaced; null for a live number. */
+  replacedAt?: string | null;
 };
 
 // Image types the avatar upload accepts, keyed by file extension.
@@ -82,6 +120,10 @@ export async function purchaseNumber(opts: {
   areaCode?: string;
   /** When true, provision an iMessage number (async; setupStatus starts "provisioning"). */
   includeImessage?: boolean;
+  /** Whether calling is switched on for the new number; omitted → on. */
+  callingEnabled?: boolean;
+  /** Also connect WhatsApp. Only valid alongside includeImessage. */
+  whatsapp?: boolean;
 }): Promise<PhoneNumberRow> {
   const auth = maybeAuth();
   const body: Record<string, unknown> = {
@@ -90,11 +132,87 @@ export async function purchaseNumber(opts: {
   };
   if (opts.inboundVoiceGender) body.inboundVoiceGender = opts.inboundVoiceGender;
   if (opts.inboundLanguage) body.inboundLanguage = opts.inboundLanguage;
+  // Only sent when asked for, so the server's default (on) stays the one place
+  // that decides what an unspecified number does.
+  if (opts.callingEnabled !== undefined) body.callingEnabled = opts.callingEnabled;
   // iMessage numbers ignore areaCode, so only send it for standard numbers.
   if (opts.includeImessage) body.capabilities = ["sms", "call", "imessage"];
   else if (opts.areaCode) body.areaCode = opts.areaCode;
+  if (opts.whatsapp) body.whatsapp = true;
   const res = await apiPost<{ number: PhoneNumberRow }>("/api/v1/numbers", body, auth?.apiKey);
-  if (!res.ok) throw new DialError("purchase_failed", res.error, res.status);
+  if (!res.ok) {
+    // A WhatsApp number that isn't available right now: nothing was bought or charged, so
+    // unlike a failed purchase this one is safe to retry. Told apart by status alone, since
+    // the CLI keeps the server's text and not its code.
+    if (res.status === 503 && opts.whatsapp) {
+      throw new DialError("whatsapp_numbers_unavailable", WHATSAPP_NUMBERS_UNAVAILABLE, 503);
+    }
+    throw new DialError("purchase_failed", res.error, res.status);
+  }
+  return res.data.number;
+}
+
+/** The WhatsApp track's statuses, as the server reports them. */
+export type WhatsappStatus = "provisioning" | "warming_up" | "ready" | "failed" | "banned";
+
+/** Still working on it: waiting makes sense. */
+export function whatsappInProgress(status: WhatsappStatus | undefined): boolean {
+  return status === "provisioning" || status === "warming_up";
+}
+
+export const WHATSAPP_NUMBERS_UNAVAILABLE =
+  "WhatsApp numbers are temporarily unavailable. Nothing was bought or charged — it's safe to retry shortly.";
+
+/**
+ * Resolve a number reference — an id, an owned E.164, or a nickname — to its id.
+ *
+ * The REST API keys numbers by id while every CLI verb takes whichever form the caller
+ * has to hand, so one lookup serves them all. An id is returned as given when it
+ * matches a number the account owns, which also keeps a copy-pasted id from a previous
+ * `dial number list` working.
+ */
+export async function resolveNumberId(ref: string): Promise<string> {
+  const auth = maybeAuth();
+  const list = await apiGet<{ numbers: PhoneNumberRow[] }>("/api/v1/numbers", auth?.apiKey);
+  if (!list.ok) throw new DialError("list_failed", list.error, list.status);
+  const match = list.data.numbers.find(
+    (n) => n.id === ref || n.number === ref || n.nickname === ref,
+  );
+  if (!match) {
+    const known = list.data.numbers.map((n) => n.number).join(", ") || "(none)";
+    throw new DialError(
+      "number_not_found",
+      `No phone number ${ref} on your account. Yours: ${known}.`,
+    );
+  }
+  return match.id;
+}
+
+/** Copy for the 404 both WhatsApp provisioning paths answer without beta access. */
+export const WHATSAPP_NOT_ENABLED =
+  "WhatsApp is in beta and isn't enabled for this account. " +
+  "See https://docs.getdial.ai/documentation/capabilities/whatsapp to request access.";
+
+/**
+ * Connect WhatsApp to a number the account already holds
+ * (POST /api/v1/numbers/{id}/whatsapp).
+ *
+ * A 404 means one of two things — no such number, or no beta access — and the API
+ * cannot distinguish them by design: to an account without access the endpoint does
+ * not exist. Reported as the access message, because "not found" on a number the
+ * caller just listed reads as a typo and sends them looking in the wrong place.
+ */
+export async function addWhatsappToNumber(numberId: string): Promise<PhoneNumberRow> {
+  const auth = maybeAuth();
+  const res = await apiPost<{ number: PhoneNumberRow }>(
+    `/api/v1/numbers/${encodeURIComponent(numberId)}/whatsapp`,
+    {},
+    auth?.apiKey,
+  );
+  if (!res.ok) {
+    if (res.status === 404) throw new DialError("whatsapp_unavailable", WHATSAPP_NOT_ENABLED, 404);
+    throw new DialError("whatsapp_failed", res.error, res.status);
+  }
   return res.data.number;
 }
 
@@ -113,6 +231,10 @@ export async function setNumberProperties(opts: {
    * Pass `null` to clear; omit to leave unchanged.
    */
   maxCallDurationSeconds?: number | null;
+  /** Which display profile(s) `name`/`avatar` are written to: "imessage", "whatsapp", or "both". */
+  channel?: string;
+  /** One display name for `channel`. WhatsApp takes it verbatim; iMessage splits it on the first space. */
+  name?: string;
   /** iMessage display first name; an empty string clears it. iMessage numbers only. */
   firstName?: string;
   /** iMessage display last name; an empty string clears it. iMessage numbers only. */
@@ -123,6 +245,20 @@ export async function setNumberProperties(opts: {
    * numbers only.
    */
   avatar?: string;
+  /** WhatsApp display name; 1-25 chars, no reserved marks. WhatsApp-ready numbers only. */
+  whatsappName?: string;
+  /** WhatsApp avatar: local file path (uploaded) or http(s) URL. Square 192-640 jpeg/png, no transparent pixels. */
+  whatsappAvatar?: string;
+  /**
+   * Switch calling on/off for the number, both directions. Messaging is
+   * unaffected. Omit to leave unchanged.
+   */
+  callingEnabled?: boolean;
+  /**
+   * Forward inbound calls to this E.164 number instead of the AI voice agent
+   * answering. null or an empty string stops forwarding. Omit to leave unchanged.
+   */
+  forwardTo?: string | null;
 }): Promise<PhoneNumberRow> {
   const body: Record<string, unknown> = {};
   if (opts.inboundInstruction !== undefined) body.inboundInstruction = opts.inboundInstruction;
@@ -133,19 +269,31 @@ export async function setNumberProperties(opts: {
   if (opts.nickname !== undefined) body.nickname = opts.nickname;
   if (opts.maxCallDurationSeconds !== undefined)
     body.maxCallDurationSeconds = opts.maxCallDurationSeconds;
+  if (opts.channel !== undefined) body.channel = opts.channel;
+  if (opts.name !== undefined) body.name = opts.name;
   if (opts.firstName !== undefined) body.firstName = opts.firstName;
   if (opts.lastName !== undefined) body.lastName = opts.lastName;
+  if (opts.callingEnabled !== undefined) body.callingEnabled = opts.callingEnabled;
+  // Empty string stops forwarding → send null, the one "off" spelling on the wire.
+  if (opts.forwardTo !== undefined) body.forwardTo = opts.forwardTo || null;
+  if (opts.whatsappName !== undefined) body.whatsappName = opts.whatsappName;
   // A URL avatar goes in the JSON body; a local file forces multipart (below).
   // Read + validate the file up front, before any API round-trip, so a bad
   // path or unsupported type fails fast.
   const avatarFile =
     opts.avatar !== undefined && !isHttpUrl(opts.avatar) ? readAvatarFile(opts.avatar) : null;
   if (opts.avatar !== undefined && !avatarFile) body.avatarUrl = opts.avatar;
+  const whatsappAvatarFile =
+    opts.whatsappAvatar !== undefined && !isHttpUrl(opts.whatsappAvatar)
+      ? readAvatarFile(opts.whatsappAvatar)
+      : null;
+  if (opts.whatsappAvatar !== undefined && !whatsappAvatarFile)
+    body.whatsappAvatarUrl = opts.whatsappAvatar;
 
-  if (Object.keys(body).length === 0 && !avatarFile) {
+  if (Object.keys(body).length === 0 && !avatarFile && !whatsappAvatarFile) {
     throw new DialError(
       "bad_request",
-      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, firstName, lastName, or avatar).",
+      "Provide at least one property to update (inboundInstruction, inboundVoiceGender, inboundLanguage, nickname, maxCallDurationSeconds, calling, forwardTo, channel with name/avatar, firstName, lastName, avatar, whatsappName, or whatsappAvatar).",
     );
   }
   const auth = maybeAuth();
@@ -166,14 +314,28 @@ export async function setNumberProperties(opts: {
   // A local avatar file forces a multipart PATCH: every scalar field goes in as a
   // text part alongside the uploaded `avatar` file. Otherwise a plain JSON PATCH.
   let res: ApiResult<{ number: PhoneNumberRow }>;
-  if (avatarFile) {
+  if (avatarFile || whatsappAvatarFile) {
     const form = new ApiFormData();
-    for (const [field, value] of Object.entries(body)) form.set(field, String(value));
-    form.append(
-      "avatar",
-      new Blob([new Uint8Array(avatarFile.data)], { type: avatarFile.contentType }),
-      avatarFile.name,
-    );
+    // A null (a clear, e.g. `--forward-to off`) goes as an empty text part —
+    // multipart has no null, and String(null) would send the word "null".
+    for (const [field, value] of Object.entries(body))
+      form.set(field, value === null ? "" : String(value));
+    if (avatarFile) {
+      form.append(
+        "avatar",
+        new Blob([new Uint8Array(avatarFile.data)], { type: avatarFile.contentType }),
+        avatarFile.name,
+      );
+    }
+    if (whatsappAvatarFile) {
+      form.append(
+        "whatsappAvatar",
+        new Blob([new Uint8Array(whatsappAvatarFile.data)], {
+          type: whatsappAvatarFile.contentType,
+        }),
+        whatsappAvatarFile.name,
+      );
+    }
     res = await apiPatchMultipart<{ number: PhoneNumberRow }>(path, form, auth?.apiKey);
   } else {
     res = await apiPatch<{ number: PhoneNumberRow }>(path, body, auth?.apiKey);

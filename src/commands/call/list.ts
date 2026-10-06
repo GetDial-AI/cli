@@ -1,9 +1,11 @@
-import { listCalls } from "../../lib/ops/calls.ts";
+import { listCalls, callStatusLabel } from "../../lib/ops/calls.ts";
 import { isDialError } from "../../lib/ops/errors.ts";
 import { printDialError } from "../../lib/cli-error.ts";
 
 export type CallListOptions = {
   numberId?: string;
+  /** One contact's calls, both directions, across every line. */
+  contact?: string;
   direction?: string;
   since?: string;
   json: boolean;
@@ -13,6 +15,7 @@ export async function runCallList(opts: CallListOptions): Promise<number> {
   try {
     const calls = await listCalls({
       numberId: opts.numberId,
+      contact: opts.contact,
       direction: opts.direction,
       since: opts.since,
     });
@@ -26,7 +29,7 @@ export async function runCallList(opts: CallListOptions): Promise<number> {
     }
     for (const c of calls) {
       console.log(
-        `${c.createdAt}  ${c.direction.padEnd(8)}  ${c.from} -> ${c.to}  ${c.status}  ${c.duration}s  id=${c.id}`,
+        `${c.createdAt}  ${c.direction.padEnd(8)}  ${c.from} -> ${c.to}  ${callStatusLabel(c.status)}  ${c.duration}s  id=${c.id}`,
       );
     }
     return 0;

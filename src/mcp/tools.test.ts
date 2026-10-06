@@ -7,60 +7,32 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { tools } from "./tools/index.ts";
+import { OPERATIONAL_TOOL_NAMES, LOCAL_ONLY_TOOL_NAMES } from "./tools/tool-names.ts";
 import { sendMessageTool } from "./tools/send-message.ts";
 import { replyToMessageTool } from "./tools/reply-to-message.ts";
 import { placeCallTool } from "./tools/place-call.ts";
+import { getCallTool } from "./tools/get-call.ts";
+import { listCallsTool } from "./tools/list-calls.ts";
 import { startTypingTool } from "./tools/start-typing.ts";
 import { stopTypingTool } from "./tools/stop-typing.ts";
 import { authVerifyOtpTool } from "./tools/auth-verify-otp.ts";
+import { setNumberPropertiesTool } from "./tools/set-number-properties.ts";
+import { phoneNumberSchema } from "./schemas.ts";
 
-// One tool per non-excluded `dial` command (`dial listen` worker + `dial mcp` itself excluded).
-const EXPECTED = [
-  "list_numbers",
-  "purchase_number",
-  "set_number_properties",
-  "send_message",
-  "reply_to_message",
-  "start_typing",
-  "stop_typing",
-  "list_messages",
-  "place_call",
-  "list_calls",
-  "get_call",
-  "get_account_status",
-  "auth_login",
-  "auth_register_number",
-  "auth_verify_otp",
-  "wait_for_event",
-  "add_url_target",
-  "add_command_target",
-  "remove_local_target",
-  "list_local_targets",
-  "listen_install",
-  "listen_uninstall",
-  "listen_status",
-];
+// One tool per non-excluded `dial` command (`dial listen` worker + `dial mcp` itself
+// excluded). Both halves come from tools/tool-names.ts rather than a copy living here:
+// OPERATIONAL_TOOL_NAMES is the list the hosted server's twin file must match exactly,
+// and a list only this test could see would let the two servers drift apart while each
+// file still read correctly on its own.
+const EXPECTED = [...OPERATIONAL_TOOL_NAMES, ...LOCAL_ONLY_TOOL_NAMES];
 
 // The remote MCP server's tool set (frontend/src/lib/mcp/tools/). The local server must be
-// a strict superset. Hardcoded because the repos can't import one another.
-const REMOTE = [
-  "send_message",
-  "reply_to_message",
-  "start_typing",
-  "stop_typing",
-  "list_messages",
-  "place_call",
-  "list_calls",
-  "get_call",
-  "list_numbers",
-  "purchase_number",
-  "set_number_properties",
-  "wait_for_event",
-  "get_account_status",
-];
+// a strict superset. Duplicated as a committed list because the repos can't import one
+// another — if the two files disagree, the fix is the server missing a tool.
+const REMOTE = OPERATIONAL_TOOL_NAMES;
 
 describe("mcp tools", () => {
-  it("registers exactly the expected 23 tools with unique names", () => {
+  it("registers exactly the expected tools with unique names", () => {
     const names = tools.map((t) => t.name);
     assert.equal(new Set(names).size, names.length, "tool names must be unique");
     assert.deepEqual([...names].sort(), [...EXPECTED].sort());
@@ -69,6 +41,42 @@ describe("mcp tools", () => {
   it("is a superset of the remote MCP tool names", () => {
     const names = new Set(tools.map((t) => t.name));
     for (const r of REMOTE) assert.ok(names.has(r), `missing remote tool: ${r}`);
+  });
+
+  it("exposes list_groups, which both servers must carry", () => {
+    // Named explicitly rather than left to the list comparison above: this is the tool
+    // the groups work adds, and a rename would otherwise only show as a count mismatch.
+    assert.ok(
+      tools.some((t) => t.name === "list_groups"),
+      "list_groups must be registered on the local server too",
+    );
+  });
+
+  it("list_groups declares each group's channel, as the hosted server does", () => {
+    const tool = tools.find((t) => t.name === "list_groups")!;
+    const groups = tool.config.outputSchema!.groups as z.ZodArray<z.ZodObject<z.ZodRawShape>>;
+    assert.ok("channel" in groups.element.shape, "group schema is missing channel");
+    assert.equal(
+      groups.element.safeParse({ id: "grp_1", channel: "imessage", name: null }).success,
+      true,
+    );
+    assert.equal(
+      groups.element.safeParse({ id: "grp_1", channel: "sms", name: null }).success,
+      false,
+    );
+  });
+
+  it("get_call and list_calls declare failureReason in the call output schema", () => {
+    // Mirrors the hosted server's serializer: a failed call's failureReason must be
+    // visible to a model reading the schema, not just riding along via .passthrough().
+    for (const tool of [getCallTool, listCallsTool]) {
+      const schema = tool.config.outputSchema as z.ZodRawShape;
+      const callShape =
+        tool === getCallTool
+          ? (schema.call as z.ZodObject<z.ZodRawShape>).shape
+          : (schema.calls as z.ZodArray<z.ZodObject<z.ZodRawShape>>).element.shape;
+      assert.ok("failureReason" in callShape, `${tool.name} is missing failureReason`);
+    }
   });
 
   it("auth_verify_otp declares dashboardUrl and email in its output schema", () => {
@@ -115,7 +123,7 @@ describe("mcp tools", () => {
     );
   });
 
-  it("typing tools require toNumber and fromNumber, and reject a value field", () => {
+  it("typing tools take either destination, and reject a value field", () => {
     for (const tool of [startTypingTool, stopTypingTool]) {
       const schema = z.object(tool.config.inputSchema as z.ZodRawShape).strict();
       assert.equal(
@@ -123,20 +131,38 @@ describe("mcp tools", () => {
         true,
       );
       assert.equal(
-        schema.safeParse({ toNumber: "+14155550123" }).success,
-        false,
-        `${tool.name}: fromNumber required`,
+        schema.safeParse({ groupId: "grp_1" }).success,
+        true,
+        `${tool.name}: a group names its own line, so fromNumber is optional`,
       );
-      assert.equal(
-        schema.safeParse({ fromNumber: "pn_1" }).success,
-        false,
-        `${tool.name}: toNumber required`,
-      );
+      // "Exactly one destination" is a cross-field rule and this is a flat shape, so the
+      // server is what enforces it — mirrored here only as the fields being present.
+      assert.ok("groupId" in (tool.config.inputSchema as object), `${tool.name} takes a groupId`);
       assert.equal(
         schema.safeParse({ toNumber: "+14155550123", fromNumber: "pn_1", value: true }).success,
         false,
+        `${tool.name}: no value field — the verb is the tool name`,
       );
     }
+  });
+
+  it("set_number_properties accepts forwardTo as a string or null, and the number shape carries it", () => {
+    const input = z.object(setNumberPropertiesTool.config.inputSchema as z.ZodRawShape).strict();
+    assert.equal(
+      input.safeParse({ number: "+14155550123", forwardTo: "+18005550100" }).success,
+      true,
+    );
+    assert.equal(input.safeParse({ number: "+14155550123", forwardTo: null }).success, true);
+    assert.equal(input.safeParse({ number: "+14155550123", forwardTo: 5 }).success, false);
+    const out = phoneNumberSchema;
+    assert.equal(
+      out.safeParse({ id: "pn_1", number: "+14155550123", forwardTo: "+18005550100" }).success,
+      true,
+    );
+    assert.equal(
+      out.safeParse({ id: "pn_1", number: "+14155550123", forwardTo: null }).success,
+      true,
+    );
   });
 
   it("send_message and place_call accept the flexible fromNumber selector", () => {
@@ -182,6 +208,9 @@ describe("mcp tools", () => {
     const parsed = lines.map((l) => JSON.parse(l));
     const listResp = parsed.find((m) => m.id === 2);
     assert.ok(listResp, "no tools/list response on stdout");
-    assert.equal(listResp.result.tools.length, 23);
+    // Counted from the committed lists, not written out: a literal here is a second
+    // place to forget when a tool is added, and this assertion is about the stdio
+    // transport serving the whole registry — not about how many tools there happen to be.
+    assert.equal(listResp.result.tools.length, EXPECTED.length);
   });
 });

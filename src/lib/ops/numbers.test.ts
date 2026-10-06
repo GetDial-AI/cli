@@ -5,7 +5,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeAuth } from "../state.ts";
 import { startMockApi } from "../../test-utils.ts";
-import { listNumbers, purchaseNumber, setNumberProperties } from "./numbers.ts";
+import {
+  listNumbers,
+  purchaseNumber,
+  setNumberProperties,
+  whatsappInProgress,
+  WHATSAPP_NUMBERS_UNAVAILABLE,
+} from "./numbers.ts";
+import { whatsappConnectNextStep } from "../../commands/number/whatsapp.ts";
 import { isDialError } from "./errors.ts";
 
 let tmp: string;
@@ -136,6 +143,36 @@ describe("ops/numbers", () => {
     assert.equal(n.inboundLanguage, "es-ES");
     await setNumberProperties({ number: "+15550000", inboundLanguage: "" });
     assert.deepEqual(JSON.parse(patchBody), { inboundLanguage: null });
+  });
+
+  it("setNumberProperties sends forwardTo, mapping null and an empty string to null (stops forwarding)", async () => {
+    let patchBody = "";
+    api = await startMockApi((m, u, body) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1") {
+        patchBody = body;
+        const forwardTo = (JSON.parse(body) as { forwardTo: string | null }).forwardTo;
+        return {
+          status: 200,
+          json: { number: { id: "pn_1", number: "+15550000", country: "US", forwardTo } },
+        };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    const n = await setNumberProperties({ number: "+15550000", forwardTo: "+18005550100" });
+    assert.deepEqual(JSON.parse(patchBody), { forwardTo: "+18005550100" });
+    assert.equal(n.forwardTo, "+18005550100");
+    const cleared = await setNumberProperties({ number: "+15550000", forwardTo: null });
+    assert.deepEqual(JSON.parse(patchBody), { forwardTo: null });
+    assert.equal(cleared.forwardTo, null);
+    await setNumberProperties({ number: "+15550000", forwardTo: "" });
+    assert.deepEqual(JSON.parse(patchBody), { forwardTo: null });
   });
 
   it("setNumberProperties throws bad_request when no properties are given", async () => {
@@ -321,5 +358,67 @@ describe("ops/numbers", () => {
     } catch (e) {
       assert.ok(isDialError(e) && e.code === "purchase_failed" && e.status === 402);
     }
+  });
+
+  it("purchaseNumber maps a WhatsApp 503 to whatsapp_numbers_unavailable, safe to retry", async () => {
+    api = await startMockApi((m, u) =>
+      m === "POST" && u === "/api/v1/numbers"
+        ? {
+            status: 503,
+            json: {
+              error: "WhatsApp numbers are temporarily unavailable. Please try again shortly.",
+            },
+          }
+        : undefined,
+    );
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    try {
+      await purchaseNumber({
+        inboundInstruction: "x",
+        explicitProgrammaticConsent: "y",
+        includeImessage: true,
+        whatsapp: true,
+      });
+      assert.fail("expected throw");
+    } catch (e) {
+      assert.ok(isDialError(e));
+      assert.equal(e.code, "whatsapp_numbers_unavailable");
+      assert.equal(e.message, WHATSAPP_NUMBERS_UNAVAILABLE);
+      assert.equal(e.status, 503);
+    }
+  });
+
+  it("a 503 without WhatsApp stays an ordinary purchase failure", async () => {
+    api = await startMockApi((m, u) =>
+      m === "POST" && u === "/api/v1/numbers"
+        ? { status: 503, json: { error: "unavailable" } }
+        : undefined,
+    );
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    try {
+      await purchaseNumber({ inboundInstruction: "x", explicitProgrammaticConsent: "y" });
+      assert.fail("expected throw");
+    } catch (e) {
+      assert.ok(isDialError(e) && e.code === "purchase_failed");
+    }
+  });
+
+  it("warming_up counts as in progress; ready, failed and banned don't", () => {
+    assert.equal(whatsappInProgress("provisioning"), true);
+    assert.equal(whatsappInProgress("warming_up"), true);
+    for (const s of ["ready", "failed", "banned"] as const)
+      assert.equal(whatsappInProgress(s), false);
+  });
+
+  it("connecting WhatsApp tells the caller it takes hours and how to wait for it", () => {
+    const text = whatsappConnectNextStep("pn_1");
+    assert.match(text, /about 6 hours/);
+    assert.match(text, /warming_up/);
+    assert.match(
+      text,
+      /dial wait-for number\.status_changed -f status=ready -f phoneNumberId=pn_1 --timeout \d+/,
+    );
   });
 });

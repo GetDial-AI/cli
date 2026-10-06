@@ -113,4 +113,55 @@ describe("ops/typing", () => {
       return true;
     });
   });
+
+  it("setTyping sends a group destination and does NOT inherit the saved default line", async () => {
+    let seen: { body?: string } = {};
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/typing") {
+        seen = { body };
+        return { status: 200, json: { ok: true } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
+    await setTyping({ groupId: "grp_1", value: true });
+    const sent = JSON.parse(seen.body ?? "{}");
+    assert.deepEqual(sent, { groupId: "grp_1", value: true });
+    // The saved default must not ride along: the server refuses a from-number that
+    // disagrees with the group, so inheriting it would turn onboarding into a 400.
+    assert.equal("fromNumber" in sent, false);
+    assert.equal("toNumber" in sent, false);
+  });
+
+  it("setTyping forwards an explicit fromNumber even for a group", async () => {
+    let seen: { body?: string } = {};
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/typing") {
+        seen = { body };
+        return { status: 200, json: { ok: true } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
+    await setTyping({ groupId: "grp_1", value: false, fromNumber: "+15559999" });
+    assert.deepEqual(JSON.parse(seen.body ?? "{}"), {
+      groupId: "grp_1",
+      value: false,
+      fromNumber: "+15559999",
+    });
+  });
 });

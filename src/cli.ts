@@ -16,6 +16,10 @@ import { runWaitFor } from "./commands/wait-for.ts";
 import { runNumberList } from "./commands/number/list.ts";
 import { runNumberPurchase } from "./commands/number/purchase.ts";
 import { runNumberSet } from "./commands/number/set.ts";
+import { runNumberWhatsapp } from "./commands/number/whatsapp.ts";
+import { runGroupList } from "./commands/group/list.ts";
+import { runLookup } from "./commands/lookup/lookup.ts";
+import { runContactsList } from "./commands/contacts/list.ts";
 import { runMessageSend } from "./commands/message/send.ts";
 import { runMessageReply } from "./commands/message/reply.ts";
 import { runMessageList } from "./commands/message/list.ts";
@@ -24,6 +28,7 @@ import { runTypingStop } from "./commands/typing/stop.ts";
 import { runCallSend } from "./commands/call/send.ts";
 import { runCallList } from "./commands/call/list.ts";
 import { runCallGet } from "./commands/call/get.ts";
+import { runCallStop } from "./commands/call/stop.ts";
 import { runLocalTargetAddUrl } from "./commands/local-target/add-url.ts";
 import { runLocalTargetAddCmd } from "./commands/local-target/add-cmd.ts";
 import { runLocalTargetRemove } from "./commands/local-target/remove.ts";
@@ -47,6 +52,35 @@ function parsePositiveInteger(value: string): number {
     throw new InvalidArgumentError(`must be a positive integer, got: ${value}`);
   }
   return parsed;
+}
+
+/**
+ * `--calling <on|off>` → boolean.
+ *
+ * One flag taking an explicit value, rather than a `--calling`/`--no-calling`
+ * pair: it reads the same in a script and in a skill, and it cannot be confused
+ * with "leave unchanged" (which is what omitting the flag means). Anything other
+ * than the two spellings is an error, never quietly read as off.
+ */
+function parseCalling(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "on") return true;
+  if (normalized === "off") return false;
+  throw new InvalidArgumentError(`must be "on" or "off", got: ${value}`);
+}
+
+/**
+ * `--forward-to <e164|off>` → the number as typed, or null to stop forwarding.
+ *
+ * `off` (any case) or an empty string means "stop forwarding", sent as null.
+ * Anything else is sent as-is: the CLI never validates phone numbers locally,
+ * so the server's own 400 (invalid E.164, or the number's own number) is the
+ * one message the user sees.
+ */
+function parseForwardTo(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed.toLowerCase() === "off") return null;
+  return value;
 }
 
 program
@@ -241,6 +275,15 @@ number
     "--include-imessage",
     "provision an iMessage number (pay-as-you-go only; provisioned asynchronously — poll `dial number list` until ready)",
   )
+  .option(
+    "--whatsapp",
+    "also connect WhatsApp to the new line (beta, enabled per account). Requires --include-imessage: WhatsApp is a channel on an iMessage line",
+  )
+  .option(
+    "--calling <on|off>",
+    'whether calling is switched on for the new number (default: on). "off" provisions a messaging-only line with no window in which it answers a call',
+    parseCalling,
+  )
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(
@@ -251,9 +294,21 @@ number
         inboundLanguage: opts.inboundLanguage,
         areaCode: opts.areaCode,
         includeImessage: !!opts.includeImessage,
+        whatsapp: !!opts.whatsapp,
+        callingEnabled: opts.calling,
         json: !!opts.json,
       }),
     ),
+  );
+
+number
+  .command("whatsapp <number>")
+  .description(
+    "Connect WhatsApp to a number you already hold (beta, enabled per account). POST /api/v1/numbers/<id>/whatsapp.",
+  )
+  .option("--json", "machine-readable output")
+  .action(async (number: string, opts) =>
+    process.exit(await runNumberWhatsapp({ number, json: !!opts.json })),
   );
 
 number
@@ -286,6 +341,14 @@ number
   )
   .option("--clear-max-call-duration", "remove the per-number call duration cap")
   .option(
+    "--channel <imessage|whatsapp|both>",
+    'which display profile(s) --name and --avatar are written to; "both" sets one identity on every channel the number has, in a single call. Cannot be combined with --first-name/--last-name/--whatsapp-name/--whatsapp-avatar',
+  )
+  .option(
+    "--name <text>",
+    'display name for --channel (required alongside it); WhatsApp stores it verbatim (1-25 chars), iMessage splits it on the first space ("Maya Chen" -> Maya / Chen)',
+  )
+  .option(
     "--first-name <text>",
     'iMessage display first name shown beside this number\'s messages (iMessage numbers only); pass "" to clear',
   )
@@ -296,6 +359,24 @@ number
   .option(
     "--avatar <path-or-url>",
     "iMessage avatar photo (iMessage numbers only): a local image file (jpeg/png/gif/webp, max 5 MB) to upload, or a public image URL to fetch. Replaces the current photo; photos can't be removed",
+  )
+  .option(
+    "--whatsapp-name <text>",
+    "WhatsApp display name shown to recipients (WhatsApp-ready numbers only): 1-25 chars, no reserved marks. The call blocks until WhatsApp applies it",
+  )
+  .option(
+    "--whatsapp-avatar <path-or-url>",
+    "WhatsApp avatar photo (WhatsApp-ready numbers only): a local image file or public URL. Square jpeg/png between 192x192 and 640x640 (not resized), with no transparent pixels",
+  )
+  .option(
+    "--calling <on|off>",
+    "switch calling on or off for this number, both directions: off means inbound calls aren't connected and none can be placed from it (messaging is unaffected)",
+    parseCalling,
+  )
+  .option(
+    "--forward-to <e164|off>",
+    "forward inbound calls to this phone number instead of answering them with the AI voice agent. `off` stops forwarding",
+    parseForwardTo,
   )
   .option("--json", "machine-readable output")
   .action(async (numberArg: string, opts) => {
@@ -313,9 +394,15 @@ number
         inboundLanguage: opts.inboundLanguage,
         nickname: opts.nickname,
         maxCallDurationSeconds,
+        channel: opts.channel,
+        name: opts.name,
         firstName: opts.firstName,
         lastName: opts.lastName,
         avatar: opts.avatar,
+        whatsappName: opts.whatsappName,
+        whatsappAvatar: opts.whatsappAvatar,
+        callingEnabled: opts.calling,
+        forwardTo: opts.forwardTo,
         json: !!opts.json,
       }),
     );
@@ -323,8 +410,18 @@ number
 
 const message = program
   .command("message")
-  .description("Send an SMS, optionally with media (MMS). POST /api/v1/messages.")
+  .description(
+    "Send a message to a number or a group, optionally with media (MMS). POST /api/v1/messages.",
+  )
   .option("--to <e164>", "destination phone number, E.164 (e.g. +14155551234)")
+  .option(
+    "--group <id>",
+    "send into a group conversation instead (see `dial group list`); the sending line comes from the group. Exclusive with --to",
+  )
+  .option(
+    "--channel <sms|imessage|whatsapp>",
+    "which channel to send on, for a line carrying more than one; omit to use the number's own default",
+  )
   .option("--body <text>", "message body")
   .option(
     "--from-number <ref>",
@@ -346,9 +443,12 @@ const message = program
   )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
-    if (!opts.to) {
+    // A destination is still required — it just has two forms now. The exactly-one
+    // rule itself lives in runMessageSend, so the MCP tool and the verb enforce it
+    // from one place; this only keeps the familiar message for the common mistake.
+    if (!opts.to && !opts.group) {
       console.error(
-        "error: --to is required to send a message. Use `dial message list` to list, or `dial message --help` for usage.",
+        "error: --to or --group is required to send a message. Use `dial message list` to list, `dial group list` for your groups, or `dial message --help` for usage.",
       );
       process.exit(2);
     }
@@ -361,6 +461,8 @@ const message = program
     process.exit(
       await runMessageSend({
         to: opts.to,
+        group: opts.group,
+        channel: opts.channel,
         body: opts.body,
         fromNumber: opts.fromNumber,
         fromNumberId: opts.fromNumberId,
@@ -401,19 +503,68 @@ message
   .command("list")
   .description("List recent messages on your account. GET /api/v1/messages.")
   .option("--number-id <id>", "filter to a single phone number")
+  .option("--contact <e164>", "one contact's conversation, both directions, across every line")
+  .option("--group <id>", "filter to one group conversation (see `dial group list`)")
   .option("--direction <dir>", "inbound or outbound")
   .option("--since <iso8601>", "only messages created after this timestamp")
+  .option("--search <text>", "match message bodies containing this text (case-insensitive)")
   .option("--json", "machine-readable output")
   .action(async (opts) =>
     process.exit(
       await runMessageList({
         numberId: opts.numberId,
+        contact: opts.contact,
+        group: opts.group,
         direction: opts.direction,
         since: opts.since,
+        search: opts.search,
         json: !!opts.json,
       }),
     ),
   );
+
+program
+  .command("contacts")
+  .description(
+    "Every number your lines have texted or called, newest activity first. Walks every page " +
+      "unless you pass --limit. GET /api/v1/contacts.",
+  )
+  .option("--number-id <id>", "only one of your numbers' contacts, with that line's counts")
+  .option("--limit <n>", "return one page of at most n contacts (1-1000) instead of all", (v) =>
+    Number.parseInt(v, 10),
+  )
+  .option("--starting-after <iso8601>", "page cursor: the lastAt of the last contact you received")
+  .option("--json", "machine-readable output")
+  .action(async (opts) =>
+    process.exit(
+      await runContactsList({
+        numberId: opts.numberId,
+        limit: opts.limit,
+        startingAfter: opts.startingAfter,
+        json: !!opts.json,
+      }),
+    ),
+  );
+
+program
+  .command("lookup")
+  .argument("<number>", "the phone number to look up, in E.164 (e.g. +14155550123)")
+  .description(
+    "What channels a phone number can receive on, so you can pick one before sending. Works on " +
+      "any number, not just yours. GET /api/v1/lookup.",
+  )
+  .option("--json", "machine-readable output")
+  .action(async (number, opts) => process.exit(await runLookup(number, { json: !!opts.json })));
+
+const group = program
+  .command("group")
+  .description("Group conversations your lines are in (WhatsApp).");
+
+group
+  .command("list")
+  .description("List the group conversations your lines are in. GET /api/v1/groups.")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => process.exit(await runGroupList({ json: !!opts.json })));
 
 const typing = program
   .command("typing")
@@ -428,19 +579,31 @@ typing
   )
   .option("--to-number <e164>", "recipient phone number, E.164 (e.g. +14155551234)")
   .option(
+    "--group <id>",
+    "a group conversation to show it in instead (see `dial group list`); the line comes from the group",
+  )
+  .option(
     "--from-number <ref>",
-    "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)",
+    "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number); optional with --group",
+  )
+  .option(
+    "--channel <sms|imessage|whatsapp>",
+    "which channel to show it on, for a line carrying more than one; omit to use the number's own default, and omit it with --group — the group names its own channel. SMS has no typing indicator, so sms shows nothing",
   )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
-    if (!opts.toNumber) {
-      console.error("error: --to-number is required. Use `dial typing start --help` for usage.");
+    if (!opts.toNumber && !opts.group) {
+      console.error(
+        "error: --to-number or --group is required. Use `dial group list` for your groups, or `dial typing start --help` for usage.",
+      );
       process.exit(2);
     }
     process.exit(
       await runTypingStart({
         toNumber: opts.toNumber,
+        group: opts.group,
         fromNumber: opts.fromNumber,
+        channel: opts.channel,
         json: !!opts.json,
       }),
     );
@@ -450,20 +613,29 @@ typing
   .command("stop")
   .description("Clear a typing indicator previously shown with `typing start`.")
   .option("--to-number <e164>", "recipient phone number, E.164 (e.g. +14155551234)")
+  .option("--group <id>", "the group conversation to clear it in (see `dial group list`)")
   .option(
     "--from-number <ref>",
-    "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number)",
+    "number the indicator appears from: id, owned E.164, or nickname (defaults to onboard's number); optional with --group",
+  )
+  .option(
+    "--channel <sms|imessage|whatsapp>",
+    "which channel to clear it on; pass the same channel `typing start` was given, and omit it with --group",
   )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
-    if (!opts.toNumber) {
-      console.error("error: --to-number is required. Use `dial typing stop --help` for usage.");
+    if (!opts.toNumber && !opts.group) {
+      console.error(
+        "error: --to-number or --group is required. Use `dial typing stop --help` for usage.",
+      );
       process.exit(2);
     }
     process.exit(
       await runTypingStop({
         toNumber: opts.toNumber,
+        group: opts.group,
         fromNumber: opts.fromNumber,
+        channel: opts.channel,
         json: !!opts.json,
       }),
     );
@@ -538,6 +710,7 @@ call
   .command("list")
   .description("List recent calls on your account. GET /api/v1/calls.")
   .option("--number-id <id>", "filter to a single phone number")
+  .option("--contact <e164>", "one contact's calls, both directions, across every line")
   .option("--direction <dir>", "inbound or outbound")
   .option("--since <iso8601>", "only calls created after this timestamp")
   .option("--json", "machine-readable output")
@@ -545,6 +718,7 @@ call
     process.exit(
       await runCallList({
         numberId: opts.numberId,
+        contact: opts.contact,
         direction: opts.direction,
         since: opts.since,
         json: !!opts.json,
@@ -558,6 +732,16 @@ call
   .option("--json", "machine-readable output")
   .action(async (callId: string, opts) =>
     process.exit(await runCallGet({ callId, json: !!opts.json })),
+  );
+
+call
+  .command("stop <call-id>")
+  .description(
+    "Cancel a queued or ringing call, or hang up one in progress. POST /api/v1/calls/<id>/stop.",
+  )
+  .option("--json", "machine-readable output")
+  .action(async (callId: string, opts) =>
+    process.exit(await runCallStop({ callId, json: !!opts.json })),
   );
 
 if (!sandbox) {

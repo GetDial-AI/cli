@@ -17,12 +17,24 @@ export type NumberSetOptions = {
    * `null` clears the cap; `undefined` leaves it unchanged.
    */
   maxCallDurationSeconds?: number | null;
+  /** Which display profile(s) `name`/`avatar` are written to: "imessage", "whatsapp", or "both". */
+  channel?: string;
+  /** One display name for `channel`. WhatsApp takes it verbatim; iMessage splits it on the first space. */
+  name?: string;
   /** iMessage display first name; an empty string clears it. iMessage numbers only. */
   firstName?: string;
   /** iMessage display last name; an empty string clears it. iMessage numbers only. */
   lastName?: string;
   /** iMessage avatar photo: local image path (uploaded) or public image URL (fetched server-side). Replace-only. */
   avatar?: string;
+  /** WhatsApp display name; 1-25 chars, no reserved marks. WhatsApp-ready numbers only. */
+  whatsappName?: string;
+  /** WhatsApp avatar photo: local image path (uploaded) or public image URL. Square 192-640 jpeg/png, no transparent pixels. */
+  whatsappAvatar?: string;
+  /** Switch calling on/off for the number, both directions; undefined leaves it unchanged. */
+  callingEnabled?: boolean;
+  /** E.164 number inbound calls are forwarded to instead of the AI voice agent; null stops forwarding; undefined leaves it unchanged. */
+  forwardTo?: string | null;
   json: boolean;
 };
 
@@ -39,9 +51,15 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       ...(opts.maxCallDurationSeconds !== undefined
         ? { maxCallDurationSeconds: opts.maxCallDurationSeconds }
         : {}),
+      ...(opts.channel !== undefined ? { channel: opts.channel } : {}),
+      ...(opts.name !== undefined ? { name: opts.name } : {}),
       ...(opts.firstName !== undefined ? { firstName: opts.firstName } : {}),
       ...(opts.lastName !== undefined ? { lastName: opts.lastName } : {}),
       ...(opts.avatar !== undefined ? { avatar: opts.avatar } : {}),
+      ...(opts.callingEnabled !== undefined ? { callingEnabled: opts.callingEnabled } : {}),
+      ...(opts.forwardTo !== undefined ? { forwardTo: opts.forwardTo } : {}),
+      ...(opts.whatsappName !== undefined ? { whatsappName: opts.whatsappName } : {}),
+      ...(opts.whatsappAvatar !== undefined ? { whatsappAvatar: opts.whatsappAvatar } : {}),
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, number: n }));
@@ -53,12 +71,22 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       console.log(`  inbound instruction:   ${n.inboundInstruction ?? ""}`);
       console.log(`  inbound voice gender:  ${n.inboundVoiceGender ?? ""}`);
       console.log(`  inbound language:      ${n.inboundLanguage ?? ""}`);
+      // Always printed, not only when it changed: "is calling on?" is the
+      // question someone runs this command to settle.
+      console.log(`  calling:               ${n.callingEnabled === false ? "off" : "on"}`);
+      // Printed alongside calling for the same reason: "who picks up?" is the
+      // other half of that question.
+      console.log(`  forward to:            ${n.forwardTo ?? "off (AI voice agent answers)"}`);
       const hasIdentity = n.firstName != null || n.lastName != null || n.avatarUrl != null;
       if (hasIdentity) {
         console.log(
           `  display name:          ${[n.firstName, n.lastName].filter(Boolean).join(" ")}`,
         );
         console.log(`  avatar:                ${n.avatarUrl ?? ""}`);
+      }
+      if (n.whatsappName != null || n.whatsappAvatarUrl != null) {
+        console.log(`  whatsapp name:         ${n.whatsappName ?? ""}`);
+        console.log(`  whatsapp avatar:       ${n.whatsappAvatarUrl ?? ""}`);
       }
     }
     return 0;

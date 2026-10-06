@@ -161,7 +161,7 @@ function reportPendingPhone(result: PendingPhoneResult, json: boolean): number {
           kind: "phone_number_required",
           question: "What phone number should this Dial account be registered to?",
           rationale:
-            "Creating a Dial account requires a verified phone number as well as a verified email. Dial texts a 6-digit code to the number, and the user reads it back. The number is linked to the account permanently — a number can register only one Dial account — so it should be one the user keeps. It must be able to receive SMS, and a Dial number cannot be used.",
+            "Creating a Dial account requires a verified phone number as well as a verified email. Dial texts a 6-digit code to the number, and the user reads it back. It should be a number the user keeps, it must be able to receive SMS, and a Dial number cannot be used.",
           presentation:
             "Ask for the number in international form including the country code. Don't invent one, and don't reuse a Dial number.",
           useStructuredToolIfAvailable: true,
@@ -182,8 +182,7 @@ function reportPendingPhone(result: PendingPhoneResult, json: boolean): number {
   console.log(``);
   console.log(`    ${REGISTER_NUMBER_COMMAND}`);
   console.log(``);
-  console.log(`That number is linked to the account permanently — a number can register only one`);
-  console.log(`Dial account — so use one the user keeps. A Dial number can't be used here.`);
+  console.log(`Use a number the user keeps. A Dial number can't be used here.`);
   console.log(``);
   console.log(`Dial texts a 6-digit code to it; then run:`);
   console.log(``);

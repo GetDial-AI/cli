@@ -44,6 +44,19 @@ export const phoneNumberSchema = z
       .describe(
         "BCP-47 language tag inbound calls are pinned to; null → detected from the caller's country prefix per call",
       ),
+    callingEnabled: z
+      .boolean()
+      .optional()
+      .describe(
+        "Whether calling is switched on for this number, both directions. false → inbound calls are not connected and place_call from it fails with calling_disabled; messaging is unaffected",
+      ),
+    forwardTo: z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        "E.164 number inbound calls are forwarded to instead of the AI voice agent answering, or null when the agent answers.",
+      ),
     firstName: z
       .string()
       .nullable()
@@ -61,14 +74,112 @@ export const phoneNumberSchema = z
       .describe(
         "URL of the number's iMessage avatar photo; null when unset or not an iMessage number",
       ),
+    whatsappName: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("WhatsApp display name; null on numbers without a WhatsApp track"),
+    whatsappAvatarUrl: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("URL of the number's WhatsApp avatar; null when unset"),
+    whatsapp: z
+      .object({
+        status: z.enum(["provisioning", "warming_up", "ready", "failed", "banned"]),
+        error: z.string().nullable().describe("Reason when status is 'failed' or 'banned'"),
+        retryAvailableAt: z
+          .string()
+          .nullable()
+          .describe(
+            "ISO-8601: when the channel will accept another verification attempt; null when it will now",
+          ),
+      })
+      .passthrough()
+      .nullable()
+      .optional()
+      .describe(
+        "The WhatsApp channel's own setup state, independent of setupStatus, or null when the number has no " +
+          "WhatsApp registration. 'warming_up' means a number you connected is registered and is being " +
+          "warmed up for about 6 hours before first use. Sending with channel 'whatsapp' is refused until " +
+          "status is 'ready', and again once 'banned' — the channel was withdrawn from a line that was working.",
+      ),
   })
   .passthrough();
+
+/**
+ * A group conversation. Mirrors the hosted server's `groupSchema` — `createdAt` is a
+ * string, never a z.date(), because a Date is unrepresentable in JSON Schema and one
+ * bad schema fails the whole `tools/list`.
+ */
+export const groupSchema = z.object({
+  id: z.string().describe("Group id — pass as groupId to send_message or list_messages"),
+  channel: z
+    .enum(["whatsapp", "imessage"])
+    .describe("The channel the group is on; its rules apply to anything sent into the group"),
+  name: z
+    .string()
+    .nullable()
+    .describe("The group's current name, or null when no line could report it in time"),
+  createdAt: z
+    .string()
+    .optional()
+    .describe("ISO-8601: when Dial first learned of this group (a join, or its first message)"),
+});
+
+/**
+ * One derived contact. Mirrors the hosted server's `contactSchema`.
+ *
+ * The preview fields report facts rather than a sentence — `lastKind` selects whether `lastBody`
+ * or `lastCallDuration` means anything, and `lastRedacted` / `lastMediaCount` explain an empty
+ * `lastBody` — so an agent can word the summary itself.
+ */
+export const contactSchema = z.object({
+  number: z.string().describe("The contact's number, E.164 — pass as `contact` to list_messages"),
+  messageCount: z
+    .number()
+    .describe(
+      "One-to-one messages with this contact across every line on the account, both directions",
+    ),
+  callCount: z
+    .number()
+    .describe("Calls with this contact across every line on the account, both directions"),
+  lastAt: z.string().describe("ISO-8601 timestamp of the most recent message or call"),
+  lastDirection: z
+    .enum(["inbound", "outbound"])
+    .describe("Whether the most recent interaction came from them or you"),
+  lastKind: z.enum(["message", "call"]).describe("What the most recent interaction was"),
+  lastBody: z
+    .string()
+    .describe(
+      "The most recent message's text. Empty for a call, a media-only message, or a redacted one",
+    ),
+  lastMediaCount: z
+    .number()
+    .describe("Attachments on the most recent message; 0 for a call or a text-only message"),
+  lastRedacted: z
+    .boolean()
+    .describe("True when data retention cleared the most recent message's content"),
+  lastCallDuration: z
+    .number()
+    .nullable()
+    .describe(
+      "The most recent call's duration in seconds, or null when the most recent interaction was a message",
+    ),
+});
 
 export const messageSchema = z
   .object({
     id: z.string(),
-    from: z.string(),
-    to: z.string(),
+    from: z.string().describe("Sender, E.164. On a group message, the participant who sent it"),
+    to: z
+      .string()
+      .nullable()
+      .describe("Recipient, E.164 — null on a group message, whose destination is groupId"),
+    groupId: z
+      .string()
+      .nullish()
+      .describe("The group this message belongs to, or null for a one-to-one conversation"),
     body: z.string(),
     channel: z.string().optional(),
     direction: z.string().optional(),
@@ -86,6 +197,20 @@ export const messageSchema = z
   })
   .passthrough();
 
+export const transcriptTurnSchema = z
+  .object({
+    speaker: z
+      .enum(["agent", "user", "transfer_target"])
+      .describe(
+        "`agent` is Dial's AI voice agent, `user` the human on the other end, and " +
+          "`transfer_target` the human the call was cold-transferred to",
+      ),
+    text: z.string().describe("What was said during the turn"),
+    startMs: z.number().describe("Approximate ms into the call's audio at which the turn began"),
+    endMs: z.number().describe("Approximate ms into the call's audio at which the turn ended"),
+  })
+  .describe("One uninterrupted stretch of speech by one party, placed in time");
+
 export const callSchema = z
   .object({
     id: z.string(),
@@ -94,7 +219,24 @@ export const callSchema = z
     direction: z.string().optional(),
     status: statusSchema,
     duration: z.number().nullish(),
+    failureReason: z
+      .string()
+      .nullish()
+      .describe(
+        "Why the call failed, when status's terminationType is failed and Dial knows the cause " +
+          "(e.g. self_hosted_key_rejected from a Self-Hosted audio target). Null otherwise, and on a " +
+          "failed call whose cause Dial can't name. Treat an unrecognized value like null.",
+      ),
     transcript: z.string().nullish(),
+    transcriptTurns: transcriptTurnSchema
+      .array()
+      .nullish()
+      .describe(
+        "The same conversation as `transcript`, split into timed turns and ordered by " +
+          "startMs. Use it to measure pacing: the pause before a turn is its startMs minus " +
+          "the previous turn's endMs. Null when the call has no transcript, or when the " +
+          "call's turn timing was not recorded.",
+      ),
     instruction: z.string().nullable().optional(),
     createdAt: z.string().optional(),
   })

@@ -21,6 +21,12 @@ import {
 
 let tmp: string;
 
+/** Windows synthesizes st_mode, so POSIX bits are only meaningful elsewhere. */
+function assertMode(path: string, expected: number) {
+  if (process.platform === "win32") return;
+  assert.equal(statSync(path).mode & 0o777, expected);
+}
+
 describe("state", () => {
   beforeEach(() => {
     tmp = mkdtempSync(join(tmpdir(), "dial-state-"));
@@ -45,8 +51,8 @@ describe("state", () => {
     });
     const file = join(tmp, ".local/share/dial/auth.v1.json");
     const dir = join(tmp, ".local/share/dial");
-    assert.equal(statSync(file).mode & 0o777, 0o600);
-    assert.equal(statSync(dir).mode & 0o777, 0o700);
+    assertMode(file, 0o600);
+    assertMode(dir, 0o700);
     const auth = readAuth();
     assert.equal(auth?.apiKey, "sk_live_abc");
   });
@@ -66,11 +72,14 @@ describe("state", () => {
       { mode: 0o600 },
     );
     assert.equal(readAuth()?.apiKey, "sk_live_old");
-    assert.equal(statSync(join(dir, "auth.v1.json")).mode & 0o777, 0o600);
+    assertMode(join(dir, "auth.v1.json"), 0o600);
     assert.equal(existsSync(join(dir, "auth.json")), false);
   });
 
-  it("refuses to read auth.v1.json with insecure perms", () => {
+  it("refuses to read auth.v1.json with insecure perms", {
+    // Windows has no POSIX modes; the check is skipped there by design.
+    skip: process.platform === "win32",
+  }, () => {
     writeAuth({
       apiKey: "sk_live_abc",
       accountId: "a",
