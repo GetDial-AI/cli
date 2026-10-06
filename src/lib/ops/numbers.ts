@@ -54,6 +54,16 @@ export type PhoneNumberRow = {
    * answering, or null when the agent answers.
    */
   forwardTo?: string | null;
+  /**
+   * Numbers this one replaced, newest first. Dial can move a number onto a new line: the id and
+   * settings stay, `number` becomes the new E.164, and the old E.164 (or the replaced number's id)
+   * still works anywhere a number is named — e.g. as `--from-number`.
+   */
+  replaces?: { id: string; number: string; replacedAt: string }[];
+  /** The live number a replaced number routes to; null for a live number. */
+  replacedBy?: { id: string; number: string } | null;
+  /** When the number was replaced; null for a live number. */
+  replacedAt?: string | null;
 };
 
 // Image types the avatar upload accepts, keyed by file extension.
