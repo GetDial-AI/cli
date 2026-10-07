@@ -54,7 +54,7 @@ dial wait-for message.received --field to=+14155550123
 | Command | Description |
 | --- | --- |
 | `dial doctor` | Report account state and what to do next. |
-| `dial auth login <email>` | Email a 6-digit sign-up code. |
+| `dial auth login <email>` | Email a 6-digit sign-up code. `--coupon <code>` signs up past a signup pause and adds the coupon's credit. |
 | `dial auth verify-otp --code <code>` | Verify an email code, or with `--number` a texted one. |
 | `dial auth register-number <phone>` | Text a code to the phone number that will own the account. |
 | `dial number list` | List the phone numbers on your account. |

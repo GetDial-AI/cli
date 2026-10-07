@@ -42,6 +42,49 @@ describe("ops/account", () => {
     }
   });
 
+  it("signup sends the coupon and returns the credit the server accepted", async () => {
+    let sent: unknown;
+    api = await startMockApi((method, url, body) => {
+      if (method === "POST" && url === "/api/v1/auth/signup") {
+        sent = JSON.parse(body);
+        return {
+          status: 200,
+          json: { verificationId: "v9", coupon: { code: "EVENT_CODE", amountCents: 10000 } },
+        };
+      }
+      return null;
+    });
+    process.env.DIAL_API_URL = api.url;
+    const res = await signup({ email: "b@example.com", coupon: "event_code" });
+    assert.deepEqual(sent, { email: "b@example.com", coupon: "event_code" });
+    assert.deepEqual(res, {
+      verificationId: "v9",
+      email: "b@example.com",
+      coupon: { code: "EVENT_CODE", amountCents: 10000 },
+    });
+  });
+
+  it("signup without a coupon sends none, and a refused coupon surfaces the server's message", async () => {
+    let sent: unknown;
+    api = await startMockApi((method, url, body) => {
+      if (method !== "POST" || url !== "/api/v1/auth/signup") return null;
+      sent = JSON.parse(body);
+      return sent && (sent as { coupon?: string }).coupon
+        ? { status: 409, json: { error: "This coupon was already used with this email." } }
+        : { status: 200, json: { verificationId: "v1" } };
+    });
+    process.env.DIAL_API_URL = api.url;
+    assert.deepEqual(await signup({ email: "a@example.com" }), {
+      verificationId: "v1",
+      email: "a@example.com",
+    });
+    assert.deepEqual(sent, { email: "a@example.com" });
+    await assert.rejects(
+      () => signup({ email: "a@example.com", coupon: "USED", force: true }),
+      (e: unknown) => isDialError(e) && e.status === 409 && /already used/.test(e.message),
+    );
+  });
+
   it("accountStatus reports nextStep=signup when signed out", async () => {
     api = await startMockApi(() => ({ status: 200, json: { ok: true } }));
     process.env.DIAL_API_URL = api.url;

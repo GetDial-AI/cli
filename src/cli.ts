@@ -118,9 +118,15 @@ if (!sandbox) {
     .command("login <email>")
     .description("Request an email OTP for the given address.")
     .option("--force", "overwrite any pending signup")
+    .option(
+      "--coupon <code>",
+      "event coupon code: signs up past a signup pause and adds its credit to the new account",
+    )
     .option("--json", "machine-readable output")
     .action(async (email, opts) =>
-      process.exit(await runAuthLogin(email, { force: !!opts.force, json: !!opts.json })),
+      process.exit(
+        await runAuthLogin(email, { force: !!opts.force, json: !!opts.json, coupon: opts.coupon }),
+      ),
     );
 
   auth

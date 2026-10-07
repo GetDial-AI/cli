@@ -144,10 +144,15 @@ export async function accountStatus(): Promise<DoctorReport> {
 
 // ---- signup ----------------------------------------------------------------
 
+/** The coupon credit the server accepted for a new account; credited once the account exists. */
+export type AcceptedCoupon = { code: string; amountCents: number };
+
 export async function signup(opts: {
   email: string;
   force?: boolean;
-}): Promise<{ verificationId: string; email: string }> {
+  /** An event coupon: gets a new signup past a signup pause; credited at account creation. */
+  coupon?: string;
+}): Promise<{ verificationId: string; email: string; coupon?: AcceptedCoupon }> {
   const existing = readPendingSignup();
   if (existing && !opts.force) {
     const age = Date.now() - Date.parse(existing.createdAt);
@@ -162,9 +167,13 @@ export async function signup(opts: {
     }
   }
 
-  const res = await apiPost<{ verificationId: string }>("/api/v1/auth/signup", {
-    email: opts.email,
-  });
+  const res = await apiPost<{ verificationId: string; coupon?: AcceptedCoupon }>(
+    "/api/v1/auth/signup",
+    {
+      email: opts.email,
+      ...(opts.coupon ? { coupon: opts.coupon } : {}),
+    },
+  );
   if (!res.ok) throw new DialError("signup_failed", res.error, res.status);
 
   writePendingSignup({
@@ -172,7 +181,11 @@ export async function signup(opts: {
     email: opts.email,
     createdAt: new Date().toISOString(),
   });
-  return { verificationId: res.data.verificationId, email: opts.email };
+  return {
+    verificationId: res.data.verificationId,
+    email: opts.email,
+    ...(res.data.coupon ? { coupon: res.data.coupon } : {}),
+  };
 }
 
 // ---- onboard ---------------------------------------------------------------
