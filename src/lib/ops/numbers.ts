@@ -56,8 +56,8 @@ export type PhoneNumberRow = {
   forwardTo?: string | null;
   /**
    * Numbers this one replaced, newest first. Dial can move a number onto a new line: the id and
-   * settings stay, `number` becomes the new E.164, and the old E.164 (or the replaced number's id)
-   * still works anywhere a number is named — e.g. as `--from-number`.
+   * settings stay, `number` becomes the new E.164, and the replaced number's id still works
+   * anywhere a number is named — e.g. as `--from-number`. The old E.164 no longer works.
    */
   replaces?: { id: string; number: string; replacedAt: string }[];
   /** The live number a replaced number routes to; null for a live number. */
