@@ -123,7 +123,7 @@ These are the verbs you will most often compose. Read the relevant `.md` page fo
 ## Conventions
 
 - `--json` everywhere for parseable output.
-- `--from-number <id|E.164|nickname>` picks the number to act from flexibly; the legacy `--from-number-id <id>` takes an id only (use one or the other). Both default to the number Dial auto-provisioned when the account was created. List others with `dial number list`. If Dial moved a number onto a new line, `dial number list` shows it as `replaces:<old E.164>` (and the old one as `replaced-by:<new E.164>`); the old E.164 or id still works as `--from-number` and acts on the new line.
+- `--from-number <id|E.164|nickname>` picks the number to act from flexibly; the legacy `--from-number-id <id>` takes an id only (use one or the other). Both default to the number Dial auto-provisioned when the account was created. List others with `dial number list`. If Dial moved a number onto a new line, `dial number list` shows it as `replaces:<old E.164>` (and the old one as `replaced-by:<new E.164>`); the replaced number's id still works as `--from-number` and acts on the new line, but the old E.164 no longer works (`404`).
 - Phone numbers are E.164 (`+14155550123`). Reject anything else before calling Dial.
 - Writes (`message`, `call`, `number purchase`) are **not idempotent** — on an ambiguous failure, list first to check before retrying.
 - `dial call` failing with **`calling_disabled` (409)** means calling is switched off for that number — a setting, not a transient fault, so **retrying will not help**. Fix it with `dial number set <number> --calling on`, or place the call from another number. `dial number list` marks a switched-off number `calling:off`, and `--json` carries `callingEnabled` on every number.
