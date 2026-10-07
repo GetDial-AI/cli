@@ -74,7 +74,10 @@ describe("ops/account", () => {
         : { status: 200, json: { verificationId: "v1" } };
     });
     process.env.DIAL_API_URL = api.url;
-    assert.deepEqual(await signup({ email: "a@example.com" }), { verificationId: "v1", email: "a@example.com" });
+    assert.deepEqual(await signup({ email: "a@example.com" }), {
+      verificationId: "v1",
+      email: "a@example.com",
+    });
     assert.deepEqual(sent, { email: "a@example.com" });
     await assert.rejects(
       () => signup({ email: "a@example.com", coupon: "USED", force: true }),

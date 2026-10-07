@@ -167,10 +167,13 @@ export async function signup(opts: {
     }
   }
 
-  const res = await apiPost<{ verificationId: string; coupon?: AcceptedCoupon }>("/api/v1/auth/signup", {
-    email: opts.email,
-    ...(opts.coupon ? { coupon: opts.coupon } : {}),
-  });
+  const res = await apiPost<{ verificationId: string; coupon?: AcceptedCoupon }>(
+    "/api/v1/auth/signup",
+    {
+      email: opts.email,
+      ...(opts.coupon ? { coupon: opts.coupon } : {}),
+    },
+  );
   if (!res.ok) throw new DialError("signup_failed", res.error, res.status);
 
   writePendingSignup({

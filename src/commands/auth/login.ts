@@ -6,7 +6,11 @@ export type AuthLoginOptions = { force?: boolean; json?: boolean; coupon?: strin
 
 export async function runAuthLogin(email: string, opts: AuthLoginOptions): Promise<number> {
   try {
-    const { verificationId, coupon } = await signup({ email, force: opts.force, coupon: opts.coupon });
+    const { verificationId, coupon } = await signup({
+      email,
+      force: opts.force,
+      coupon: opts.coupon,
+    });
     if (opts.json) {
       console.log(
         JSON.stringify({
