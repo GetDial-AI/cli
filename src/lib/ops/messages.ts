@@ -135,6 +135,12 @@ export async function sendMessage(opts: {
   // to/groupId XOR, and a key present-but-empty reads as a second destination.
   // URLs-only goes as plain JSON; any local file switches to multipart.
   const hasFiles = media.some((m) => !isHttpUrl(m));
+  // The multipart branch has no poll field, so a poll there would be dropped silently.
+  // The verb refuses the combination; the Local MCP can still reach it via a local
+  // mediaUrls entry, so the ops layer refuses it too.
+  if (opts.poll !== undefined && hasFiles) {
+    throw new DialError("poll_with_upload", "poll cannot be combined with uploaded media; send the poll on its own");
+  }
   let res: ApiResult<{ message: MessageRow }>;
   if (!hasFiles) {
     res = await apiPost<{ message: MessageRow }>(
