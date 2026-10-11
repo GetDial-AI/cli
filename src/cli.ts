@@ -447,6 +447,13 @@ const message = program
     "--force-audio-file",
     "send an audio attachment as a regular file attachment instead of an iMessage voice message",
   )
+  .option("--poll <title>", "send a poll with this title instead of text (iMessage numbers only; needs ≥2 --option)")
+  .option(
+    "--option <text>",
+    "one poll choice; repeat for each (2–10, unique). Only with --poll",
+    (v: string, prev: string[] = []) => [...prev, v],
+    [] as string[],
+  )
   .option("--json", "machine-readable output")
   .action(async (opts) => {
     // A destination is still required — it just has two forms now. The exactly-one
@@ -458,9 +465,9 @@ const message = program
       );
       process.exit(2);
     }
-    if (!opts.body && (opts.media ?? []).length === 0) {
+    if (!opts.body && (opts.media ?? []).length === 0 && opts.poll === undefined) {
       console.error(
-        "error: provide --body, --media, or both — a message needs text or an attachment.",
+        "error: provide --body, --media, or --poll — a message needs text, an attachment, or a poll.",
       );
       process.exit(2);
     }
@@ -474,6 +481,8 @@ const message = program
         fromNumberId: opts.fromNumberId,
         media: opts.media,
         forceAudioFile: !!opts.forceAudioFile,
+        poll: opts.poll,
+        option: opts.option,
         json: !!opts.json,
       }),
     );

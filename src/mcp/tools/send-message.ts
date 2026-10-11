@@ -53,6 +53,17 @@ const inputSchema = {
     .describe(
       "Send a lone audio attachment as a regular file instead of a voice message — an iMessage voice message on iMessage numbers, a WhatsApp voice note on WhatsApp numbers. No effect on standard numbers or non-audio media.",
     ),
+  poll: z
+    .object({
+      title: z.string().min(1).max(300).describe("The question; becomes the message body"),
+      options: z.array(z.string().min(1)).min(2).max(10).describe("2 to 10 choices in display order, unique"),
+    })
+    .optional()
+    .describe(
+      "Send a native poll instead of text (iMessage numbers only, one-to-one or into an iMessage group). " +
+        "Exclusive with body, mediaUrls and forceAudioFile. Votes arrive as message.received events with " +
+        "pollVote; the poll message's poll.options[].votes is the live tally (see list_messages).",
+    ),
 };
 
 export const sendMessageTool: ToolModule = {
@@ -81,6 +92,7 @@ export const sendMessageTool: ToolModule = {
         fromNumberId: args.fromNumberId as string | undefined,
         media: args.mediaUrls as string[] | undefined,
         forceAudioFile: args.forceAudioFile as boolean | undefined,
+        poll: args.poll as { title: string; options: string[] } | undefined,
       }),
     }),
 };
