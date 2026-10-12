@@ -56,7 +56,11 @@ const inputSchema = {
   poll: z
     .object({
       title: z.string().min(1).max(300).describe("The question; becomes the message body"),
-      options: z.array(z.string().min(1)).min(2).max(10).describe("2 to 10 choices in display order, unique"),
+      options: z
+        .array(z.string().min(1))
+        .min(2)
+        .max(10)
+        .describe("2 to 10 choices in display order, unique"),
     })
     .optional()
     .describe(

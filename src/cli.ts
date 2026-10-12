@@ -447,7 +447,10 @@ const message = program
     "--force-audio-file",
     "send an audio attachment as a regular file attachment instead of an iMessage voice message",
   )
-  .option("--poll <title>", "send a poll with this title instead of text (iMessage numbers only; needs ≥2 --option)")
+  .option(
+    "--poll <title>",
+    "send a poll with this title instead of text (iMessage numbers only; needs ≥2 --option)",
+  )
   .option(
     "--option <text>",
     "one poll choice; repeat for each (2–10, unique). Only with --poll",

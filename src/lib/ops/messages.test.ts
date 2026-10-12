@@ -27,13 +27,39 @@ describe("ops/messages", () => {
     let captured: unknown;
     api = await startMockApi((m, u, body) =>
       m === "POST" && u === "/api/v1/messages"
-        ? ((captured = JSON.parse(body)), { status: 201, json: { message: { id: "m1", from: "+15550000", to: "+15551111", body: "Which day?", channel: "unknown", status: "unknown", poll: { options: [{ id: "opt_a", text: "Mon", votes: [] }] } } } })
+        ? ((captured = JSON.parse(body)),
+          {
+            status: 201,
+            json: {
+              message: {
+                id: "m1",
+                from: "+15550000",
+                to: "+15551111",
+                body: "Which day?",
+                channel: "unknown",
+                status: "unknown",
+                poll: { options: [{ id: "opt_a", text: "Mon", votes: [] }] },
+              },
+            },
+          })
         : undefined,
     );
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
-    const m = await sendMessage({ to: "+15551111", poll: { title: "Which day?", options: ["Mon", "Tue"] } });
-    assert.deepEqual((captured as { poll: unknown }).poll, { title: "Which day?", options: ["Mon", "Tue"] });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
+    const m = await sendMessage({
+      to: "+15551111",
+      poll: { title: "Which day?", options: ["Mon", "Tue"] },
+    });
+    assert.deepEqual((captured as { poll: unknown }).poll, {
+      title: "Which day?",
+      options: ["Mon", "Tue"],
+    });
     assert.ok(!("body" in (captured as object)));
     assert.equal(m.poll?.options[0].id, "opt_a");
   });
@@ -47,15 +73,28 @@ describe("ops/messages", () => {
       return { status: 201, json: {} };
     });
     process.env.DIAL_API_URL = api.url;
-    writeAuth({ apiKey: "sk", accountId: "a", email: "e", phoneNumber: "+15550000", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550000",
+      phoneNumberId: "pn_1",
+    });
     const file = join(tmp, "photo.png");
     writeFileSync(file, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
     await assert.rejects(
-      sendMessage({ to: "+15551111", poll: { title: "Which day?", options: ["Mon", "Tue"] }, media: [file] }),
+      sendMessage({
+        to: "+15551111",
+        poll: { title: "Which day?", options: ["Mon", "Tue"] },
+        media: [file],
+      }),
       (err: unknown) => {
         assert.ok(isDialError(err));
         assert.equal(err.code, "poll_with_upload");
-        assert.equal(err.message, "poll cannot be combined with uploaded media; send the poll on its own");
+        assert.equal(
+          err.message,
+          "poll cannot be combined with uploaded media; send the poll on its own",
+        );
         return true;
       },
     );

@@ -194,15 +194,23 @@ export const messageSchema = z
       .nullish()
       .describe("The reaction this message carries (a reaction name or an emoji); null otherwise"),
     poll: z
-      .object({ options: z.array(z.object({ id: z.string(), text: z.string(), votes: z.array(z.string()) })) })
+      .object({
+        options: z.array(
+          z.object({ id: z.string(), text: z.string(), votes: z.array(z.string()) }),
+        ),
+      })
       .nullable()
       .optional()
-      .describe("Set on a poll message: its options with Dial-issued ids and the current voters per option; null otherwise"),
+      .describe(
+        "Set on a poll message: its options with Dial-issued ids and the current voters per option; null otherwise",
+      ),
     pollVote: z
       .object({ optionId: z.string(), selected: z.boolean() })
       .nullable()
       .optional()
-      .describe("Set on an inbound vote on one of your polls (replyToId is the poll); selected false is a retracted vote"),
+      .describe(
+        "Set on an inbound vote on one of your polls (replyToId is the poll); selected false is a retracted vote",
+      ),
     createdAt: z.string().optional(),
   })
   .passthrough();

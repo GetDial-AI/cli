@@ -139,7 +139,10 @@ export async function sendMessage(opts: {
   // The verb refuses the combination; the Local MCP can still reach it via a local
   // mediaUrls entry, so the ops layer refuses it too.
   if (opts.poll !== undefined && hasFiles) {
-    throw new DialError("poll_with_upload", "poll cannot be combined with uploaded media; send the poll on its own");
+    throw new DialError(
+      "poll_with_upload",
+      "poll cannot be combined with uploaded media; send the poll on its own",
+    );
   }
   let res: ApiResult<{ message: MessageRow }>;
   if (!hasFiles) {
