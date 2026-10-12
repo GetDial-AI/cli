@@ -25,25 +25,24 @@ describe("ops/messages", () => {
 
   it("sendMessage posts a poll as JSON and omits body", async () => {
     let captured: unknown;
-    api = await startMockApi((m, u, body) =>
-      m === "POST" && u === "/api/v1/messages"
-        ? ((captured = JSON.parse(body)),
-          {
-            status: 201,
-            json: {
-              message: {
-                id: "m1",
-                from: "+15550000",
-                to: "+15551111",
-                body: "Which day?",
-                channel: "unknown",
-                status: "unknown",
-                poll: { options: [{ id: "opt_a", text: "Mon", votes: [] }] },
-              },
-            },
-          })
-        : undefined,
-    );
+    api = await startMockApi((m, u, body) => {
+      if (m !== "POST" || u !== "/api/v1/messages") return undefined;
+      captured = JSON.parse(body);
+      return {
+        status: 201,
+        json: {
+          message: {
+            id: "m1",
+            from: "+15550000",
+            to: "+15551111",
+            body: "Which day?",
+            channel: "unknown",
+            status: "unknown",
+            poll: { options: [{ id: "opt_a", text: "Mon", votes: [] }] },
+          },
+        },
+      };
+    });
     process.env.DIAL_API_URL = api.url;
     writeAuth({
       apiKey: "sk",
