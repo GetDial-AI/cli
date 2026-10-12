@@ -38,8 +38,13 @@ export async function runMessageList(opts: MessageListOptions): Promise<number> 
       // A group message has no `to`: the destination is the group. Naming it keeps the
       // column meaningful instead of printing an empty slot.
       const destination = m.to ?? `group ${m.groupId}`;
+      const text = m.pollVote
+        ? `${m.pollVote.selected ? "vote" : "unvote"}: ${m.pollVote.optionId}`
+        : m.poll
+          ? `poll: ${m.body} — ${m.poll.options.map((o) => `${o.text} (${o.votes.length})`).join(" · ")}`
+          : m.body;
       console.log(
-        `${m.createdAt}  ${(m.direction ?? "").padEnd(8)}  ${m.from} -> ${destination}  ${m.body}${mediaTag}`,
+        `${m.createdAt}  ${(m.direction ?? "").padEnd(8)}  ${m.from} -> ${destination}  ${text}${mediaTag}`,
       );
     }
     return 0;

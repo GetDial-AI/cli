@@ -35,6 +35,10 @@ export type MessageRow = {
   replyToId?: string | null;
   /** The reaction this message carries (a reaction name or an emoji); null otherwise. */
   reaction?: string | null;
+  /** Set on a poll message: options with Dial-issued ids and the current voters per option. */
+  poll?: { options: { id: string; text: string; votes: string[] }[] } | null;
+  /** Set on an inbound vote on one of your polls (replyToId is the poll); selected false is a retracted vote. */
+  pollVote?: { optionId: string; selected: boolean } | null;
   createdAt?: string;
 };
 
@@ -104,6 +108,8 @@ export async function sendMessage(opts: {
   media?: string[];
   /** Send an audio attachment as a regular file attachment instead of an iMessage voice message. */
   forceAudioFile?: boolean;
+  /** Send a poll instead of text (iMessage numbers only). JSON-only; exclusive with body/media. */
+  poll?: { title: string; options: string[] };
 }): Promise<MessageRow> {
   const auth = maybeAuth();
   // A group already belongs to one of the account's lines, so a group send needs no
@@ -129,6 +135,15 @@ export async function sendMessage(opts: {
   // to/groupId XOR, and a key present-but-empty reads as a second destination.
   // URLs-only goes as plain JSON; any local file switches to multipart.
   const hasFiles = media.some((m) => !isHttpUrl(m));
+  // The multipart branch has no poll field, so a poll there would be dropped silently.
+  // The verb refuses the combination; the Local MCP can still reach it via a local
+  // mediaUrls entry, so the ops layer refuses it too.
+  if (opts.poll !== undefined && hasFiles) {
+    throw new DialError(
+      "poll_with_upload",
+      "poll cannot be combined with uploaded media; send the poll on its own",
+    );
+  }
   let res: ApiResult<{ message: MessageRow }>;
   if (!hasFiles) {
     res = await apiPost<{ message: MessageRow }>(
@@ -141,6 +156,7 @@ export async function sendMessage(opts: {
         ...from,
         ...(media.length ? { mediaUrls: media } : {}),
         ...(opts.forceAudioFile ? { forceAudioFile: true } : {}),
+        ...(opts.poll !== undefined ? { poll: opts.poll } : {}),
       },
       auth?.apiKey,
     );

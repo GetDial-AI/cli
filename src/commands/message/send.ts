@@ -17,6 +17,10 @@ export type MessageSendOptions = {
   media?: string[];
   /** Send an audio attachment as a regular file attachment instead of an iMessage voice message. */
   forceAudioFile?: boolean;
+  /** Poll title; sends a poll (iMessage numbers only). Needs two or more `option`. */
+  poll?: string;
+  /** One poll choice per entry. Only with `poll`. */
+  option?: string[];
   json: boolean;
 };
 
@@ -35,6 +39,19 @@ export async function runMessageSend(opts: MessageSendOptions): Promise<number> 
     console.error(`error: --channel must be one of ${CHANNELS.join(", ")}.`);
     return 2;
   }
+  if (opts.poll !== undefined) {
+    if ((opts.option ?? []).length < 2) {
+      console.error("error: --poll needs at least two --option.");
+      return 2;
+    }
+    if (opts.body !== undefined || (opts.media ?? []).length > 0 || opts.forceAudioFile) {
+      console.error("error: --poll is exclusive with --body, --media and --force-audio-file.");
+      return 2;
+    }
+  } else if ((opts.option ?? []).length > 0) {
+    console.error("error: --option only applies with --poll.");
+    return 2;
+  }
   try {
     const m = await sendMessage({
       to: opts.to,
@@ -45,6 +62,7 @@ export async function runMessageSend(opts: MessageSendOptions): Promise<number> 
       channel: opts.channel as (typeof CHANNELS)[number] | undefined,
       media: opts.media,
       forceAudioFile: opts.forceAudioFile,
+      poll: opts.poll !== undefined ? { title: opts.poll, options: opts.option ?? [] } : undefined,
     });
     if (opts.json) {
       console.log(JSON.stringify({ ok: true, message: m }));
@@ -57,6 +75,7 @@ export async function runMessageSend(opts: MessageSendOptions): Promise<number> 
       if (m.groupId) console.log(`  group:    ${m.groupId}`);
       else console.log(`  to:       ${m.to}`);
       console.log(`  body:     ${m.body}`);
+      for (const o of m.poll?.options ?? []) console.log(`  option:   ${o.id}  ${o.text}`);
       for (const item of m.media ?? []) {
         console.log(`  media:    ${item.url} (${item.contentType})`);
       }
