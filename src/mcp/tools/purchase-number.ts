@@ -27,7 +27,7 @@ const inputSchema = {
     .string()
     .optional()
     .describe(
-      "Preferred US area code; omitted → any available US number. Only US numbers can be provisioned at this time. Ignored for iMessage numbers",
+      "Preferred US area code; omitted → any available US number. Only US numbers can be provisioned at this time. Ignored for iMessage numbers. When the area code has no number available the purchase is refused with area_code_unavailable and nothing is charged — retry with another area code or omit it",
     ),
   includeImessage: z
     .boolean()
