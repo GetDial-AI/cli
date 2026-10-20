@@ -30,7 +30,13 @@ describe("local MCP policy tools", () => {
     tmp = mkdtempSync(join(tmpdir(), "dial-mcp-policies-"));
     process.env.HOME = tmp;
     delete process.env.XDG_DATA_HOME;
-    writeAuth({ apiKey: "sk_live_x", accountId: "a", email: "e", phoneNumber: "+15550001111", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk_live_x",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550001111",
+      phoneNumberId: "pn_1",
+    });
   });
   afterEach(async () => {
     rmSync(tmp, { recursive: true, force: true });
@@ -42,7 +48,11 @@ describe("local MCP policy tools", () => {
   it("carries the seven policy tools, after wait_for_event as on the hosted server", () => {
     const at = OPERATIONAL_TOOL_NAMES.indexOf("wait_for_event");
     assert.deepEqual(OPERATIONAL_TOOL_NAMES.slice(at + 1, at + 8), POLICY_TOOLS);
-    for (const name of POLICY_TOOLS) assert.ok(tools.find((t) => t.name === name), `${name} not registered`);
+    for (const name of POLICY_TOOLS)
+      assert.ok(
+        tools.find((t) => t.name === name),
+        `${name} not registered`,
+      );
   });
 
   it("number and call outputs carry the allow-list fields", () => {
@@ -61,13 +71,23 @@ describe("local MCP policy tools", () => {
     });
     process.env.DIAL_API_URL = api.url;
     const tool = tools.find((t) => t.name === "create_policy")!;
-    const out = await tool.run({ name: "Known", scope: "account", entries: [{ number: "+14155550123" }] });
-    assert.deepEqual(body, { name: "Known", scope: "account", entries: [{ number: "+14155550123" }] });
+    const out = await tool.run({
+      name: "Known",
+      scope: "account",
+      entries: [{ number: "+14155550123" }],
+    });
+    assert.deepEqual(body, {
+      name: "Known",
+      scope: "account",
+      entries: [{ number: "+14155550123" }],
+    });
     assert.deepEqual(out.structuredContent, { policy: { id: "pol_1" } });
   });
 
   it("delete_policy reports what it deleted", async () => {
-    api = await startMockApi((m, u) => (m === "DELETE" && u === "/api/v1/policies/pol_1" ? { status: 204, json: null } : undefined));
+    api = await startMockApi((m, u) =>
+      m === "DELETE" && u === "/api/v1/policies/pol_1" ? { status: 204, json: null } : undefined,
+    );
     process.env.DIAL_API_URL = api.url;
     const out = await tools.find((t) => t.name === "delete_policy")!.run({ policyId: "pol_1" });
     assert.deepEqual(out.structuredContent, { deleted: true, policyId: "pol_1" });

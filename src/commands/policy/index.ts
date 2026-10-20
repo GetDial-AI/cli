@@ -39,7 +39,10 @@ export function runPolicyList(opts: { json: boolean }): Promise<number> {
   return run(opts.json, async () => {
     const policies = await listPolicies();
     if (opts.json) console.log(JSON.stringify({ ok: true, policies }));
-    else if (policies.length === 0) console.log("no policies. every caller can reach every number; add an allow list with `dial policy create`.");
+    else if (policies.length === 0)
+      console.log(
+        "no policies. every caller can reach every number; add an allow list with `dial policy create`.",
+      );
     else for (const p of policies) console.log(formatPolicyLine(p));
   });
 }
@@ -56,8 +59,12 @@ export function runPolicyCreate(opts: CreatePolicyInput & { json: boolean }): Pr
   return run(opts.json, async () => printPolicy(opts.json, await createPolicy(opts), "created"));
 }
 
-export function runPolicyUpdate(opts: UpdatePolicyInput & { id: string; json: boolean }): Promise<number> {
-  return run(opts.json, async () => printPolicy(opts.json, await updatePolicy(opts.id, opts), "updated"));
+export function runPolicyUpdate(
+  opts: UpdatePolicyInput & { id: string; json: boolean },
+): Promise<number> {
+  return run(opts.json, async () =>
+    printPolicy(opts.json, await updatePolicy(opts.id, opts), "updated"),
+  );
 }
 
 export function runPolicyDelete(opts: { id: string; json: boolean }): Promise<number> {
@@ -68,10 +75,23 @@ export function runPolicyDelete(opts: { id: string; json: boolean }): Promise<nu
   });
 }
 
-export function runPolicyAllow(opts: { id: string; numbers: string[]; label?: string; json: boolean }): Promise<number> {
-  return run(opts.json, async () => printPolicy(opts.json, await addPolicyEntries(opts.id, opts.numbers, opts.label), "allowed"));
+export function runPolicyAllow(opts: {
+  id: string;
+  numbers: string[];
+  label?: string;
+  json: boolean;
+}): Promise<number> {
+  return run(opts.json, async () =>
+    printPolicy(opts.json, await addPolicyEntries(opts.id, opts.numbers, opts.label), "allowed"),
+  );
 }
 
-export function runPolicyDisallow(opts: { id: string; numbers: string[]; json: boolean }): Promise<number> {
-  return run(opts.json, async () => printPolicy(opts.json, await removePolicyEntries(opts.id, opts.numbers), "removed"));
+export function runPolicyDisallow(opts: {
+  id: string;
+  numbers: string[];
+  json: boolean;
+}): Promise<number> {
+  return run(opts.json, async () =>
+    printPolicy(opts.json, await removePolicyEntries(opts.id, opts.numbers), "removed"),
+  );
 }

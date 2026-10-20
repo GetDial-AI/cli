@@ -267,13 +267,18 @@ export const callSchema = z
     blockedByPolicyId: z
       .string()
       .nullish()
-      .describe('The allow list that declined this inbound call when status.terminationType is "blocked"; null otherwise'),
+      .describe(
+        'The allow list that declined this inbound call when status.terminationType is "blocked"; null otherwise',
+      ),
     createdAt: z.string().optional(),
   })
   .passthrough();
 
 export const policyEntryInputSchema = z.object({
-  number: z.string().min(1).describe("A caller allowed through, E.164 (10-digit numbers are read as US)"),
+  number: z
+    .string()
+    .min(1)
+    .describe("A caller allowed through, E.164 (10-digit numbers are read as US)"),
   label: z.string().max(60).nullish().describe("Who this caller is, for your own reference"),
 });
 
@@ -285,12 +290,16 @@ export const policySchema = z
     appliesTo: z.literal("inbound_calls"),
     scope: z
       .enum(["account", "numbers"])
-      .describe('"account" covers every number without a list of its own; "numbers" covers numberIds and replaces the account list on them'),
+      .describe(
+        '"account" covers every number without a list of its own; "numbers" covers numberIds and replaces the account list on them',
+      ),
     numberIds: z.array(z.string()),
     enabled: z.boolean().describe("A disabled policy counts as if it weren't there"),
     entryCount: z.number(),
     entries: z.array(z.object({ number: z.string(), label: z.string().nullable() })).optional(),
-    blockedCallsLast7Days: z.number().describe("Inbound calls this policy declined in the last 7 days"),
+    blockedCallsLast7Days: z
+      .number()
+      .describe("Inbound calls this policy declined in the last 7 days"),
     createdAt: z.string(),
     updatedAt: z.string(),
   })

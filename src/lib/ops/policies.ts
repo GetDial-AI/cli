@@ -53,7 +53,10 @@ type Coverage = { scope: "account" } | { scope: "numbers"; numberIds: string[] }
  * --all-numbers and --number. Checked before any request; undefined when neither
  * was given and the verb allows that (update leaves coverage unchanged).
  */
-async function coverageOf(input: { allNumbers?: boolean; numbers?: string[] }, required: boolean): Promise<Coverage | undefined> {
+async function coverageOf(
+  input: { allNumbers?: boolean; numbers?: string[] },
+  required: boolean,
+): Promise<Coverage | undefined> {
   const refs = input.numbers ?? [];
   if (input.allNumbers && refs.length > 0) {
     throw new DialError("bad_scope", "Pass either --all-numbers or --number, not both.");
@@ -64,7 +67,11 @@ async function coverageOf(input: { allNumbers?: boolean; numbers?: string[] }, r
     for (const ref of refs) numberIds.push(await resolveNumberId(ref));
     return { scope: "numbers", numberIds };
   }
-  if (required) throw new DialError("bad_scope", "Pass --all-numbers, or --number for each number the list covers.");
+  if (required)
+    throw new DialError(
+      "bad_scope",
+      "Pass --all-numbers, or --number for each number the list covers.",
+    );
   return undefined;
 }
 
@@ -75,7 +82,10 @@ export async function listPolicies(): Promise<Policy[]> {
 }
 
 export async function getPolicy(id: string): Promise<Policy> {
-  const res = await apiGet<{ policy: Policy }>(`/api/v1/policies/${encodeURIComponent(id)}`, maybeAuth()?.apiKey);
+  const res = await apiGet<{ policy: Policy }>(
+    `/api/v1/policies/${encodeURIComponent(id)}`,
+    maybeAuth()?.apiKey,
+  );
   if (!res.ok) fail(res.error, res.status);
   return res.data.policy;
 }
@@ -97,7 +107,11 @@ export async function postPolicy(body: PolicyBody): Promise<Policy> {
 }
 
 export async function patchPolicy(id: string, body: PolicyBody): Promise<Policy> {
-  const res = await apiPatch<{ policy: Policy }>(`/api/v1/policies/${encodeURIComponent(id)}`, body, maybeAuth()?.apiKey);
+  const res = await apiPatch<{ policy: Policy }>(
+    `/api/v1/policies/${encodeURIComponent(id)}`,
+    body,
+    maybeAuth()?.apiKey,
+  );
   if (!res.ok) fail(res.error, res.status);
   return res.data.policy;
 }
@@ -122,11 +136,19 @@ export async function updatePolicy(id: string, input: UpdatePolicyInput): Promis
 }
 
 export async function deletePolicy(id: string): Promise<void> {
-  const res = await apiDelete<null>(`/api/v1/policies/${encodeURIComponent(id)}`, undefined, maybeAuth()?.apiKey);
+  const res = await apiDelete<null>(
+    `/api/v1/policies/${encodeURIComponent(id)}`,
+    undefined,
+    maybeAuth()?.apiKey,
+  );
   if (!res.ok) fail(res.error, res.status);
 }
 
-export async function addPolicyEntries(id: string, numbers: string[], label?: string): Promise<Policy> {
+export async function addPolicyEntries(
+  id: string,
+  numbers: string[],
+  label?: string,
+): Promise<Policy> {
   return postPolicyEntries(
     id,
     numbers.map((number) => (label !== undefined ? { number, label } : { number })),

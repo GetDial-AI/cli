@@ -22,12 +22,24 @@ const base: Policy = {
 
 describe("formatPolicyLine", () => {
   it("an account-wide list that is on", () => {
-    assert.equal(formatPolicyLine(base), `pol_1  "Known customers"  all numbers  on  42 callers  19 blocked (7d)`);
+    assert.equal(
+      formatPolicyLine(base),
+      `pol_1  "Known customers"  all numbers  on  42 callers  19 blocked (7d)`,
+    );
   });
 
   it("a list on chosen numbers that is off", () => {
-    const p = { ...base, scope: "numbers" as const, numberIds: ["pn_1", "pn_2"], enabled: false, entryCount: 1 };
-    assert.equal(formatPolicyLine(p), `pol_1  "Known customers"  numbers:pn_1,pn_2  off  1 caller  19 blocked (7d)`);
+    const p = {
+      ...base,
+      scope: "numbers" as const,
+      numberIds: ["pn_1", "pn_2"],
+      enabled: false,
+      entryCount: 1,
+    };
+    assert.equal(
+      formatPolicyLine(p),
+      `pol_1  "Known customers"  numbers:pn_1,pn_2  off  1 caller  19 blocked (7d)`,
+    );
   });
 });
 
@@ -45,14 +57,22 @@ describe("formatPolicyDetail", () => {
   });
 
   it("says when a list has no callers and so declines every call", () => {
-    assert.match(formatPolicyDetail({ ...base, entryCount: 0, entries: [] }), /no callers — every inbound call/);
+    assert.match(
+      formatPolicyDetail({ ...base, entryCount: 0, entries: [] }),
+      /no callers — every inbound call/,
+    );
   });
 });
 
 describe("formatNumberLine", () => {
   it("marks a number an allow list screens", () => {
     const line = formatNumberLine(
-      { id: "pn_1", number: "+14155550100", country: "US", inboundCallPolicy: { id: "pol_1", name: "Known customers", scope: "account" } },
+      {
+        id: "pn_1",
+        number: "+14155550100",
+        country: "US",
+        inboundCallPolicy: { id: "pol_1", name: "Known customers", scope: "account" },
+      },
       null,
     );
     assert.equal(line, `+14155550100  id=pn_1  US  allow-list:"Known customers"`);

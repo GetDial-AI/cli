@@ -39,15 +39,22 @@ const NUMBERS = [
   { id: "pn_2", number: "+15550002222", nickname: "Ops", country: "US" },
 ];
 
-async function mock(route?: (m: string, u: string) => { status: number; json: unknown } | undefined) {
+async function mock(
+  route?: (m: string, u: string) => { status: number; json: unknown } | undefined,
+) {
   api = await startMockApi((m, u, body) => {
     seen.push({ method: m, url: u, body: body ? JSON.parse(body) : undefined });
     const custom = route?.(m, u);
     if (custom) return custom;
     if (m === "GET" && u === "/api/v1/numbers") return { status: 200, json: { numbers: NUMBERS } };
-    if (m === "GET" && u === "/api/v1/policies") return { status: 200, json: { policies: [POLICY] } };
+    if (m === "GET" && u === "/api/v1/policies")
+      return { status: 200, json: { policies: [POLICY] } };
     if (m === "DELETE" && u === "/api/v1/policies/pol_1") return { status: 204, json: null };
-    if (u.startsWith("/api/v1/policies")) return { status: m === "POST" && u === "/api/v1/policies" ? 201 : 200, json: { policy: POLICY } };
+    if (u.startsWith("/api/v1/policies"))
+      return {
+        status: m === "POST" && u === "/api/v1/policies" ? 201 : 200,
+        json: { policy: POLICY },
+      };
     return undefined;
   });
   process.env.DIAL_API_URL = api.url;
@@ -59,7 +66,13 @@ describe("ops/policies", () => {
     process.env.HOME = tmp;
     delete process.env.XDG_DATA_HOME;
     seen.length = 0;
-    writeAuth({ apiKey: "sk_live_x", accountId: "a", email: "e", phoneNumber: "+15550001111", phoneNumberId: "pn_1" });
+    writeAuth({
+      apiKey: "sk_live_x",
+      accountId: "a",
+      email: "e",
+      phoneNumber: "+15550001111",
+      phoneNumberId: "pn_1",
+    });
   });
   afterEach(async () => {
     rmSync(tmp, { recursive: true, force: true });
@@ -79,7 +92,12 @@ describe("ops/policies", () => {
 
   it("creates an account-wide list with its callers", async () => {
     await mock();
-    await createPolicy({ name: "Known customers", allNumbers: true, allow: ["+14155550123"], enabled: true });
+    await createPolicy({
+      name: "Known customers",
+      allNumbers: true,
+      allow: ["+14155550123"],
+      enabled: true,
+    });
     const post = seen.find((s) => s.method === "POST")!;
     assert.equal(post.url, "/api/v1/policies");
     assert.deepEqual(post.body, {
@@ -92,9 +110,20 @@ describe("ops/policies", () => {
 
   it("creates a numbers list, resolving numbers by E.164 or nickname", async () => {
     await mock();
-    await createPolicy({ name: "Field", numbers: ["+15550001111", "Ops"], allow: [], enabled: false });
+    await createPolicy({
+      name: "Field",
+      numbers: ["+15550001111", "Ops"],
+      allow: [],
+      enabled: false,
+    });
     const post = seen.find((s) => s.method === "POST")!;
-    assert.deepEqual(post.body, { name: "Field", scope: "numbers", numberIds: ["pn_1", "pn_2"], enabled: false, entries: [] });
+    assert.deepEqual(post.body, {
+      name: "Field",
+      scope: "numbers",
+      numberIds: ["pn_1", "pn_2"],
+      enabled: false,
+      entries: [],
+    });
   });
 
   it("refuses both or neither of --all-numbers and --number before calling the API", async () => {
@@ -129,7 +158,16 @@ describe("ops/policies", () => {
     assert.deepEqual(
       seen.map((s) => [s.method, s.url, s.body]),
       [
-        ["POST", "/api/v1/policies/pol_1/entries", { entries: [{ number: "+14155550199", label: "Sam" }, { number: "+14155550200", label: "Sam" }] }],
+        [
+          "POST",
+          "/api/v1/policies/pol_1/entries",
+          {
+            entries: [
+              { number: "+14155550199", label: "Sam" },
+              { number: "+14155550200", label: "Sam" },
+            ],
+          },
+        ],
         ["DELETE", "/api/v1/policies/pol_1/entries", { numbers: ["+14155550199"] }],
         ["DELETE", "/api/v1/policies/pol_1", undefined],
       ],
@@ -139,7 +177,13 @@ describe("ops/policies", () => {
   it("surfaces a conflict's message as a DialError", async () => {
     await mock((m, u) =>
       m === "POST" && u === "/api/v1/policies"
-        ? { status: 409, json: { error: "\"Known customers\" (pol_1) already covers all numbers.", code: "account_policy_exists" } }
+        ? {
+            status: 409,
+            json: {
+              error: '"Known customers" (pol_1) already covers all numbers.',
+              code: "account_policy_exists",
+            },
+          }
         : undefined,
     );
     await assert.rejects(

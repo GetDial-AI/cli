@@ -620,8 +620,16 @@ policy
   )
   .requiredOption("--name <text>", "name of the list, up to 60 characters")
   .option("--all-numbers", "cover every number on the account, including numbers added later")
-  .option("--number <number>", "cover this number (id, E.164 or nickname); repeat for several", repeat)
-  .option("--allow <e164>", "a caller allowed through; repeat for several. 10-digit numbers are read as US", repeat)
+  .option(
+    "--number <number>",
+    "cover this number (id, E.164 or nickname); repeat for several",
+    repeat,
+  )
+  .option(
+    "--allow <e164>",
+    "a caller allowed through; repeat for several. 10-digit numbers are read as US",
+    repeat,
+  )
   .option("--off", "create the list turned off")
   .option("--json", "machine-readable output")
   .action(async (opts) =>
@@ -644,7 +652,11 @@ policy
   )
   .option("--name <text>", "new name")
   .option("--all-numbers", "make it the account-wide list")
-  .option("--number <number>", "cover exactly these numbers (replaces the current set); repeat for several", repeat)
+  .option(
+    "--number <number>",
+    "cover exactly these numbers (replaces the current set); repeat for several",
+    repeat,
+  )
   .option("--on", "turn the list on")
   .option("--off", "turn the list off; its numbers fall back to the account-wide list, if any")
   .option("--json", "machine-readable output")
@@ -665,7 +677,9 @@ policy
   .command("delete <id>")
   .description("Delete an allow list. DELETE /api/v1/policies/<id>.")
   .option("--json", "machine-readable output")
-  .action(async (id: string, opts) => process.exit(await runPolicyDelete({ id, json: !!opts.json })));
+  .action(async (id: string, opts) =>
+    process.exit(await runPolicyDelete({ id, json: !!opts.json })),
+  );
 
 policy
   .command("allow <id> <numbers...>")

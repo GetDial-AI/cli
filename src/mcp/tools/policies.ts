@@ -60,13 +60,23 @@ export const createPolicyTool: ToolModule = {
           '"account" covers every number on the account, including ones added later (at most one per account). ' +
             '"numbers" covers numberIds only and replaces the account-wide list on them (a number can be on one list of its own).',
         ),
-      numberIds: z.array(z.string()).optional().describe('Phone number ids to cover; required for scope "numbers". Only numbers that can take calls.'),
-      enabled: z.boolean().optional().describe("Whether it screens calls right away (default true)"),
+      numberIds: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Phone number ids to cover; required for scope "numbers". Only numbers that can take calls.',
+        ),
+      enabled: z
+        .boolean()
+        .optional()
+        .describe("Whether it screens calls right away (default true)"),
       entries: z
         .array(policyEntryInputSchema)
         .max(10_000)
         .optional()
-        .describe("The callers allowed through. An enabled list with no callers declines every inbound call on its numbers."),
+        .describe(
+          "The callers allowed through. An enabled list with no callers declines every inbound call on its numbers.",
+        ),
     },
     outputSchema: { policy: policySchema },
     annotations: { openWorldHint: true },
@@ -78,18 +88,27 @@ export const updatePolicyTool: ToolModule = {
   name: "update_policy",
   config: {
     title: "Update Policy",
-    description: "Change an allow list's name, coverage, on/off state or callers. Applies to the next inbound call.",
+    description:
+      "Change an allow list's name, coverage, on/off state or callers. Applies to the next inbound call.",
     inputSchema: {
       policyId,
       name: z.string().min(1).max(60).optional(),
-      scope: z.enum(["account", "numbers"]).optional().describe('Changing to "numbers" requires numberIds'),
+      scope: z
+        .enum(["account", "numbers"])
+        .optional()
+        .describe('Changing to "numbers" requires numberIds'),
       numberIds: z.array(z.string()).optional().describe("Replaces the covered numbers"),
-      enabled: z.boolean().optional().describe("false pauses the list; its numbers fall back to the account-wide list, if any"),
+      enabled: z
+        .boolean()
+        .optional()
+        .describe("false pauses the list; its numbers fall back to the account-wide list, if any"),
       entries: z
         .array(policyEntryInputSchema)
         .max(10_000)
         .optional()
-        .describe("Replaces the WHOLE list of callers; to change a few use add_policy_entries / remove_policy_entries"),
+        .describe(
+          "Replaces the WHOLE list of callers; to change a few use add_policy_entries / remove_policy_entries",
+        ),
     },
     outputSchema: { policy: policySchema },
     annotations: { openWorldHint: true },
@@ -104,7 +123,8 @@ export const deletePolicyTool: ToolModule = {
   name: "delete_policy",
   config: {
     title: "Delete Policy",
-    description: "Delete an allow list. Numbers it covered fall back to the account-wide list, if there is one.",
+    description:
+      "Delete an allow list. Numbers it covered fall back to the account-wide list, if there is one.",
     inputSchema: { policyId },
     outputSchema: { deleted: z.literal(true), policyId: z.string() },
     annotations: { destructiveHint: true, openWorldHint: true },
@@ -122,13 +142,18 @@ export const addPolicyEntriesTool: ToolModule = {
     description: "Add callers to an allow list without resending the whole list.",
     inputSchema: {
       policyId,
-      entries: z.array(policyEntryInputSchema).min(1).describe("Callers to allow; one already on the list takes the given label"),
+      entries: z
+        .array(policyEntryInputSchema)
+        .min(1)
+        .describe("Callers to allow; one already on the list takes the given label"),
     },
     outputSchema: { policy: policySchema },
     annotations: { idempotentHint: true, openWorldHint: true },
   },
   run: async (args) =>
-    jsonResult({ policy: await postPolicyEntries(args.policyId as string, args.entries as PolicyEntryInput[]) }),
+    jsonResult({
+      policy: await postPolicyEntries(args.policyId as string, args.entries as PolicyEntryInput[]),
+    }),
 };
 
 export const removePolicyEntriesTool: ToolModule = {
@@ -138,11 +163,16 @@ export const removePolicyEntriesTool: ToolModule = {
     description: "Remove callers from an allow list.",
     inputSchema: {
       policyId,
-      numbers: z.array(z.string().min(1)).min(1).describe("Callers to remove, E.164; numbers not on the list are ignored"),
+      numbers: z
+        .array(z.string().min(1))
+        .min(1)
+        .describe("Callers to remove, E.164; numbers not on the list are ignored"),
     },
     outputSchema: { policy: policySchema },
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   },
   run: async (args) =>
-    jsonResult({ policy: await removePolicyEntries(args.policyId as string, args.numbers as string[]) }),
+    jsonResult({
+      policy: await removePolicyEntries(args.policyId as string, args.numbers as string[]),
+    }),
 };
