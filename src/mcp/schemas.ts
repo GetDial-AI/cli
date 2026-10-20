@@ -57,6 +57,14 @@ export const phoneNumberSchema = z
       .describe(
         "E.164 number inbound calls are forwarded to instead of the AI voice agent answering, or null when the agent answers.",
       ),
+    inboundCallPolicy: z
+      .object({ id: z.string(), name: z.string(), scope: z.enum(["account", "numbers"]) })
+      .nullable()
+      .optional()
+      .describe(
+        "The allow list screening inbound calls on this number right now (its own list, else the account-wide one), " +
+          "or null when every caller rings through. Callers not on it are declined. Always null on numbers that can't take calls.",
+      ),
     firstName: z
       .string()
       .nullable()
@@ -256,7 +264,35 @@ export const callSchema = z
           "call's turn timing was not recorded.",
       ),
     instruction: z.string().nullable().optional(),
+    blockedByPolicyId: z
+      .string()
+      .nullish()
+      .describe('The allow list that declined this inbound call when status.terminationType is "blocked"; null otherwise'),
     createdAt: z.string().optional(),
+  })
+  .passthrough();
+
+export const policyEntryInputSchema = z.object({
+  number: z.string().min(1).describe("A caller allowed through, E.164 (10-digit numbers are read as US)"),
+  label: z.string().max(60).nullish().describe("Who this caller is, for your own reference"),
+});
+
+export const policySchema = z
+  .object({
+    id: z.string().describe("Policy id"),
+    name: z.string(),
+    type: z.literal("allow_list"),
+    appliesTo: z.literal("inbound_calls"),
+    scope: z
+      .enum(["account", "numbers"])
+      .describe('"account" covers every number without a list of its own; "numbers" covers numberIds and replaces the account list on them'),
+    numberIds: z.array(z.string()),
+    enabled: z.boolean().describe("A disabled policy counts as if it weren't there"),
+    entryCount: z.number(),
+    entries: z.array(z.object({ number: z.string(), label: z.string().nullable() })).optional(),
+    blockedCallsLast7Days: z.number().describe("Inbound calls this policy declined in the last 7 days"),
+    createdAt: z.string(),
+    updatedAt: z.string(),
   })
   .passthrough();
 

@@ -26,6 +26,15 @@ import { listLocalTargetsTool } from "./list-local-targets.ts";
 import { listenInstallTool } from "./listen-install.ts";
 import { listenUninstallTool } from "./listen-uninstall.ts";
 import { listenStatusTool } from "./listen-status.ts";
+import {
+  addPolicyEntriesTool,
+  createPolicyTool,
+  deletePolicyTool,
+  getPolicyTool,
+  listPoliciesTool,
+  removePolicyEntriesTool,
+  updatePolicyTool,
+} from "./policies.ts";
 
 /** Every tool registered on the local stdio MCP server. */
 export const tools: ToolModule[] = [
@@ -49,6 +58,13 @@ export const tools: ToolModule[] = [
   authRegisterNumberTool,
   authVerifyOtpTool,
   waitForEventTool,
+  listPoliciesTool,
+  getPolicyTool,
+  createPolicyTool,
+  updatePolicyTool,
+  deletePolicyTool,
+  addPolicyEntriesTool,
+  removePolicyEntriesTool,
   addUrlTargetTool,
   addCommandTargetTool,
   removeLocalTargetTool,

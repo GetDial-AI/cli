@@ -37,6 +37,13 @@ export const OPERATIONAL_TOOL_NAMES = [
   "get_call",
   "stop_call",
   "wait_for_event",
+  "list_policies",
+  "get_policy",
+  "create_policy",
+  "update_policy",
+  "delete_policy",
+  "add_policy_entries",
+  "remove_policy_entries",
 ] as const;
 
 /**

@@ -80,29 +80,45 @@ export async function getPolicy(id: string): Promise<Policy> {
   return res.data.policy;
 }
 
-export async function createPolicy(input: CreatePolicyInput): Promise<Policy> {
-  const coverage = await coverageOf(input, true);
-  const body = {
-    name: input.name,
-    ...coverage,
-    enabled: input.enabled,
-    entries: input.allow.map((number) => ({ number })),
-  };
+/** The REST bodies, as the MCP tools take them. */
+export type PolicyEntryInput = { number: string; label?: string | null };
+export type PolicyBody = {
+  name?: string;
+  scope?: "account" | "numbers";
+  numberIds?: string[];
+  enabled?: boolean;
+  entries?: PolicyEntryInput[];
+};
+
+export async function postPolicy(body: PolicyBody): Promise<Policy> {
   const res = await apiPost<{ policy: Policy }>("/api/v1/policies", body, maybeAuth()?.apiKey);
   if (!res.ok) fail(res.error, res.status);
   return res.data.policy;
 }
 
-export async function updatePolicy(id: string, input: UpdatePolicyInput): Promise<Policy> {
-  const coverage = await coverageOf(input, false);
-  const body = {
-    ...(input.name !== undefined ? { name: input.name } : {}),
-    ...coverage,
-    ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
-  };
+export async function patchPolicy(id: string, body: PolicyBody): Promise<Policy> {
   const res = await apiPatch<{ policy: Policy }>(`/api/v1/policies/${encodeURIComponent(id)}`, body, maybeAuth()?.apiKey);
   if (!res.ok) fail(res.error, res.status);
   return res.data.policy;
+}
+
+export async function createPolicy(input: CreatePolicyInput): Promise<Policy> {
+  const coverage = await coverageOf(input, true);
+  return postPolicy({
+    name: input.name,
+    ...coverage,
+    enabled: input.enabled,
+    entries: input.allow.map((number) => ({ number })),
+  });
+}
+
+export async function updatePolicy(id: string, input: UpdatePolicyInput): Promise<Policy> {
+  const coverage = await coverageOf(input, false);
+  return patchPolicy(id, {
+    ...(input.name !== undefined ? { name: input.name } : {}),
+    ...coverage,
+    ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+  });
 }
 
 export async function deletePolicy(id: string): Promise<void> {
@@ -111,7 +127,13 @@ export async function deletePolicy(id: string): Promise<void> {
 }
 
 export async function addPolicyEntries(id: string, numbers: string[], label?: string): Promise<Policy> {
-  const entries = numbers.map((number) => (label !== undefined ? { number, label } : { number }));
+  return postPolicyEntries(
+    id,
+    numbers.map((number) => (label !== undefined ? { number, label } : { number })),
+  );
+}
+
+export async function postPolicyEntries(id: string, entries: PolicyEntryInput[]): Promise<Policy> {
   const res = await apiPost<{ policy: Policy }>(
     `/api/v1/policies/${encodeURIComponent(id)}/entries`,
     { entries },
