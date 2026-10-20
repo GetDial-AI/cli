@@ -21,7 +21,9 @@ export function formatNumberLine(n: PhoneNumberRow, defaultNumberId: string | nu
     ? `  replaces:${n.replaces.map((r) => r.number).join(",")}`
     : "";
   const replacedBy = n.replacedBy ? `  replaced-by:${n.replacedBy.number}` : "";
-  return `${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${forward}${whatsapp}${replaces}${replacedBy}${tag}`;
+  // Marked only when an allow list screens the number's inbound calls.
+  const allowList = n.inboundCallPolicy ? `  allow-list:"${n.inboundCallPolicy.name}"` : "";
+  return `${n.number}  id=${n.id}  ${n.country}${nickname}${calling}${forward}${whatsapp}${allowList}${replaces}${replacedBy}${tag}`;
 }
 
 export async function runNumberList(opts: NumberListOptions): Promise<number> {

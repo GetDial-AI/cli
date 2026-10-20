@@ -69,6 +69,14 @@ export async function apiPatch<T>(
   return apiRequest<T>("PATCH", path, body, apiKey);
 }
 
+export async function apiDelete<T>(
+  path: string,
+  body: unknown,
+  apiKey?: string,
+): Promise<ApiResult<T>> {
+  return apiRequest<T>("DELETE", path, body, apiKey);
+}
+
 function toResult<T>(statusCode: number, text: string): ApiResult<T> {
   let parsed: unknown = null;
   try {
@@ -93,7 +101,7 @@ function toResult<T>(statusCode: number, text: string): ApiResult<T> {
 }
 
 async function apiRequest<T>(
-  method: "GET" | "POST" | "PATCH",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   path: string,
   body: unknown,
   apiKey?: string,
