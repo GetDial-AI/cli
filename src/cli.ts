@@ -34,6 +34,15 @@ import { runLocalTargetAddCmd } from "./commands/local-target/add-cmd.ts";
 import { runLocalTargetRemove } from "./commands/local-target/remove.ts";
 import { runLocalTargetList } from "./commands/local-target/list.ts";
 import { runMcp } from "./commands/mcp.ts";
+import {
+  runPolicyAllow,
+  runPolicyCreate,
+  runPolicyDelete,
+  runPolicyDisallow,
+  runPolicyGet,
+  runPolicyList,
+  runPolicyUpdate,
+} from "./commands/policy/index.ts";
 import { runUpdate } from "./commands/update.ts";
 import { runUninstall } from "./commands/uninstall.ts";
 import { maybeAutoUpdate } from "./lib/update.ts";
@@ -583,6 +592,111 @@ group
   .description("List the group conversations your lines are in. GET /api/v1/groups.")
   .option("--json", "machine-readable output")
   .action(async (opts) => process.exit(await runGroupList({ json: !!opts.json })));
+
+const repeat = (v: string, prev: string[] = []) => [...prev, v];
+
+const policy = program
+  .command("policy")
+  .description(
+    "Allow lists for inbound calls: only callers on the list that covers a number ring through; others are declined.",
+  );
+
+policy
+  .command("list")
+  .description("List the account's allow lists. GET /api/v1/policies.")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => process.exit(await runPolicyList({ json: !!opts.json })));
+
+policy
+  .command("get <id>")
+  .description("Show one allow list and its callers. GET /api/v1/policies/<id>.")
+  .option("--json", "machine-readable output")
+  .action(async (id: string, opts) => process.exit(await runPolicyGet({ id, json: !!opts.json })));
+
+policy
+  .command("create")
+  .description(
+    "Create an allow list (exactly one of --all-numbers or --number). A list with no callers declines every inbound call on its numbers. POST /api/v1/policies.",
+  )
+  .requiredOption("--name <text>", "name of the list, up to 60 characters")
+  .option("--all-numbers", "cover every number on the account, including numbers added later")
+  .option(
+    "--number <number>",
+    "cover this number (id, E.164 or nickname); repeat for several",
+    repeat,
+  )
+  .option(
+    "--allow <e164>",
+    "a caller allowed through; repeat for several. 10-digit numbers are read as US",
+    repeat,
+  )
+  .option("--off", "create the list turned off")
+  .option("--json", "machine-readable output")
+  .action(async (opts) =>
+    process.exit(
+      await runPolicyCreate({
+        name: opts.name,
+        allNumbers: !!opts.allNumbers,
+        numbers: opts.number ?? [],
+        allow: opts.allow ?? [],
+        enabled: !opts.off,
+        json: !!opts.json,
+      }),
+    ),
+  );
+
+policy
+  .command("update <id>")
+  .description(
+    "Rename, rescope, or turn an allow list on or off (at least one flag). PATCH /api/v1/policies/<id>.",
+  )
+  .option("--name <text>", "new name")
+  .option("--all-numbers", "make it the account-wide list")
+  .option(
+    "--number <number>",
+    "cover exactly these numbers (replaces the current set); repeat for several",
+    repeat,
+  )
+  .option("--on", "turn the list on")
+  .option("--off", "turn the list off; its numbers fall back to the account-wide list, if any")
+  .option("--json", "machine-readable output")
+  .action(async (id: string, opts) =>
+    process.exit(
+      await runPolicyUpdate({
+        id,
+        name: opts.name,
+        allNumbers: !!opts.allNumbers,
+        numbers: opts.number,
+        enabled: opts.on ? true : opts.off ? false : undefined,
+        json: !!opts.json,
+      }),
+    ),
+  );
+
+policy
+  .command("delete <id>")
+  .description("Delete an allow list. DELETE /api/v1/policies/<id>.")
+  .option("--json", "machine-readable output")
+  .action(async (id: string, opts) =>
+    process.exit(await runPolicyDelete({ id, json: !!opts.json })),
+  );
+
+policy
+  .command("allow <id> <numbers...>")
+  .description("Add callers to an allow list. POST /api/v1/policies/<id>/entries.")
+  .option("--label <text>", "label for the callers being added")
+  .option("--json", "machine-readable output")
+  .action(async (id: string, numbers: string[], opts) =>
+    process.exit(await runPolicyAllow({ id, numbers, label: opts.label, json: !!opts.json })),
+  );
+
+policy
+  .command("disallow <id> <numbers...>")
+  .description("Remove callers from an allow list. DELETE /api/v1/policies/<id>/entries.")
+  .option("--json", "machine-readable output")
+  .action(async (id: string, numbers: string[], opts) =>
+    process.exit(await runPolicyDisallow({ id, numbers, json: !!opts.json })),
+  );
 
 const typing = program
   .command("typing")

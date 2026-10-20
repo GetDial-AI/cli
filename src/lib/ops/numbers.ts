@@ -55,6 +55,11 @@ export type PhoneNumberRow = {
    */
   forwardTo?: string | null;
   /**
+   * The allow list screening inbound calls on the number (its own, else the
+   * account-wide one), or null when every caller rings through.
+   */
+  inboundCallPolicy?: { id: string; name: string; scope: "account" | "numbers" } | null;
+  /**
    * Numbers this one replaced, newest first. Dial can move a number onto a new line: the id and
    * settings stay, `number` becomes the new E.164, and the replaced number's id still works
    * anywhere a number is named — e.g. as `--from-number`. The old E.164 no longer works.
