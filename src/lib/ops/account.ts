@@ -424,3 +424,62 @@ export async function verifyNumber(opts: {
     supervisor: supervisorAvailability(),
   };
 }
+
+// ---- rotate the saved API key ----------------------------------------------
+
+/** The rotated key as the server returns it. `apiKey` is the only copy of the new value. */
+export type RotatedKey = {
+  id: string;
+  label: string | null;
+  apiKey: string;
+  preview: string;
+  createdAt: string;
+  rotatedAt: string;
+};
+
+/**
+ * Rotate the key this machine is signed in with and save the new value. The
+ * server marks the calling key `current: true` on GET /api/v1/account, which is
+ * how we learn its id without storing one locally.
+ *
+ * The old value dies the moment the server answers, so if saving the new one
+ * fails the key is attached to the error: it must not be lost.
+ */
+export async function rotateKey(): Promise<RotatedKey> {
+  const auth = readAuth();
+  if (!auth) {
+    throw new DialError("not_signed_in", "Not signed in. Run `dial auth login <email>` first.");
+  }
+
+  const account = await apiGet<{ apiKeys?: { id: string; current?: boolean }[] }>(
+    "/api/v1/account",
+    auth.apiKey,
+  );
+  if (!account.ok) throw new DialError("rotate_failed", account.error, account.status);
+  const current = account.data.apiKeys?.find((k) => k.current);
+  if (!current) {
+    throw new DialError(
+      "rotate_failed",
+      "Couldn't identify this machine's API key on the account. Rotate it from Settings in the dashboard instead.",
+    );
+  }
+
+  const res = await apiPost<RotatedKey>(
+    `/api/v1/account/api-keys/${encodeURIComponent(current.id)}/rotate`,
+    {},
+    auth.apiKey,
+  );
+  if (!res.ok) throw new DialError("rotate_failed", res.error, res.status);
+
+  try {
+    writeAuth({ ...auth, apiKey: res.data.apiKey });
+  } catch (e) {
+    throw new DialError(
+      "save_failed",
+      `The key was rotated but the new value couldn't be saved to ${authFilePath()}: ${(e as Error).message}. Save this new key now, it won't be shown again: ${res.data.apiKey}`,
+      undefined,
+      { apiKey: res.data.apiKey },
+    );
+  }
+  return res.data;
+}

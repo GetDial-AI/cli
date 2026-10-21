@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { writePendingSignup } from "../state.ts";
+import { writePendingSignup, writeAuth, readAuth } from "../state.ts";
 import { startMockApi } from "../../test-utils.ts";
-import { signup, accountStatus, onboard } from "./account.ts";
+import { signup, accountStatus, onboard, rotateKey } from "./account.ts";
 import { dashboardUrl } from "../dashboard.ts";
 import { isDialError } from "./errors.ts";
 import { resetSandboxCacheForTests } from "../sandbox.ts";
@@ -153,5 +153,54 @@ describe("ops/account", () => {
 
     assert.equal(result.email, null);
     assert.equal(result.dashboardUrl, dashboardUrl(api.url));
+  });
+  it("rotateKey rotates the current key and saves the new value", async () => {
+    writeAuth({ apiKey: "sk_live_old", accountId: "a1", email: "x@y.com", phoneNumber: null, phoneNumberId: null });
+    let rotatedPath = "";
+    api = await startMockApi((method, url) => {
+      if (method === "GET" && url === "/api/v1/account") {
+        return {
+          status: 200,
+          json: { apiKeys: [{ id: "k_other", current: false }, { id: "k_mine", current: true }] },
+        };
+      }
+      if (method === "POST" && url.endsWith("/rotate")) {
+        rotatedPath = url;
+        return {
+          status: 200,
+          json: {
+            id: "k_mine",
+            label: "Default",
+            apiKey: "sk_live_new",
+            preview: "sk_live_new...",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            rotatedAt: "2026-10-21T00:00:00.000Z",
+          },
+        };
+      }
+      return null;
+    });
+    process.env.DIAL_API_URL = api.url;
+    const res = await rotateKey();
+    assert.equal(rotatedPath, "/api/v1/account/api-keys/k_mine/rotate");
+    assert.equal(res.apiKey, "sk_live_new");
+    assert.equal(readAuth()?.apiKey, "sk_live_new");
+    assert.equal(readAuth()?.accountId, "a1");
+  });
+
+  it("rotateKey throws not_signed_in without a saved key", async () => {
+    await assert.rejects(rotateKey(), (e) => isDialError(e) && e.code === "not_signed_in");
+  });
+
+  it("rotateKey refuses when the server doesn't mark a current key, keeping the old one", async () => {
+    writeAuth({ apiKey: "sk_live_old", accountId: "a1", email: "x@y.com", phoneNumber: null, phoneNumberId: null });
+    api = await startMockApi((method, url) =>
+      method === "GET" && url === "/api/v1/account"
+        ? { status: 200, json: { apiKeys: [{ id: "k1", preview: "sk_live_old..." }] } }
+        : null,
+    );
+    process.env.DIAL_API_URL = api.url;
+    await assert.rejects(rotateKey(), (e) => isDialError(e) && e.code === "rotate_failed");
+    assert.equal(readAuth()?.apiKey, "sk_live_old");
   });
 });
