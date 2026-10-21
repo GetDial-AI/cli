@@ -155,13 +155,24 @@ describe("ops/account", () => {
     assert.equal(result.dashboardUrl, dashboardUrl(api.url));
   });
   it("rotateKey rotates the current key and saves the new value", async () => {
-    writeAuth({ apiKey: "sk_live_old", accountId: "a1", email: "x@y.com", phoneNumber: null, phoneNumberId: null });
+    writeAuth({
+      apiKey: "sk_live_old",
+      accountId: "a1",
+      email: "x@y.com",
+      phoneNumber: null,
+      phoneNumberId: null,
+    });
     let rotatedPath = "";
     api = await startMockApi((method, url) => {
       if (method === "GET" && url === "/api/v1/account") {
         return {
           status: 200,
-          json: { apiKeys: [{ id: "k_other", current: false }, { id: "k_mine", current: true }] },
+          json: {
+            apiKeys: [
+              { id: "k_other", current: false },
+              { id: "k_mine", current: true },
+            ],
+          },
         };
       }
       if (method === "POST" && url.endsWith("/rotate")) {
@@ -193,7 +204,13 @@ describe("ops/account", () => {
   });
 
   it("rotateKey refuses when the server doesn't mark a current key, keeping the old one", async () => {
-    writeAuth({ apiKey: "sk_live_old", accountId: "a1", email: "x@y.com", phoneNumber: null, phoneNumberId: null });
+    writeAuth({
+      apiKey: "sk_live_old",
+      accountId: "a1",
+      email: "x@y.com",
+      phoneNumber: null,
+      phoneNumberId: null,
+    });
     api = await startMockApi((method, url) =>
       method === "GET" && url === "/api/v1/account"
         ? { status: 200, json: { apiKeys: [{ id: "k1", preview: "sk_live_old..." }] } }

@@ -16,8 +16,12 @@ export async function runAuthRotateKey(opts: AuthRotateKeyOptions): Promise<numb
     } else {
       console.log("API key rotated. The old key no longer works.");
       console.log(`New key: ${rotated.apiKey}`);
-      console.log("It's saved for this CLI. Copy it now to update anything else that used the old key");
-      console.log("(deployed apps, environment variables, other machines). It won't be shown again.");
+      console.log(
+        "It's saved for this CLI. Copy it now to update anything else that used the old key",
+      );
+      console.log(
+        "(deployed apps, environment variables, other machines). It won't be shown again.",
+      );
     }
     return 0;
   } catch (e) {
