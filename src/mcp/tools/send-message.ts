@@ -83,7 +83,7 @@ export const sendMessageTool: ToolModule = {
       "iMessage group takes media like any other iMessage conversation.",
     inputSchema,
     outputSchema: { message: messageSchema },
-    annotations: { openWorldHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   },
   run: async (args) =>
     jsonResult({

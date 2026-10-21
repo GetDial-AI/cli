@@ -72,7 +72,7 @@ export const authVerifyOtpTool: ToolModule = {
       supervisor: z.object({}).passthrough().describe("Listen daemon availability on this machine"),
       listenAvailable: z.boolean(),
     },
-    annotations: { openWorldHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   },
   run: async (args) => {
     // Skill-install-only branch — mirror runOnboard(): if no --code and we're

@@ -39,7 +39,7 @@ export const addUrlTargetTool: ToolModule = {
       added: z.boolean().describe("False if the target was already registered"),
       url: z.string(),
     },
-    annotations: { openWorldHint: false },
+    annotations: { destructiveHint: true, openWorldHint: false },
   },
   run: async (args) =>
     jsonResult(
