@@ -8,6 +8,7 @@ import { runOnboard } from "./commands/onboard.ts";
 import { runAuthLogin } from "./commands/auth/login.ts";
 import { runAuthVerifyOtp } from "./commands/auth/verify-otp.ts";
 import { runAuthRegisterNumber } from "./commands/auth/register-number.ts";
+import { runAuthRotateKey } from "./commands/auth/rotate-key.ts";
 import { runListen } from "./commands/listen/index.ts";
 import { runListenInstall } from "./commands/listen/install.ts";
 import { runListenUninstall } from "./commands/listen/uninstall.ts";
@@ -154,6 +155,14 @@ if (!sandbox) {
         }),
       ),
     );
+
+  auth
+    .command("rotate-key")
+    .description(
+      "Rotate the saved API key: the old key stops working now, the new one is saved and printed once.",
+    )
+    .option("--json", "machine-readable output")
+    .action(async (opts) => process.exit(await runAuthRotateKey({ json: !!opts.json })));
 
   auth
     .command("verify-otp")
