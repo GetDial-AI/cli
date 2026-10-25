@@ -1,4 +1,4 @@
-import { describeProfileErrors, setNumberProperties } from "../../lib/ops/numbers.ts";
+import { describeFailedProfiles, setNumberProperties } from "../../lib/ops/numbers.ts";
 import { isDialError } from "../../lib/ops/errors.ts";
 import { printDialError } from "../../lib/cli-error.ts";
 
@@ -40,7 +40,7 @@ export type NumberSetOptions = {
 
 export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
   try {
-    const { profileErrors, ...n } = await setNumberProperties({
+    const { profileResults, ...n } = await setNumberProperties({
       number: opts.number,
       inboundInstruction: opts.inboundInstruction,
       ...(opts.inboundVoiceGender !== undefined
@@ -63,7 +63,7 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
     });
     if (opts.json) {
       console.log(
-        JSON.stringify({ ok: true, number: n, ...(profileErrors ? { profileErrors } : {}) }),
+        JSON.stringify({ ok: true, number: n, ...(profileResults ? { profileResults } : {}) }),
       );
     } else {
       console.log(`updated.`);
@@ -93,9 +93,10 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
     }
     // One display profile failed while the rest saved: still a success (exit 0), but
     // never a silent one — say which channel didn't change and why.
-    if (profileErrors && !opts.json) {
+    const failedLines = profileResults ? describeFailedProfiles(profileResults) : "";
+    if (failedLines && !opts.json) {
       console.error(
-        `warning: not every display profile was updated; the rest was saved.\n${describeProfileErrors(profileErrors)}`,
+        `warning: not every display profile was updated; the rest was saved.\n${failedLines}`,
       );
     }
     return 0;

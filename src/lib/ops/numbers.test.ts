@@ -422,10 +422,12 @@ describe("ops/numbers", () => {
     );
   });
 
-  it("setNumberProperties carries profileErrors when one display profile failed", async () => {
-    const failed = {
+  it("setNumberProperties carries each channel's outcome as profileResults", async () => {
+    const results = {
+      imessage: { status: "updated" },
       whatsapp: {
-        status: 400,
+        status: "failed",
+        httpStatus: 400,
         error: "WhatsApp isn't ready on this number yet.",
         code: "bad_request",
       },
@@ -441,7 +443,7 @@ describe("ops/numbers", () => {
           status: 200,
           json: {
             number: { id: "pn_1", number: "+15550000", country: "US", firstName: "Ana" },
-            profileErrors: failed,
+            profileResults: results,
           },
         };
       return undefined;
@@ -450,18 +452,20 @@ describe("ops/numbers", () => {
     signIn();
     const n = await setNumberProperties({ number: "+15550000", channel: "both", name: "Ana Lee" });
     assert.equal(n.firstName, "Ana");
-    assert.deepEqual(n.profileErrors, failed);
+    assert.deepEqual(n.profileResults, results);
   });
 
   it("setNumberProperties names every channel when every display profile failed", async () => {
-    const profileErrors = {
+    const profileResults = {
       imessage: {
-        status: 502,
+        status: "failed",
+        httpStatus: 502,
         error: "The iMessage profile couldn't be updated.",
         code: "upstream",
       },
       whatsapp: {
-        status: 400,
+        status: "failed",
+        httpStatus: 400,
         error: "WhatsApp isn't ready on this number yet.",
         code: "bad_request",
       },
@@ -478,7 +482,7 @@ describe("ops/numbers", () => {
           json: {
             error: "The iMessage profile couldn't be updated.",
             code: "upstream",
-            profileErrors,
+            profileResults,
           },
         };
       return undefined;
@@ -494,7 +498,7 @@ describe("ops/numbers", () => {
       assert.match(e.message, /Nothing was changed/);
       assert.match(e.message, /iMessage profile: The iMessage profile couldn't be updated\./);
       assert.match(e.message, /WhatsApp profile: WhatsApp isn't ready/);
-      assert.deepEqual(e.data?.profileErrors, profileErrors);
+      assert.deepEqual(e.data?.profileResults, profileResults);
     }
   });
 });

@@ -115,26 +115,31 @@ export const phoneNumberSchema = z
   })
   .passthrough();
 
-const profileChannelErrorSchema = z.object({
-  status: z
+const profileChannelResultSchema = z.object({
+  status: z.enum(["updated", "failed"]).describe("What happened to this channel's profile"),
+  httpStatus: z
     .number()
     .int()
+    .optional()
     .describe(
-      "The HTTP status this channel's failure maps to (400 rejected value or channel not on the number; 5xx failure applying it)",
+      "On a failure: the HTTP status it maps to (400 rejected value or channel not on the number; 5xx failure applying it)",
     ),
-  error: z.string().describe("Plain-language reason the channel's profile wasn't updated"),
+  error: z
+    .string()
+    .optional()
+    .describe("On a failure: plain-language reason the channel's profile wasn't updated"),
   code: z.string().optional(),
 });
 
-/** Which display profile(s) of a number update failed while the rest of the update was saved. */
-export const profileErrorsSchema = z
+/** Each targeted display profile's outcome on a number update. */
+export const profileResultsSchema = z
   .object({
-    imessage: profileChannelErrorSchema.optional(),
-    whatsapp: profileChannelErrorSchema.optional(),
+    imessage: profileChannelResultSchema.optional(),
+    whatsapp: profileChannelResultSchema.optional(),
   })
   .describe(
-    "Present only when one display profile the update targeted failed: that channel was left unchanged while the " +
-      "other channel and the rest of the update were saved. Fix the cause and retry just that channel.",
+    "Present whenever the update targeted a display profile: each targeted channel's outcome. A `failed` channel " +
+      "was left unchanged while the other channel and the rest of the update were saved. Fix the cause and retry just that channel.",
   );
 
 /**
