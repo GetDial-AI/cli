@@ -115,6 +115,33 @@ export const phoneNumberSchema = z
   })
   .passthrough();
 
+const profileChannelResultSchema = z.object({
+  status: z.enum(["updated", "failed"]).describe("What happened to this channel's profile"),
+  httpStatus: z
+    .number()
+    .int()
+    .optional()
+    .describe(
+      "On a failure: the HTTP status it maps to (400 rejected value or channel not on the number; 5xx failure applying it)",
+    ),
+  error: z
+    .string()
+    .optional()
+    .describe("On a failure: plain-language reason the channel's profile wasn't updated"),
+  code: z.string().optional(),
+});
+
+/** Each targeted display profile's outcome on a number update. */
+export const profileResultsSchema = z
+  .object({
+    imessage: profileChannelResultSchema.optional(),
+    whatsapp: profileChannelResultSchema.optional(),
+  })
+  .describe(
+    "Present whenever the update targeted a display profile: each targeted channel's outcome. A `failed` channel " +
+      "was left unchanged while the other channel and the rest of the update were saved. Fix the cause and retry just that channel.",
+  );
+
 /**
  * A group conversation. Mirrors the hosted server's `groupSchema` — `createdAt` is a
  * string, never a z.date(), because a Date is unrepresentable in JSON Schema and one

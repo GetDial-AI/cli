@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ToolModule } from "../tool.ts";
 import { jsonResult } from "../result.ts";
 import { setNumberProperties } from "../../lib/ops/numbers.ts";
-import { phoneNumberSchema } from "../schemas.ts";
+import { phoneNumberSchema, profileResultsSchema } from "../schemas.ts";
 
 const inputSchema = {
   number: z.string().min(7).describe("The E.164 phone number to update (e.g. +14155550123)"),
@@ -41,7 +41,7 @@ const inputSchema = {
     .enum(["imessage", "whatsapp", "both"])
     .optional()
     .describe(
-      'Which display profile(s) `name` and `avatarUrl` are written to: "imessage", "whatsapp", or "both". Use this when the number should present the same identity everywhere — one call instead of two, validated against every targeted channel before any of them is written, so the profiles cannot drift apart. Cannot be combined with firstName/lastName/whatsappName/whatsappAvatarUrl.',
+      'Which display profile(s) `name` and `avatarUrl` are written to: "imessage", "whatsapp", or "both". Use this when the number should present the same identity everywhere — one call instead of two. Each channel succeeds or fails on its own: a value one channel rejects (e.g. a WhatsApp-incompatible photo, or a WhatsApp line that is not connected) fails only that channel, the rest is saved, and `profileResults` in the result says which channel was updated and which failed. Cannot be combined with firstName/lastName/whatsappName/whatsappAvatarUrl.',
     ),
   name: z
     .string()
@@ -104,39 +104,39 @@ export const setNumberPropertiesTool: ToolModule = {
   config: {
     title: "Set Number Properties",
     description:
-      'Update a phone number\'s properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, whether calling is switched on at all (callingEnabled), a phone to forward inbound calls to instead of the AI voice agent (forwardTo), and its display identity. For the display identity prefer `channel` ("imessage", "whatsapp", or "both") with `name`/`avatarUrl` — one call that keeps every channel\'s profile identical. The per-channel fields remain for when the profiles differ: firstName/lastName/avatarUrl for iMessage, whatsappName/whatsappAvatarUrl for WhatsApp-ready numbers. Provide at least one property, and don\'t mix `channel` with the per-channel fields.',
+      'Update a phone number\'s properties: its inbound instruction (the system prompt for inbound calls), inbound voice gender, inbound language, nickname, whether calling is switched on at all (callingEnabled), a phone to forward inbound calls to instead of the AI voice agent (forwardTo), and its display identity. For the display identity prefer `channel` ("imessage", "whatsapp", or "both") with `name`/`avatarUrl` — one call that keeps every channel\'s profile identical. The per-channel fields remain for when the profiles differ: firstName/lastName/avatarUrl for iMessage, whatsappName/whatsappAvatarUrl for WhatsApp-ready numbers. Provide at least one property, and don\'t mix `channel` with the per-channel fields. When an update targets both the iMessage and WhatsApp profiles, each channel succeeds or fails on its own: check `profileResults` in the result: each targeted channel is `updated` or `failed` (a failed channel is left unchanged; the rest of the update was saved). The call errors only when every targeted profile failed, and then nothing changed.',
     inputSchema,
-    outputSchema: { number: phoneNumberSchema },
+    outputSchema: { number: phoneNumberSchema, profileResults: profileResultsSchema.optional() },
     annotations: { openWorldHint: true },
   },
-  run: async (args) =>
-    jsonResult({
-      number: await setNumberProperties({
-        number: args.number as string,
-        inboundInstruction: args.inboundInstruction as string | undefined,
-        ...(args.inboundVoiceGender !== undefined
-          ? { inboundVoiceGender: args.inboundVoiceGender as string }
-          : {}),
-        ...(args.inboundLanguage !== undefined
-          ? { inboundLanguage: args.inboundLanguage as string }
-          : {}),
-        ...(args.nickname !== undefined ? { nickname: args.nickname as string } : {}),
-        ...(args.maxCallDurationSeconds !== undefined
-          ? { maxCallDurationSeconds: args.maxCallDurationSeconds as number | null }
-          : {}),
-        ...(args.channel !== undefined ? { channel: args.channel as string } : {}),
-        ...(args.name !== undefined ? { name: args.name as string } : {}),
-        ...(args.firstName !== undefined ? { firstName: args.firstName as string } : {}),
-        ...(args.whatsappName !== undefined ? { whatsappName: args.whatsappName as string } : {}),
-        ...(args.callingEnabled !== undefined
-          ? { callingEnabled: args.callingEnabled as boolean }
-          : {}),
-        ...(args.forwardTo !== undefined ? { forwardTo: args.forwardTo as string | null } : {}),
-        ...(args.whatsappAvatarUrl !== undefined
-          ? { whatsappAvatar: args.whatsappAvatarUrl as string }
-          : {}),
-        ...(args.lastName !== undefined ? { lastName: args.lastName as string } : {}),
-        ...(args.avatarUrl !== undefined ? { avatar: args.avatarUrl as string } : {}),
-      }),
-    }),
+  run: async (args) => {
+    const { profileResults, ...number } = await setNumberProperties({
+      number: args.number as string,
+      inboundInstruction: args.inboundInstruction as string | undefined,
+      ...(args.inboundVoiceGender !== undefined
+        ? { inboundVoiceGender: args.inboundVoiceGender as string }
+        : {}),
+      ...(args.inboundLanguage !== undefined
+        ? { inboundLanguage: args.inboundLanguage as string }
+        : {}),
+      ...(args.nickname !== undefined ? { nickname: args.nickname as string } : {}),
+      ...(args.maxCallDurationSeconds !== undefined
+        ? { maxCallDurationSeconds: args.maxCallDurationSeconds as number | null }
+        : {}),
+      ...(args.channel !== undefined ? { channel: args.channel as string } : {}),
+      ...(args.name !== undefined ? { name: args.name as string } : {}),
+      ...(args.firstName !== undefined ? { firstName: args.firstName as string } : {}),
+      ...(args.whatsappName !== undefined ? { whatsappName: args.whatsappName as string } : {}),
+      ...(args.callingEnabled !== undefined
+        ? { callingEnabled: args.callingEnabled as boolean }
+        : {}),
+      ...(args.forwardTo !== undefined ? { forwardTo: args.forwardTo as string | null } : {}),
+      ...(args.whatsappAvatarUrl !== undefined
+        ? { whatsappAvatar: args.whatsappAvatarUrl as string }
+        : {}),
+      ...(args.lastName !== undefined ? { lastName: args.lastName as string } : {}),
+      ...(args.avatarUrl !== undefined ? { avatar: args.avatarUrl as string } : {}),
+    });
+    return jsonResult({ number, ...(profileResults ? { profileResults } : {}) });
+  },
 };

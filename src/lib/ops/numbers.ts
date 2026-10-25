@@ -264,7 +264,7 @@ export async function setNumberProperties(opts: {
    * answering. null or an empty string stops forwarding. Omit to leave unchanged.
    */
   forwardTo?: string | null;
-}): Promise<PhoneNumberRow> {
+}): Promise<PhoneNumberRow & { profileResults?: ProfileResults }> {
   const body: Record<string, unknown> = {};
   if (opts.inboundInstruction !== undefined) body.inboundInstruction = opts.inboundInstruction;
   // Empty string clears the override → send null (the enum API rejects "").
@@ -318,7 +318,7 @@ export async function setNumberProperties(opts: {
 
   // A local avatar file forces a multipart PATCH: every scalar field goes in as a
   // text part alongside the uploaded `avatar` file. Otherwise a plain JSON PATCH.
-  let res: ApiResult<{ number: PhoneNumberRow }>;
+  let res: ApiResult<NumberUpdateResponse>;
   if (avatarFile || whatsappAvatarFile) {
     const form = new ApiFormData();
     // A null (a clear, e.g. `--forward-to off`) goes as an empty text part —
@@ -341,10 +341,53 @@ export async function setNumberProperties(opts: {
         whatsappAvatarFile.name,
       );
     }
-    res = await apiPatchMultipart<{ number: PhoneNumberRow }>(path, form, auth?.apiKey);
+    res = await apiPatchMultipart<NumberUpdateResponse>(path, form, auth?.apiKey);
   } else {
-    res = await apiPatch<{ number: PhoneNumberRow }>(path, body, auth?.apiKey);
+    res = await apiPatch<NumberUpdateResponse>(path, body, auth?.apiKey);
   }
-  if (!res.ok) throw new DialError("update_failed", res.error, res.status);
-  return res.data.number;
+  if (!res.ok) {
+    // Every display profile the update targeted failed: name each channel's reason,
+    // not only the first, and keep the per-channel outcomes for --json.
+    const profileResults = (res.body as { profileResults?: ProfileResults } | undefined)
+      ?.profileResults;
+    const failedLines = profileResults ? describeFailedProfiles(profileResults) : "";
+    if (profileResults && Object.keys(profileResults).length > 1) {
+      throw new DialError("update_failed", `Nothing was changed.\n${failedLines}`, res.status, {
+        profileResults,
+      });
+    }
+    throw new DialError(
+      "update_failed",
+      res.error,
+      res.status,
+      profileResults ? { profileResults } : undefined,
+    );
+  }
+  const { number, profileResults } = res.data;
+  return profileResults ? { ...number, profileResults } : number;
+}
+
+/** What happened to one display profile the update targeted, as the server reports it. */
+export type ProfileChannelResult =
+  | { status: "updated" }
+  | { status: "failed"; httpStatus: number; error: string; code?: string };
+/** Keyed by channel; a channel the update didn't target has no key. */
+export type ProfileResults = { imessage?: ProfileChannelResult; whatsapp?: ProfileChannelResult };
+
+type NumberUpdateResponse = { number: PhoneNumberRow; profileResults?: ProfileResults };
+
+const PROFILE_CHANNEL_LABEL: Record<string, string> = {
+  imessage: "iMessage",
+  whatsapp: "WhatsApp",
+};
+
+/** One line per failed channel: "  WhatsApp profile: <reason>". Empty when none failed. */
+export function describeFailedProfiles(profileResults: ProfileResults): string {
+  return Object.entries(profileResults)
+    .flatMap(([channel, r]) =>
+      r?.status === "failed"
+        ? [`  ${PROFILE_CHANNEL_LABEL[channel] ?? channel} profile: ${r.error}`]
+        : [],
+    )
+    .join("\n");
 }
