@@ -1,4 +1,4 @@
-import { setNumberProperties } from "../../lib/ops/numbers.ts";
+import { describeProfileErrors, setNumberProperties } from "../../lib/ops/numbers.ts";
 import { isDialError } from "../../lib/ops/errors.ts";
 import { printDialError } from "../../lib/cli-error.ts";
 
@@ -40,7 +40,7 @@ export type NumberSetOptions = {
 
 export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
   try {
-    const n = await setNumberProperties({
+    const { profileErrors, ...n } = await setNumberProperties({
       number: opts.number,
       inboundInstruction: opts.inboundInstruction,
       ...(opts.inboundVoiceGender !== undefined
@@ -62,7 +62,9 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
       ...(opts.whatsappAvatar !== undefined ? { whatsappAvatar: opts.whatsappAvatar } : {}),
     });
     if (opts.json) {
-      console.log(JSON.stringify({ ok: true, number: n }));
+      console.log(
+        JSON.stringify({ ok: true, number: n, ...(profileErrors ? { profileErrors } : {}) }),
+      );
     } else {
       console.log(`updated.`);
       console.log(`  number:                ${n.number}`);
@@ -88,6 +90,13 @@ export async function runNumberSet(opts: NumberSetOptions): Promise<number> {
         console.log(`  whatsapp name:         ${n.whatsappName ?? ""}`);
         console.log(`  whatsapp avatar:       ${n.whatsappAvatarUrl ?? ""}`);
       }
+    }
+    // One display profile failed while the rest saved: still a success (exit 0), but
+    // never a silent one — say which channel didn't change and why.
+    if (profileErrors && !opts.json) {
+      console.error(
+        `warning: not every display profile was updated; the rest was saved.\n${describeProfileErrors(profileErrors)}`,
+      );
     }
     return 0;
   } catch (e) {

@@ -25,6 +25,8 @@ export function printDialError(json: boolean, e: DialError): number {
         code: e.code,
         message: e.message,
         ...(e.status ? { status: e.status } : {}),
+        // A number update whose every display profile failed lists each channel's error.
+        ...(e.data?.profileErrors ? { profileErrors: e.data.profileErrors } : {}),
       }),
     );
   } else {

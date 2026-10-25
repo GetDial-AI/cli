@@ -421,4 +421,80 @@ describe("ops/numbers", () => {
       /dial wait-for number\.status_changed -f status=ready -f phoneNumberId=pn_1 --timeout \d+/,
     );
   });
+
+  it("setNumberProperties carries profileErrors when one display profile failed", async () => {
+    const failed = {
+      whatsapp: {
+        status: 400,
+        error: "WhatsApp isn't ready on this number yet.",
+        code: "bad_request",
+      },
+    };
+    api = await startMockApi((m, u) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1")
+        return {
+          status: 200,
+          json: {
+            number: { id: "pn_1", number: "+15550000", country: "US", firstName: "Ana" },
+            profileErrors: failed,
+          },
+        };
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    const n = await setNumberProperties({ number: "+15550000", channel: "both", name: "Ana Lee" });
+    assert.equal(n.firstName, "Ana");
+    assert.deepEqual(n.profileErrors, failed);
+  });
+
+  it("setNumberProperties names every channel when every display profile failed", async () => {
+    const profileErrors = {
+      imessage: {
+        status: 502,
+        error: "The iMessage profile couldn't be updated.",
+        code: "upstream",
+      },
+      whatsapp: {
+        status: 400,
+        error: "WhatsApp isn't ready on this number yet.",
+        code: "bad_request",
+      },
+    };
+    api = await startMockApi((m, u) => {
+      if (m === "GET" && u === "/api/v1/numbers")
+        return {
+          status: 200,
+          json: { numbers: [{ id: "pn_1", number: "+15550000", country: "US" }] },
+        };
+      if (m === "PATCH" && u === "/api/v1/numbers/pn_1")
+        return {
+          status: 502,
+          json: {
+            error: "The iMessage profile couldn't be updated.",
+            code: "upstream",
+            profileErrors,
+          },
+        };
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    signIn();
+    try {
+      await setNumberProperties({ number: "+15550000", channel: "both", name: "Ana Lee" });
+      assert.fail("expected throw");
+    } catch (e) {
+      assert.ok(isDialError(e));
+      assert.equal(e.status, 502);
+      assert.match(e.message, /Nothing was changed/);
+      assert.match(e.message, /iMessage profile: The iMessage profile couldn't be updated\./);
+      assert.match(e.message, /WhatsApp profile: WhatsApp isn't ready/);
+      assert.deepEqual(e.data?.profileErrors, profileErrors);
+    }
+  });
 });

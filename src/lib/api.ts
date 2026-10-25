@@ -46,7 +46,7 @@ export function applyRefParamsHeader(headers: Record<string, string>): Record<st
 
 export type ApiResult<T> =
   | { ok: true; status: number; data: T }
-  | { ok: false; status: number; error: string };
+  | { ok: false; status: number; error: string; body?: unknown };
 
 export async function apiPost<T>(
   path: string,
@@ -97,7 +97,13 @@ function toResult<T>(statusCode: number, text: string): ApiResult<T> {
       : rawError != null
         ? JSON.stringify(rawError)
         : text || `HTTP ${statusCode}`;
-  return { ok: false, status: statusCode, error: errMsg };
+  // The parsed body rides along for callers that read more than `error` from it.
+  return {
+    ok: false,
+    status: statusCode,
+    error: errMsg,
+    ...(parsed !== null ? { body: parsed } : {}),
+  };
 }
 
 async function apiRequest<T>(
