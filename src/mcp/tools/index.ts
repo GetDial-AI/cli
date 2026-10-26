@@ -8,6 +8,7 @@ import { startTypingTool } from "./start-typing.ts";
 import { stopTypingTool } from "./stop-typing.ts";
 import { listMessagesTool } from "./list-messages.ts";
 import { listGroupsTool } from "./list-groups.ts";
+import { createGroupTool } from "./create-group.ts";
 import { listContactsTool } from "./list-contacts.ts";
 import { lookupNumberTool } from "./lookup-number.ts";
 import { placeCallTool } from "./place-call.ts";
@@ -47,6 +48,7 @@ export const tools: ToolModule[] = [
   stopTypingTool,
   listMessagesTool,
   listGroupsTool,
+  createGroupTool,
   listContactsTool,
   lookupNumberTool,
   placeCallTool,

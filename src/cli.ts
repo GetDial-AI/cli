@@ -19,6 +19,7 @@ import { runNumberPurchase } from "./commands/number/purchase.ts";
 import { runNumberSet } from "./commands/number/set.ts";
 import { runNumberWhatsapp } from "./commands/number/whatsapp.ts";
 import { runGroupList } from "./commands/group/list.ts";
+import { runGroupCreate } from "./commands/group/create.ts";
 import { runLookup } from "./commands/lookup/lookup.ts";
 import { runContactsList } from "./commands/contacts/list.ts";
 import { runMessageSend } from "./commands/message/send.ts";
@@ -594,13 +595,46 @@ program
 
 const group = program
   .command("group")
-  .description("Group conversations your lines are in (WhatsApp).");
+  .description("Group conversations your lines are in, and creating new ones (WhatsApp).");
 
 group
   .command("list")
   .description("List the group conversations your lines are in. GET /api/v1/groups.")
   .option("--json", "machine-readable output")
   .action(async (opts) => process.exit(await runGroupList({ json: !!opts.json })));
+
+group
+  .command("create")
+  .description(
+    "Create a WhatsApp group from one of your lines, which becomes its admin. POST /api/v1/groups.",
+  )
+  .option(
+    "--from-number <ref>",
+    "line to create the group from: id, owned E.164, or nickname (defaults to onboard's number; exclusive with --from-number-id)",
+  )
+  .option(
+    "--from-number-id <id>",
+    "phoneNumberId to create the group from (defaults to onboard's number; exclusive with --from-number)",
+  )
+  .option("--name <name>", "the group's name (1–100 characters)")
+  .option(
+    "--participant <e164>",
+    "a number to add, E.164 (repeat for each; at least one, at most 256)",
+    (v: string, prev: string[] = []) => [...prev, v],
+    [] as string[],
+  )
+  .option("--json", "machine-readable output")
+  .action(async (opts) =>
+    process.exit(
+      await runGroupCreate({
+        fromNumber: opts.fromNumber,
+        fromNumberId: opts.fromNumberId,
+        name: opts.name,
+        participant: opts.participant,
+        json: !!opts.json,
+      }),
+    ),
+  );
 
 const repeat = (v: string, prev: string[] = []) => [...prev, v];
 
