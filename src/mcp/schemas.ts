@@ -163,6 +163,24 @@ export const groupSchema = z.object({
 });
 
 /**
+ * A participant asked for at group creation who is not in the group. Mirrors the hosted
+ * server's `groupNotAddedSchema`. `reason` is a plain string so a value added later
+ * doesn't fail validation; treat an unrecognized one like `not_added`.
+ */
+export const groupNotAddedSchema = z.object({
+  number: z
+    .string()
+    .nullable()
+    .describe("The participant, E.164 — null only when the line could not name them"),
+  reason: z
+    .string()
+    .describe(
+      "privacy_restricted: their privacy settings only let contacts add them to groups. " +
+        "not_added: anything else",
+    ),
+});
+
+/**
  * One derived contact. Mirrors the hosted server's `contactSchema`.
  *
  * The preview fields report facts rather than a sentence — `lastKind` selects whether `lastBody`
