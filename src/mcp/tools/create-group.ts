@@ -8,7 +8,9 @@ const inputSchema = {
   channel: z
     .enum(["whatsapp"])
     .optional()
-    .describe('The channel to create the group on. Only "whatsapp" today, and the default when omitted'),
+    .describe(
+      'The channel to create the group on. Only "whatsapp" today, and the default when omitted',
+    ),
   fromNumber: z
     .string()
     .min(1)

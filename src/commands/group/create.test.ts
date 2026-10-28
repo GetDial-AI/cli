@@ -97,13 +97,23 @@ describe("group create", () => {
     auth();
 
     assert.equal(
-      await runGroupCreate({ channel: "whatsapp", name: "Launch crew", participant: ["+15551111"], json: false }),
+      await runGroupCreate({
+        channel: "whatsapp",
+        name: "Launch crew",
+        participant: ["+15551111"],
+        json: false,
+      }),
       0,
     );
     assert.equal(JSON.parse(seenBody).channel, "whatsapp");
 
     assert.equal(
-      await runGroupCreate({ channel: "imessage", name: "Launch crew", participant: ["+15551111"], json: false }),
+      await runGroupCreate({
+        channel: "imessage",
+        name: "Launch crew",
+        participant: ["+15551111"],
+        json: false,
+      }),
       2,
     );
     assert.equal(calls, 1);

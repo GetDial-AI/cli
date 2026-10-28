@@ -608,7 +608,10 @@ group
   .description(
     "Create a WhatsApp group from one of your lines, which becomes its admin. POST /api/v1/groups.",
   )
-  .option("--channel <channel>", "channel to create the group on: whatsapp (the only one today, and the default)")
+  .option(
+    "--channel <channel>",
+    "channel to create the group on: whatsapp (the only one today, and the default)",
+  )
   .option(
     "--from-number <ref>",
     "line to create the group from: id, owned E.164, or nickname (defaults to onboard's number; exclusive with --from-number-id)",

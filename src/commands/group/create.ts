@@ -27,7 +27,9 @@ export function notAddedReason(reason: GroupNotAdded["reason"] | string): string
 
 export async function runGroupCreate(opts: GroupCreateOptions): Promise<number> {
   if (opts.channel !== undefined && opts.channel !== "whatsapp") {
-    console.error("error: --channel must be whatsapp (groups can only be created on WhatsApp today).");
+    console.error(
+      "error: --channel must be whatsapp (groups can only be created on WhatsApp today).",
+    );
     return 2;
   }
   const name = opts.name?.trim() ?? "";
