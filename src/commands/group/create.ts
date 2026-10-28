@@ -3,6 +3,8 @@ import { isDialError } from "../../lib/ops/errors.ts";
 import { printDialError } from "../../lib/cli-error.ts";
 
 export type GroupCreateOptions = {
+  /** The channel to create the group on. Only "whatsapp" today; omitted, the API defaults to it. */
+  channel?: string;
   /** Flexible ref: number id, owned E.164, or nickname. Exclusive with fromNumberId. */
   fromNumber?: string;
   /** Defaults to the saved number when neither from flag is given. */
@@ -24,6 +26,12 @@ export function notAddedReason(reason: GroupNotAdded["reason"] | string): string
 }
 
 export async function runGroupCreate(opts: GroupCreateOptions): Promise<number> {
+  if (opts.channel !== undefined && opts.channel !== "whatsapp") {
+    console.error(
+      "error: --channel must be whatsapp (groups can only be created on WhatsApp today).",
+    );
+    return 2;
+  }
   const name = opts.name?.trim() ?? "";
   if (!name) {
     console.error("error: --name is required.");
@@ -44,6 +52,7 @@ export async function runGroupCreate(opts: GroupCreateOptions): Promise<number> 
   }
   try {
     const res = await createGroup({
+      ...(opts.channel !== undefined ? { channel: opts.channel } : {}),
       fromNumber: opts.fromNumber,
       fromNumberId: opts.fromNumberId,
       name,
