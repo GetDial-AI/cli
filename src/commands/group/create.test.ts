@@ -82,6 +82,34 @@ describe("group create", () => {
     assert.ok(!out.includes("null"), `must not print "null": ${out}`);
   });
 
+  it("--channel whatsapp is sent; any other channel is a flag error with no request", async () => {
+    let seenBody = "";
+    let calls = 0;
+    api = await startMockApi((m, u, body) => {
+      if (m === "POST" && u === "/api/v1/groups") {
+        calls++;
+        seenBody = body;
+        return { status: 201, json: { ...CREATED, notAdded: [] } };
+      }
+      return undefined;
+    });
+    process.env.DIAL_API_URL = api.url;
+    auth();
+
+    assert.equal(
+      await runGroupCreate({ channel: "whatsapp", name: "Launch crew", participant: ["+15551111"], json: false }),
+      0,
+    );
+    assert.equal(JSON.parse(seenBody).channel, "whatsapp");
+
+    assert.equal(
+      await runGroupCreate({ channel: "imessage", name: "Launch crew", participant: ["+15551111"], json: false }),
+      2,
+    );
+    assert.equal(calls, 1);
+    assert.match(errored.join("\n"), /--channel/);
+  });
+
   it("--from-number is sent as fromNumber instead of the saved default", async () => {
     let seenBody = "";
     api = await startMockApi((m, u, body) => {

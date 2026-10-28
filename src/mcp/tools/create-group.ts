@@ -5,6 +5,10 @@ import { createGroup } from "../../lib/ops/groups.ts";
 import { groupNotAddedSchema, groupSchema } from "../schemas.ts";
 
 const inputSchema = {
+  channel: z
+    .enum(["whatsapp"])
+    .optional()
+    .describe('The channel to create the group on. Only "whatsapp" today, and the default when omitted'),
   fromNumber: z
     .string()
     .min(1)
@@ -44,6 +48,7 @@ export const createGroupTool: ToolModule = {
   run: async (args) =>
     jsonResult(
       await createGroup({
+        channel: args.channel as string | undefined,
         fromNumber: args.fromNumber as string | undefined,
         fromNumberId: args.fromNumberId as string | undefined,
         name: args.name as string,

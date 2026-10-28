@@ -60,6 +60,8 @@ export type CreatedGroup = {
  * create has no group to name its line, so the onboarding default is the right fill.
  */
 export async function createGroup(opts: {
+  /** The channel to create the group on. Only "whatsapp" today; omitted, the API defaults to it. */
+  channel?: string;
   /** Flexible ref: number id, owned E.164, or nickname. Exclusive with fromNumberId. */
   fromNumber?: string;
   fromNumberId?: string;
@@ -70,7 +72,12 @@ export async function createGroup(opts: {
   const from = resolveFromSelector(auth, opts);
   const res = await apiPost<CreatedGroup>(
     "/api/v1/groups",
-    { ...from, name: opts.name, participants: opts.participants },
+    {
+      ...(opts.channel !== undefined ? { channel: opts.channel } : {}),
+      ...from,
+      name: opts.name,
+      participants: opts.participants,
+    },
     auth?.apiKey,
   );
   if (!res.ok) throw new DialError("create_failed", res.error, res.status);
