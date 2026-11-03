@@ -96,6 +96,10 @@ dial auth verify-otp --code 123456 --agent claude-code
 
 Supported agents: `claude-code`, `cursor`, `codex`, `opencode`, `pi`, `openclaw`, `nanoclaw`, `hermes`.
 
+## Grok Bot and Cursor plugin
+
+[`plugins/dial`](plugins/dial) is a plugin for Grok Bot, Grok Build and Cursor. It connects the agent to the hosted MCP server at `https://getdial.ai/mcp` (browser sign-in, no CLI or API key needed) and adds skills plus four commands: `/dial-inbox`, `/dial-followups`, `/dial-report` and `/dial-call-summary`. Check it with `node scripts/validate-plugin.mjs`.
+
 ## Local MCP server
 
 `dial mcp` runs a local [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, exposing every command as an agent tool. Point a local MCP client at `dial mcp` as the server command — it reuses the API key saved by `dial auth verify-otp` (no OAuth, no config). It's the local counterpart to the hosted [Remote MCP](https://docs.getdial.ai/integrations/tools/remote-mcp) server, with the same operational tools plus the local-only verbs (`auth`, `listen`, `local-target`).
