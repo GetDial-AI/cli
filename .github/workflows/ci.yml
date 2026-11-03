@@ -119,3 +119,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Validate the agent plugin
+        run: node scripts/validate-plugin.mjs

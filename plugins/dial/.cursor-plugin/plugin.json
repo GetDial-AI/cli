@@ -1,0 +1,28 @@
+{
+  "name": "dial",
+  "displayName": "Dial",
+  "version": "0.1.0",
+  "description": "Give your agent a real phone number. Send and read SMS, iMessage and WhatsApp, place AI voice calls, read call transcripts, and get a daily briefing of who reached you.",
+  "author": {
+    "name": "Dial",
+    "email": "support@getdial.ai"
+  },
+  "homepage": "https://getdial.ai",
+  "repository": "https://github.com/GetDial-AI/cli",
+  "license": "MIT",
+  "keywords": [
+    "dial",
+    "phone",
+    "phone number",
+    "sms",
+    "imessage",
+    "whatsapp",
+    "voice",
+    "ai calls",
+    "texting",
+    "call transcripts",
+    "mcp"
+  ],
+  "logo": "assets/logo.svg",
+  "mcpServers": "./mcp.json"
+}

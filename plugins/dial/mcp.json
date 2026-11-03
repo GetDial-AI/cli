@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "dial": {
+      "url": "https://getdial.ai/mcp"
+    }
+  }
+}
