@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "dial": {
+      "type": "streamable-http",
+      "url": "https://getdial.ai/mcp"
+    },
+    "dial-local": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@getdial/cli", "mcp"]
+    }
+  }
+}
