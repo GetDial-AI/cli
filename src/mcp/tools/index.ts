@@ -36,6 +36,15 @@ import {
   removePolicyEntriesTool,
   updatePolicyTool,
 } from "./policies.ts";
+import {
+  createWebhookTool,
+  deleteWebhookTool,
+  getWebhookSecretTool,
+  getWebhookTool,
+  listWebhooksTool,
+  pingWebhookTool,
+  updateWebhookTool,
+} from "./webhooks.ts";
 
 /** Every tool registered on the local stdio MCP server. */
 export const tools: ToolModule[] = [
@@ -67,6 +76,13 @@ export const tools: ToolModule[] = [
   deletePolicyTool,
   addPolicyEntriesTool,
   removePolicyEntriesTool,
+  listWebhooksTool,
+  getWebhookTool,
+  createWebhookTool,
+  updateWebhookTool,
+  deleteWebhookTool,
+  pingWebhookTool,
+  getWebhookSecretTool,
   addUrlTargetTool,
   addCommandTargetTool,
   removeLocalTargetTool,

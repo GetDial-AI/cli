@@ -74,6 +74,13 @@ dial wait-for message.received --field to=+14155550123
 | `dial local-target add cmd <path>` | Run an executable once per event. |
 | `dial local-target list` | List registered fan-out targets. |
 | `dial local-target remove <id>` | Unregister a fan-out target. |
+| `dial webhook list` | List the account's webhooks. |
+| `dial webhook get <id>` | Show one webhook: URL, events, numbers, masked headers and query params, last ping. |
+| `dial webhook create --url <url>` | Deliver account events to an HTTPS endpoint, with optional custom headers and query params. |
+| `dial webhook update <id>` | Change a webhook's URL, events, numbers, headers or query params. |
+| `dial webhook delete <id>` | Delete a webhook. |
+| `dial webhook secret <id>` | Print a webhook's full signing secret. |
+| `dial webhook ping <id>` | Send a test `webhook.ping` delivery. |
 | `dial mcp` | Run a local stdio MCP server exposing every command as an agent tool. |
 
 Run `dial --help` for the full command tree, or `dial <command> --help` for a specific command's flags. Every command accepts `--json` for machine-readable output (except `dial mcp`, which speaks JSON-RPC on stdout).

@@ -45,6 +45,13 @@ export const OPERATIONAL_TOOL_NAMES = [
   "delete_policy",
   "add_policy_entries",
   "remove_policy_entries",
+  "list_webhooks",
+  "get_webhook",
+  "create_webhook",
+  "update_webhook",
+  "delete_webhook",
+  "ping_webhook",
+  "get_webhook_secret",
 ] as const;
 
 /**
