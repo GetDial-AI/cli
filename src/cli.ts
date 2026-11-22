@@ -45,6 +45,15 @@ import {
   runPolicyList,
   runPolicyUpdate,
 } from "./commands/policy/index.ts";
+import {
+  runWebhookCreate,
+  runWebhookDelete,
+  runWebhookGet,
+  runWebhookList,
+  runWebhookPing,
+  runWebhookSecret,
+  runWebhookUpdate,
+} from "./commands/webhook/index.ts";
 import { runUpdate } from "./commands/update.ts";
 import { runUninstall } from "./commands/uninstall.ts";
 import { maybeAutoUpdate } from "./lib/update.ts";
@@ -744,6 +753,127 @@ policy
   .option("--json", "machine-readable output")
   .action(async (id: string, numbers: string[], opts) =>
     process.exit(await runPolicyDisallow({ id, numbers, json: !!opts.json })),
+  );
+
+const webhook = program
+  .command("webhook")
+  .description(
+    "Server webhooks: Dial POSTs account events to your HTTPS endpoint, signed with the webhook's secret.",
+  );
+
+webhook
+  .command("list")
+  .description("List the account's webhooks. GET /api/v1/webhooks.")
+  .option("--json", "machine-readable output")
+  .action(async (opts) => process.exit(await runWebhookList({ json: !!opts.json })));
+
+webhook
+  .command("get <id>")
+  .description("Show one webhook. GET /api/v1/webhooks/<id>.")
+  .option("--json", "machine-readable output")
+  .action(async (id: string, opts) => process.exit(await runWebhookGet({ id, json: !!opts.json })));
+
+webhook
+  .command("create")
+  .description(
+    "Create a webhook (every event and every number unless narrowed). POST /api/v1/webhooks.",
+  )
+  .requiredOption("--url <https-url>", "the HTTPS endpoint Dial POSTs events to")
+  .option(
+    "--event <type>",
+    "an event type to deliver; repeat for several (default: all, *)",
+    repeat,
+  )
+  .option(
+    "--number <number>",
+    "only this number's events (id, E.164 or nickname); repeat for several (default: every number)",
+    repeat,
+  )
+  .option("--header <header>", 'a custom header, "Name: value"; repeat for several', repeat)
+  .option("--query <pair>", "a custom query parameter, key=value; repeat for several", repeat)
+  .option("--json", "machine-readable output")
+  .action(async (opts) =>
+    process.exit(
+      await runWebhookCreate({
+        url: opts.url,
+        events: opts.event,
+        numbers: opts.number,
+        headers: opts.header,
+        query: opts.query,
+        json: !!opts.json,
+      }),
+    ),
+  );
+
+webhook
+  .command("update <id>")
+  .description(
+    "Change a webhook (at least one flag); the signing secret stays the same. PATCH /api/v1/webhooks/<id>.",
+  )
+  .option("--url <https-url>", "new endpoint")
+  .option("--event <type>", "deliver exactly these event types; repeat for several", repeat)
+  .option(
+    "--number <number>",
+    "cover exactly these numbers (replaces the current set); repeat for several",
+    repeat,
+  )
+  .option("--all-numbers", "cover every number on the account again")
+  .option(
+    "--header <header>",
+    'replace every custom header with these, "Name: value"; repeat for several',
+    repeat,
+  )
+  .option("--clear-headers", "remove every custom header")
+  .option(
+    "--query <pair>",
+    "replace every custom query parameter with these, key=value; repeat for several",
+    repeat,
+  )
+  .option("--clear-query", "remove every custom query parameter")
+  .option("--json", "machine-readable output")
+  .action(async (id: string, opts) =>
+    process.exit(
+      await runWebhookUpdate({
+        id,
+        url: opts.url,
+        events: opts.event,
+        numbers: opts.number,
+        allNumbers: !!opts.allNumbers,
+        headers: opts.header,
+        clearHeaders: !!opts.clearHeaders,
+        query: opts.query,
+        clearQuery: !!opts.clearQuery,
+        json: !!opts.json,
+      }),
+    ),
+  );
+
+webhook
+  .command("delete <id>")
+  .description("Delete a webhook; events stop being delivered to it. DELETE /api/v1/webhooks/<id>.")
+  .option("--json", "machine-readable output")
+  .action(async (id: string, opts) =>
+    process.exit(await runWebhookDelete({ id, json: !!opts.json })),
+  );
+
+webhook
+  .command("secret <id>")
+  .description(
+    "Print a webhook's full signing secret, to verify the X-Dial-Signature header. GET /api/v1/webhooks/<id>/secret.",
+  )
+  .option("--json", "machine-readable output")
+  .action(async (id: string, opts) =>
+    process.exit(await runWebhookSecret({ id, json: !!opts.json })),
+  );
+
+webhook
+  .command("ping <id>")
+  .description(
+    "Send a webhook.ping event to a webhook and print its eventId; delivery is asynchronous. POST /api/v1/webhooks/<id>/ping.",
+  )
+  .option("--json", "machine-readable output")
+  .action(async (id: string, opts) =>
+    process.exit(await runWebhookPing({ id, json: !!opts.json })),
   );
 
 const typing = program

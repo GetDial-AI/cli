@@ -350,6 +350,40 @@ export const policySchema = z
   })
   .passthrough();
 
+export const webhookSchema = z
+  .object({
+    id: z.string().describe("Webhook id"),
+    targetUrl: z.string().describe("The HTTPS endpoint events are POSTed to"),
+    eventTypes: z.array(z.string()).describe('The event types delivered; ["*"] means all'),
+    phoneNumberIds: z
+      .array(z.string())
+      .nullable()
+      .describe(
+        "Ids of the numbers covered, or null for every number on the account; [] after every chosen number was released",
+      ),
+    secretMasked: z.string().describe("The signing secret, masked; get_webhook_secret reveals it"),
+    headers: z
+      .record(z.string(), z.string())
+      .describe("Custom headers sent with every delivery, values masked; {} when none"),
+    queryParams: z
+      .record(z.string(), z.string())
+      .describe("Custom query parameters added to every delivery, values masked; {} when none"),
+    lastPingSucceededAt: z
+      .string()
+      .nullable()
+      .describe("When a ping last got a 2xx from the endpoint, ISO-8601; null if never"),
+    createdAt: z.string().describe("When the webhook was created, ISO-8601"),
+  })
+  .passthrough();
+
+/** The input descriptions shared by create_webhook and update_webhook (and the hosted twin). */
+export const WEBHOOK_TARGET_URL_DESCRIPTION =
+  "The HTTPS endpoint Dial POSTs events to. Must not be a private or loopback address.";
+export const WEBHOOK_EVENT_TYPES_DESCRIPTION =
+  'Event types to deliver: ["*"] for all, or any of message.received, message.status_changed, call.status_changed, ' +
+  "call.ended, call.transcribed, number.status_changed";
+export const WEBHOOK_ID_DESCRIPTION = "Id of the webhook, from list_webhooks";
+
 export const eventSchema = z
   .object({})
   .passthrough()
