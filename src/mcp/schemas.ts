@@ -94,8 +94,8 @@ export const phoneNumberSchema = z
       .describe("URL of the number's WhatsApp avatar; null when unset"),
     whatsapp: z
       .object({
-        status: z.enum(["provisioning", "warming_up", "ready", "failed", "banned"]),
-        error: z.string().nullable().describe("Reason when status is 'failed' or 'banned'"),
+        status: z.enum(["provisioning", "warming_up", "ready", "failed", "banned", "paused", "offline"]),
+        error: z.string().nullable().describe("Reason when status is 'failed', 'banned', 'paused' or 'offline'"),
         retryAvailableAt: z
           .string()
           .nullable()
@@ -110,7 +110,11 @@ export const phoneNumberSchema = z
         "The WhatsApp channel's own setup state, independent of setupStatus, or null when the number has no " +
           "WhatsApp registration. 'warming_up' means a number you connected is registered and is being " +
           "warmed up for about 6 hours before first use. Sending with channel 'whatsapp' is refused until " +
-          "status is 'ready', and again once 'banned' — the channel was withdrawn from a line that was working.",
+          "status is 'ready', and again once 'banned' — the channel was withdrawn from a line that was working. " +
+          "'paused' is temporary: Dial has paused WhatsApp sending on the line, and it returns to 'ready' on its " +
+          "own. 'offline' is temporary too: WhatsApp is temporarily offline on the line and Dial is reconnecting " +
+          "it, sends are refused with whatsapp_offline (retry after the Retry-After interval), and it returns to " +
+          "'ready' on its own, or to 'failed' if it cannot be reconnected.",
       ),
   })
   .passthrough();

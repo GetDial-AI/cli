@@ -412,6 +412,11 @@ describe("ops/numbers", () => {
       assert.equal(whatsappInProgress(s), false);
   });
 
+  it("offline counts as in progress: Dial is reconnecting the line, so waiting makes sense", () => {
+    assert.equal(whatsappInProgress("offline"), true);
+    assert.equal(whatsappInProgress("paused"), false);
+  });
+
   it("connecting WhatsApp tells the caller it takes hours and how to wait for it", () => {
     const text = whatsappConnectNextStep("pn_1");
     assert.match(text, /about 6 hours/);

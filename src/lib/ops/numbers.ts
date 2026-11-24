@@ -36,7 +36,9 @@ export type PhoneNumberRow = {
   whatsapp?: {
     /**
      * `warming_up`: a number you connected is registered and warming up (about 6 hours) before
-     * first use. `banned`: WhatsApp withdrew a line that was working; permanent.
+     * first use. `banned`: WhatsApp withdrew a line that was working; permanent. `paused`: Dial
+     * temporarily paused WhatsApp sending. `offline`: WhatsApp is temporarily offline on the line
+     * and Dial is reconnecting it; sends fail with `whatsapp_offline` until it is `ready` again.
      */
     status: WhatsappStatus;
     error: string | null;
@@ -158,11 +160,11 @@ export async function purchaseNumber(opts: {
 }
 
 /** The WhatsApp track's statuses, as the server reports them. */
-export type WhatsappStatus = "provisioning" | "warming_up" | "ready" | "failed" | "banned";
+export type WhatsappStatus = "provisioning" | "warming_up" | "ready" | "failed" | "banned" | "paused" | "offline";
 
-/** Still working on it: waiting makes sense. */
+/** Still working on it: waiting makes sense. `offline` is Dial reconnecting the line. */
 export function whatsappInProgress(status: WhatsappStatus | undefined): boolean {
-  return status === "provisioning" || status === "warming_up";
+  return status === "provisioning" || status === "warming_up" || status === "offline";
 }
 
 export const WHATSAPP_NUMBERS_UNAVAILABLE =
