@@ -383,6 +383,8 @@ export const WEBHOOK_EVENT_TYPES_DESCRIPTION =
   'Event types to deliver: ["*"] for all, or any of message.received, message.status_changed, call.status_changed, ' +
   "call.ended, call.transcribed, number.status_changed";
 export const WEBHOOK_ID_DESCRIPTION = "Id of the webhook, from list_webhooks";
+export const WEBHOOK_DASHBOARD_HINT_DESCRIPTION =
+  "Next-step guidance: the dashboard links that create or edit a webhook, to offer the user when a secret is needed you don't have";
 
 export const eventSchema = z
   .object({})

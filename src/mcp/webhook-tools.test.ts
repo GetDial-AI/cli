@@ -165,7 +165,7 @@ describe("local MCP webhook tools", () => {
     assert.deepEqual(secret.structuredContent, { secret: "whsec_full" });
   });
 
-  it("list_webhooks and get_webhook return the webhooks", async () => {
+  it("list_webhooks and get_webhook return the webhooks with their dashboard links", async () => {
     await serve((m, u) => {
       if (m === "GET" && u === "/api/v1/webhooks")
         return { status: 200, json: { webhooks: [WEBHOOK] } };
@@ -175,7 +175,13 @@ describe("local MCP webhook tools", () => {
     });
     const list = await tool("list_webhooks").run({});
     const one = await tool("get_webhook").run({ webhookId: "wh_1" });
-    assert.deepEqual(list.structuredContent, { webhooks: [WEBHOOK] });
-    assert.deepEqual(one.structuredContent, { webhook: WEBHOOK });
+    const listed = list.structuredContent as { webhooks: unknown; hint: string };
+    const got = one.structuredContent as { webhook: unknown; hint: string };
+    assert.deepEqual(listed.webhooks, [WEBHOOK]);
+    assert.deepEqual(got.webhook, WEBHOOK);
+    // The mock API is the base, so the dashboard is served from it too.
+    assert.ok(listed.hint.includes(`${api?.url}/dashboard/webhooks?new=1`), listed.hint);
+    assert.ok(listed.hint.includes(`${api?.url}/dashboard/webhooks?edit=wh_1`), listed.hint);
+    assert.ok(got.hint.includes(`${api?.url}/dashboard/webhooks?edit=wh_1`), got.hint);
   });
 });

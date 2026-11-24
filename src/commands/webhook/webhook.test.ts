@@ -117,24 +117,32 @@ describe("dial webhook runners", () => {
 
   it("list --json prints the webhooks", async () => {
     assert.equal(await runWebhookList({ json: true }), 0);
-    assert.deepEqual(JSON.parse(logged[0]), { ok: true, webhooks: [WEBHOOK] });
+    const out = JSON.parse(logged[0]);
+    assert.deepEqual({ ok: out.ok, webhooks: out.webhooks }, { ok: true, webhooks: [WEBHOOK] });
+    assert.match(out.hint, /\/dashboard\/webhooks\?new=1/);
+    assert.match(out.hint, /\/dashboard\/webhooks\?edit=wh_1/);
   });
 
-  it("list prints each webhook's details", async () => {
+  it("list prints each webhook's details, then the dashboard links", async () => {
     assert.equal(await runWebhookList({ json: false }), 0);
-    assert.match(logged.join("\n"), /wh_1[\s\S]*Authorization: Bear••••oken/);
+    assert.match(
+      logged.join("\n"),
+      /wh_1[\s\S]*Authorization: Bear••••oken[\s\S]*\/dashboard\/webhooks\?edit=wh_1/,
+    );
   });
 
-  it("get and create --json print the webhook", async () => {
+  it("get --json prints the webhook with its dashboard links; create --json prints it alone", async () => {
     assert.equal(await runWebhookGet({ id: "wh_1", json: true }), 0);
     assert.equal(await runWebhookCreate({ url: "https://example.com/hooks/dial", json: true }), 0);
-    assert.deepEqual(
-      logged.map((l) => JSON.parse(l)),
-      [
-        { ok: true, webhook: WEBHOOK },
-        { ok: true, webhook: WEBHOOK },
-      ],
-    );
+    const [got, created] = logged.map((l) => JSON.parse(l));
+    assert.deepEqual({ ok: got.ok, webhook: got.webhook }, { ok: true, webhook: WEBHOOK });
+    assert.match(got.hint, /\/dashboard\/webhooks\?edit=wh_1/);
+    assert.deepEqual(created, { ok: true, webhook: WEBHOOK });
+  });
+
+  it("get prints the dashboard edit link after the webhook", async () => {
+    assert.equal(await runWebhookGet({ id: "wh_1", json: false }), 0);
+    assert.match(logged.join("\n"), /^wh_1[\s\S]*\/dashboard\/webhooks\?edit=wh_1/);
   });
 
   it("update prints the updated webhook", async () => {
