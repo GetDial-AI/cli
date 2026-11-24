@@ -94,8 +94,19 @@ export const phoneNumberSchema = z
       .describe("URL of the number's WhatsApp avatar; null when unset"),
     whatsapp: z
       .object({
-        status: z.enum(["provisioning", "warming_up", "ready", "failed", "banned", "paused", "offline"]),
-        error: z.string().nullable().describe("Reason when status is 'failed', 'banned', 'paused' or 'offline'"),
+        status: z.enum([
+          "provisioning",
+          "warming_up",
+          "ready",
+          "failed",
+          "banned",
+          "paused",
+          "offline",
+        ]),
+        error: z
+          .string()
+          .nullable()
+          .describe("Reason when status is 'failed', 'banned', 'paused' or 'offline'"),
         retryAvailableAt: z
           .string()
           .nullable()

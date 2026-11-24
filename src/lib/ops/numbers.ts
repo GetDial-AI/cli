@@ -160,7 +160,14 @@ export async function purchaseNumber(opts: {
 }
 
 /** The WhatsApp track's statuses, as the server reports them. */
-export type WhatsappStatus = "provisioning" | "warming_up" | "ready" | "failed" | "banned" | "paused" | "offline";
+export type WhatsappStatus =
+  | "provisioning"
+  | "warming_up"
+  | "ready"
+  | "failed"
+  | "banned"
+  | "paused"
+  | "offline";
 
 /** Still working on it: waiting makes sense. `offline` is Dial reconnecting the line. */
 export function whatsappInProgress(status: WhatsappStatus | undefined): boolean {
