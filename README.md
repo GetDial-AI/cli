@@ -1,4 +1,6 @@
 # @getdial/cli
+[![Dial MCP server](https://glama.ai/mcp/servers/GetDial-AI/cli/badge)](https://glama.ai/mcp/servers/GetDial-AI/cli)
+
 
 [![smithery badge](https://smithery.ai/badge/getdial-ai/dial)](https://smithery.ai/servers/getdial-ai/dial)
 
