@@ -11,7 +11,11 @@ import {
   postWebhook,
   type WebhookBody,
 } from "../../lib/ops/webhooks.ts";
+import { baseUrl } from "../../lib/api.ts";
+import { dashboardUrl } from "../../lib/dashboard.ts";
+import { webhookDashboardHint, webhooksPageUrl } from "../../lib/webhook-links.ts";
 import {
+  WEBHOOK_DASHBOARD_HINT_DESCRIPTION,
   WEBHOOK_EVENT_TYPES_DESCRIPTION,
   WEBHOOK_ID_DESCRIPTION,
   WEBHOOK_TARGET_URL_DESCRIPTION,
@@ -31,9 +35,13 @@ export const listWebhooksTool: ToolModule = {
     title: "List Webhooks",
     description:
       "List the account's webhook subscriptions: each endpoint URL, the event types and numbers it covers, its custom " +
-      "headers and query parameters (values masked), and when a ping last succeeded.",
+      "headers and query parameters (values masked), and when a ping last succeeded. Also returns a hint with " +
+      "dashboard links that create a webhook or edit each one listed, for when the user should enter a secret themselves.",
     inputSchema: {},
-    outputSchema: { webhooks: z.array(webhookSchema) },
+    outputSchema: {
+      webhooks: z.array(webhookSchema),
+      hint: z.string().describe(WEBHOOK_DASHBOARD_HINT_DESCRIPTION),
+    },
     annotations: {
       readOnlyHint: true,
       destructiveHint: false,
@@ -41,16 +49,30 @@ export const listWebhooksTool: ToolModule = {
       openWorldHint: true,
     },
   },
-  run: async () => jsonResult({ webhooks: await listWebhooks() }),
+  run: async () => {
+    const webhooks = await listWebhooks();
+    return jsonResult({
+      webhooks,
+      hint: webhookDashboardHint(
+        webhooksPageUrl(dashboardUrl(baseUrl())),
+        webhooks.map((w) => w.id),
+      ),
+    });
+  },
 };
 
 export const getWebhookTool: ToolModule = {
   name: "get_webhook",
   config: {
     title: "Get Webhook",
-    description: "Get one webhook subscription by id.",
+    description:
+      "Get one webhook subscription by id. Also returns a hint with the dashboard links that edit it or create a new " +
+      "one, for when the user should enter a secret themselves.",
     inputSchema: { webhookId },
-    outputSchema: { webhook: webhookSchema },
+    outputSchema: {
+      webhook: webhookSchema,
+      hint: z.string().describe(WEBHOOK_DASHBOARD_HINT_DESCRIPTION),
+    },
     annotations: {
       readOnlyHint: true,
       destructiveHint: false,
@@ -58,7 +80,13 @@ export const getWebhookTool: ToolModule = {
       openWorldHint: true,
     },
   },
-  run: async (args) => jsonResult({ webhook: await getWebhook(args.webhookId as string) }),
+  run: async (args) => {
+    const webhook = await getWebhook(args.webhookId as string);
+    return jsonResult({
+      webhook,
+      hint: webhookDashboardHint(webhooksPageUrl(dashboardUrl(baseUrl())), [webhook.id]),
+    });
+  },
 };
 
 export const createWebhookTool: ToolModule = {

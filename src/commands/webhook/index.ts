@@ -12,6 +12,13 @@ import {
 } from "../../lib/ops/webhooks.ts";
 import { isDialError } from "../../lib/ops/errors.ts";
 import { printDialError } from "../../lib/cli-error.ts";
+import { baseUrl } from "../../lib/api.ts";
+import { dashboardUrl } from "../../lib/dashboard.ts";
+import {
+  CLI_WEBHOOK_VERBS,
+  webhookDashboardHint,
+  webhooksPageUrl,
+} from "../../lib/webhook-links.ts";
 import { formatWebhookDetail } from "./format.ts";
 
 // `dial webhook …`: server webhooks that receive account events over HTTPS. Each runner
@@ -35,18 +42,38 @@ function printWebhook(json: boolean, webhook: Webhook, verb?: string): void {
   }
 }
 
+/** The dashboard-links hint `list` and `get` end with (`hint` under --json). */
+function hintFor(webhookIds: string[]): string {
+  return webhookDashboardHint(
+    webhooksPageUrl(dashboardUrl(baseUrl())),
+    webhookIds,
+    CLI_WEBHOOK_VERBS,
+  );
+}
+
 export function runWebhookList(opts: { json: boolean }): Promise<number> {
   return run(opts.json, async () => {
     const webhooks = await listWebhooks();
-    if (opts.json) console.log(JSON.stringify({ ok: true, webhooks }));
-    else if (webhooks.length === 0)
-      console.log("no webhooks. add one with `dial webhook create --url <https-url>`.");
-    else console.log(webhooks.map(formatWebhookDetail).join("\n\n"));
+    const hint = hintFor(webhooks.map((w) => w.id));
+    if (opts.json) console.log(JSON.stringify({ ok: true, webhooks, hint }));
+    else {
+      console.log(
+        webhooks.length === 0
+          ? "no webhooks. add one with `dial webhook create --url <https-url>`."
+          : webhooks.map(formatWebhookDetail).join("\n\n"),
+      );
+      console.log(`\n${hint}`);
+    }
   });
 }
 
 export function runWebhookGet(opts: { id: string; json: boolean }): Promise<number> {
-  return run(opts.json, async () => printWebhook(opts.json, await getWebhook(opts.id)));
+  return run(opts.json, async () => {
+    const webhook = await getWebhook(opts.id);
+    const hint = hintFor([webhook.id]);
+    if (opts.json) console.log(JSON.stringify({ ok: true, webhook, hint }));
+    else console.log(`${formatWebhookDetail(webhook)}\n\n${hint}`);
+  });
 }
 
 export function runWebhookCreate(opts: CreateWebhookInput & { json: boolean }): Promise<number> {
